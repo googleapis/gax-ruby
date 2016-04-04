@@ -61,7 +61,6 @@ module Google
       #     A gRPC client stub.
       # """
       #
-      # rubocop:disable Metrics/MethodLength
       # rubocop:disable Metrics/ParameterLists
       def create_stub(service_path,
                       port,
