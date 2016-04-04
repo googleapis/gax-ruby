@@ -30,40 +30,39 @@
 require 'rly'
 
 module Google
+  # Gax defines Google API extensions
   module Gax
-
-
+    # Lexer for the path_template language
     class PathLex < Rly::Lex
-      token :FORWARD_SLASH %r{/}
-      token :LEFT_BRACE %r{\{}
-      token :RIGHT_BRACE %r{\}}
-      token :EQUALS %r{=}
-      token :WILDCARD %r{\*}
-      token :PATH_WILDCARD %r{\*\*}
-      token :LITERAL %r{[^*=\}\{\/]+}
+      # token :FORWARD_SLASH %r{/}
+      # token :LEFT_BRACE %r{\{}
+      # token :RIGHT_BRACE %r{\}}
+      # token :EQUALS %r{=}
+      # token :WILDCARD %r{\*}
+      # token :PATH_WILDCARD %r{\*\*}
+      # token :LITERAL %r{[^*=\}\{\/]+}
     end
 
+    # Parser for the path_template language
     class PathParse < Rly::Yacc
-
     end
 
+    # PathTemplate parses and format resource names
     class PathTemplate
-      def instantiate(bindings)
-        return ""
+      def instantiate(_bindings)
+        ''
       end
 
-      def match(path)
-        return true
+      def match(_path)
+        true
       end
-
     end
 
     # Private methods
     private
 
-    def format(segments)
-      return ""
+    def format(_segments)
+      ''
     end
-
   end
 end
