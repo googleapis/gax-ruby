@@ -31,6 +31,8 @@ require 'rly'
 
 module Google
   module Gax
+
+
     class PathLex < Rly::Lex
       token :FORWARD_SLASH %r{/}
       token :LEFT_BRACE %r{\{}
@@ -38,11 +40,29 @@ module Google
       token :EQUALS %r{=}
       token :WILDCARD %r{\*}
       token :PATH_WILDCARD %r{\*\*}
-      token :LITERAL %r{[^*=\}{\/]+}
+      token :LITERAL %r{[^*=\}\{\/]+}
     end
 
     class PathParse < Rly::Yacc
 
+    end
+
+    class PathTemplate
+      def instantiate(bindings)
+        return ""
+      end
+
+      def match(path)
+        return true
+      end
+
+    end
+
+    # Private methods
+    private
+
+    def format(segments)
+      return ""
     end
 
   end
