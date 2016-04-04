@@ -34,23 +34,71 @@ module Google
   module Gax
     # Lexer for the path_template language
     class PathLex < Rly::Lex
-      # token :FORWARD_SLASH %r{/}
-      # token :LEFT_BRACE %r{\{}
-      # token :RIGHT_BRACE %r{\}}
-      # token :EQUALS %r{=}
-      # token :WILDCARD %r{\*}
-      # token :PATH_WILDCARD %r{\*\*}
-      # token :LITERAL %r{[^*=\}\{\/]+}
+      token :FORWARD_SLASH, %r{/}
+      token :LEFT_BRACE, /\{/
+      token :RIGHT_BRACE, /\}/
+      token :EQUALS, /=/
+      token :WILDCARD, /\*/
+      token :PATH_WILDCARD, /\*\*/
+      token :LITERAL, %r{[^*=\}\{\/]+}
+
+      # TODO: raise exception
+      on_error do |p|
+        puts 'lexer error'
+        puts p
+        nil
+      end
     end
 
     # Parser for the path_template language
     class PathParse < Rly::Yacc
+      rule 'template : FORWARD_SLASH bound_segments
+                     | bound_segments' do |*p|
+        # do something
+      end
+
+      rule 'bound_segments : bound_set FORWARD_SLASH bound_segments
+                           | bound_segment' do |*p|
+      end
+
+      rule 'unbound_segments : unbound_terminal FORWARD_SLASH unbound_segments
+                             | unbound_terminal' do |*p|
+      end
+
+      rule 'bound_segment : bound_terminal
+                          | variable' do |*p|
+      end
+
+      rule 'unbound_terminal : WILDCARD
+                             | PATH_WILDCARD
+                             | LITERAL' do |*p|
+      end
+
+      rule 'bound_terminal : unbound_terminal' do |*p|
+      end
+
+      rule 'variable : LEFT_BRACE LITERAL EQUALS unbound_segments RIGHT_BRACE
+                     | LEFT_BRACE LITERAL RIGHT_BRACE' do |*p|
+      end
+
+      # raise an exception here
+      on_error do |p|
+        puts 'parser error'
+        puts p
+        nil
+      end
     end
 
     # PathTemplate parses and format resource names
     class PathTemplate
       def instantiate(_bindings)
         ''
+      end
+
+      def initialize(data)
+        parser = PathParse.new(PathLex.new)
+        @segments = parser.parse(data)
+        @segment_count = parser.segment_count
       end
 
       def match(_path)
