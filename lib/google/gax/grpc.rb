@@ -28,87 +28,62 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 require 'grpc'
-
-
-# creates a test stub that accesses host:port securely.
-def create_stub(opts)
-  address = "#{opts.host}:#{opts.port}"
-  if opts.secure
-    creds = ssl_creds(opts.use_test_ca)
-    stub_opts = {
-      GRPC::Core::Channel::SSL_TARGET => opts.host_override
-    }
-
-    # Add service account creds if specified
-    wants_creds = %w(all compute_engine_creds service_account_creds)
-    if wants_creds.include?(opts.test_case)
-      unless opts.oauth_scope.nil?
-        auth_creds = Google::Auth.get_application_default(opts.oauth_scope)
-        call_creds = GRPC::Core::CallCredentials.new(auth_creds.updater_proc)
-        creds = creds.compose call_creds
-      end
-    end
-
-    if opts.test_case == 'oauth2_auth_token'
-      auth_creds = Google::Auth.get_application_default(opts.oauth_scope)
-      kw = auth_creds.updater_proc.call({})  # gives as an auth token
-
-      # use a metadata update proc that just adds the auth token.
-      call_creds = GRPC::Core::CallCredentials.new(proc { |md| md.merge(kw) })
-      creds = creds.compose call_creds
-    end
-
-    if opts.test_case == 'jwt_token_creds'  # don't use a scope
-      auth_creds = Google::Auth.get_application_default
-      call_creds = GRPC::Core::CallCredentials.new(auth_creds.updater_proc)
-      creds = creds.compose call_creds
-    end
-
-    GRPC.logger.info("... connecting securely to #{address}")
-    Grpc::Testing::TestService::Stub.new(address, creds, **stub_opts)
-  else
-    GRPC.logger.info("... connecting insecurely to #{address}")
-    Grpc::Testing::TestService::Stub.new(address, :this_channel_is_insecure)
-  end
-end
-
+require 'googleauth'
 
 module Google
   module Gax
+    # Grpc adapts the gRPC surface
     module Grpc
       API_ERRORS = [GRPC::BadStatus, GRPC::Cancelled].freeze
 
-
       # Creates a gRPC client stub.
       #
-      # Args:
-      #   generated_create_stub: The generated gRPC method to create a stub.
-      #   service_path: The domain name of the API remote host.
-      #   port: The port on which to connect to the remote host.
-      #   ssl_creds: A ClientCredentials object for use with an SSL-enabled
-      #         Channel. If none, credentials are pulled from a default location.
-      #   channel: A Channel object through which to make calls. If none, a secure
-      #         channel is constructed.
-      #   metadata_transformer: A function that transforms the metadata for
-      #         requests, e.g., to give OAuth credentials.
-      #   scopes: The OAuth scopes for this service. This parameter is ignored if
-      #      a custom metadata_transformer is supplied.
+      # @param service_path [string] The domain name of the API remote host.
+      #
+      # @param port [integer] The port on which to connect to the remote host.
+      #
+      # @param chan_creds [Object] A ClientCredentials object for use with an
+      #    SSL-enabled Channel. If none, credentials are pulled from a default
+      #    location.
+      #
+      # @param channel [Object] A Channel object through which to make calls. If
+      #    none, a secure channel is constructed.  @param updater_proc: A
+      #    function that transforms the metadata for requests, e.g., to give
+      #    OAuth credentials.
+      #
+      # @param scopes: The OAuth scopes for this service. This parameter is
+      #    ignored if a custom metadata_transformer is supplied.
+      #
+      # A block is required, the block is assumed to be the generated gRPC
+      # method to create a stub.
       #
       # Returns:
       #     A gRPC client stub.
       # """
+      #
+      # rubocop:disable Metrics/MethodLength
+      # rubocop:disable Metrics/ParameterLists
       def create_stub(service_path,
                       port,
-                      ssl_creds,
-                      channel,
-                      updater_proc,
-                      scopes,
-                      &blk)
+                      chan_creds: nil,
+                      channel: nil,
+                      updater_proc: nil,
+                      scopes: nil)
         address = "#{service_path}:#{port}"
         if channel.nil?
-          ssl_creds = GRPC::Core::ChannelCredentials.new if ssl_creds.nil?
+          chan_creds = GRPC::Core::ChannelCredentials.new if chan_creds.nil?
+          if updater_proc.nil?
+            auth_creds = Google::Auth.get_application_default(scopes)
+            updater_proc = auth_creds.updater_proc
+          end
+          call_creds = GRPC::Core::CallCredentials.new(updater_proc)
+          chan_creds = chan_creds.compose(call_creds)
+          yield(address, chan_creds)
+        else
+          yield(address, nil, channel_override: channel)
         end
       end
+
       module_function :create_stub
     end
   end
