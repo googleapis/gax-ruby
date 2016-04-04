@@ -4,22 +4,22 @@ require 'google/gax/errors'
 module Google
   module Gax
     def create_api_call(func, settings)
-      if settings.retry_options && settings.retry_options.retry_codes
-          api_call = _retryable(func, settings.retry_options)
-      else
-        api_call = _add_timeout_arg(func, settings.timeout)
-      end
+      api_call = if settings.retry_options && settings.retry_options.retry_codes
+                   _retryable(func, settings.retry_options)
+                 else
+                   _add_timeout_arg(func, settings.timeout)
+                 end
 
       if settings.page_descriptor
         if settings.bundler && settings.bundle_descriptor
           raise 'ApiCallable has incompatible settings: ' \
               'bundling and page streaming'
-          return _page_streamable(
-              api_call,
-              settings.page_descriptor.request_page_token_field,
-              settings.page_descriptor.response_page_token_field,
-              settings.page_descriptor.resource_field)
         end
+        return _page_streamable(
+          api_call,
+          settings.page_descriptor.request_page_token_field,
+          settings.page_descriptor.response_page_token_field,
+          settings.page_descriptor.resource_field)
       end
       if settings.bundler && settings.bundle_descriptor
         return _bundleable(api_call, settings.bundle_descriptor,
@@ -27,15 +27,15 @@ module Google
       end
 
       # return _catch_errors(api_call, config.API_ERRORS)
-      _catch_errors(api_call, nil)
+      _catch_errors(api_call)
     end
 
-    def _catch_errors(a_func, errors)
+    def _catch_errors(a_func, errors:StandardError)
       proc do |*args|
         begin
           a_func.call(*args)
-        rescue StandardError => err  # errors
-          fail GaxError.new('RPC failed', cause:err)
+        rescue errors => err
+          raise GaxError.new('RPC failed', cause: err)
         end
       end
     end
@@ -97,6 +97,6 @@ module Google
     end
 
     module_function :create_api_call, :_catch_errors, :_bundleable,
-        :_page_streamable, :_retryable, :_add_timeout_arg
+                    :_page_streamable, :_retryable, :_add_timeout_arg
   end
 end

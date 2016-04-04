@@ -32,8 +32,8 @@ require 'google/gax'
 
 describe Google::Gax do
   it 'calls api call' do
-    settings = Google::Gax::CallSettings.new()
-    func = proc do |req, timeout|
+    settings = Google::Gax::CallSettings.new
+    func = proc do
       42
     end
     my_callable = Google::Gax.create_api_call(func, settings)
