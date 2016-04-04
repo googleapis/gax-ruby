@@ -67,12 +67,19 @@ module Google
             bundle_descriptor: @bundle_descriptor)
         end
 
-        timeout = (options.timeout == :OPTION_INHERIT) ?
-          @timeout : options.timeout
-        retry_options = (options.retry_options == :OPTION_INHERIT) ?
-          @retry : options.retry_options
-        page_descriptor = (options.is_page_descriptor == :OPTION_INHERIT) ?
-          @page_descriptor : nil
+        timeout = if options.timeout == :OPTION_INHERIT
+                    @timeout
+                  else
+                    options.timeout
+                  end
+        retry_options = if options.retry_options == :OPTION_INHERIT
+                          @retry_options
+                        else
+                          options.retry_options
+                        end
+        if options.is_page_descriptor == :OPTION_INHERIT
+          page_descriptor = @page_descriptor
+        end
 
         CallSettings.new(
           timeout: timeout,
