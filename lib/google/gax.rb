@@ -57,6 +57,7 @@ module Google
         @bundle_descriptor = bundle_descriptor
       end
 
+      # rubocop:disable Metrics/MethodLength
       def merge(options)
         unless options
           return CallSettings.new(
