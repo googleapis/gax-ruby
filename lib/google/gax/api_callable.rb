@@ -1,39 +1,42 @@
 require 'google/gax'
+require 'google/gax/errors'
 
 module Google
   module Gax
-    class ApiCallable
-      def initialize(func, settings)
-        @func = func
-        @settings = settings
+    def create_api_call(func, settings)
+      if settings.retry_options && settings.retry_options.retry_codes
+          api_call = _retryable(func, settings.retry_options)
+      else
+        api_call = _add_timeout_arg(func, settings.timeout)
       end
 
-      def call(*args)
-        the_func = @func
-
-        if @settings.retry_options
-          the_func = _retryable(the_func, @settings.retry_options)
+      if settings.page_descriptor
+        if settings.bundler && settings.bundle_descriptor
+          raise 'ApiCallable has incompatible settings: ' \
+              'bundling and page streaming'
+          return _page_streamable(
+              api_call,
+              settings.page_descriptor.request_page_token_field,
+              settings.page_descriptor.response_page_token_field,
+              settings.page_descriptor.resource_field)
         end
-        if @settings.page_descriptor
-          if @settings.bundler && @settings.bundle_descriptor
-            raise 'ApiCallable has incompatible settings: bundling and page ' \
-                  'streaming'
-          end
-          the_func = _page_streamable(
-            the_func,
-            @settings.page_descriptor.request_page_token_field,
-            @settings.page_descriptor.response_page_token_field,
-            @settings.page_descriptor.resource_field,
-            @settings.timeout)
-        else
-          the_func = _add_timeout_arg(the_func, @settings.timeout)
-          if @settings.bundler && @settings.bundle_descriptor
-            the_func = _bundleable(the_func, @settings.bundle_descriptor,
-                                   @settings.bundler)
-          end
-        end
+      end
+      if settings.bundler && settings.bundle_descriptor
+        return _bundleable(api_call, settings.bundle_descriptor,
+                           settings.bundler)
+      end
 
-        the_func.call(*args)
+      # return _catch_errors(api_call, config.API_ERRORS)
+      _catch_errors(api_call, nil)
+    end
+
+    def _catch_errors(a_func, errors)
+      proc do |*args|
+        begin
+          a_func.call(*args)
+        rescue StandardError => err  # errors
+          fail GaxError.new('RPC failed', cause:err)
+        end
       end
     end
 
@@ -55,7 +58,7 @@ module Google
       with_timeout = _add_timeout_arg(a_func, timeout)
       proc do |*args|
         request = args[0]
-        return Enumerator.new do |y|
+        Enumerator.new do |y|
           loop do
             response = with_timeout.call(request)
             response.send(resource_field).each do |obj|
@@ -76,7 +79,7 @@ module Google
         attempt_count = 0
         loop do
           begin
-            return a_func.call(*args)
+            a_func.call(*args)
           rescue
             attempt_count += 1
             next if attempt_count < max_attempts
@@ -89,8 +92,11 @@ module Google
     def _add_timeout_arg(a_func, timeout)
       proc do |*args|
         updated_args = args + [timeout]
-        return a_func.call(*updated_args)
+        a_func.call(*updated_args)
       end
     end
+
+    module_function :create_api_call, :_catch_errors, :_bundleable,
+        :_page_streamable, :_retryable, :_add_timeout_arg
   end
 end

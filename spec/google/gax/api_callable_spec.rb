@@ -27,25 +27,16 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-module Google
-  module Gax
-    # Common base class for exceptions raised by GAX.
-    class GaxError < StandardError
-      attr_reader :cause
+require 'google/gax/api_callable'
+require 'google/gax'
 
-      # +msg+:: describes the error that occurred.
-      # +cause+:: the exception raised by a lower layer of the RPC stack
-      #           (for example, gRPC) that caused this exception, or None
-      #           if this exception originated in GAX.
-      def initialize(msg, cause:nil)
-        msg = "GaxError #{msg}, caused by #{cause}" if cause
-        super(msg)
-        @cause = cause
-      end
+describe Google::Gax do
+  it 'calls api call' do
+    settings = Google::Gax::CallSettings.new()
+    func = proc do |req, timeout|
+      42
     end
-
-    # Indicates an error during automatic GAX retrying.
-    class RetryError < GaxError
-    end
+    my_callable = Google::Gax.create_api_call(func, settings)
+    expect(my_callable.call(nil)).to eq(42)
   end
 end
