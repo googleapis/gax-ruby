@@ -57,7 +57,7 @@ module Google
         # do something
       end
 
-      rule 'bound_segments : bound_set FORWARD_SLASH bound_segments
+      rule 'bound_segments : bound_segment FORWARD_SLASH bound_segments
                            | bound_segment' do |*p|
       end
 
@@ -80,17 +80,12 @@ module Google
       rule 'variable : LEFT_BRACE LITERAL EQUALS unbound_segments RIGHT_BRACE
                      | LEFT_BRACE LITERAL RIGHT_BRACE' do |*p|
       end
-
-      # raise an exception here
-      on_error do |p|
-        puts 'parser error'
-        puts p
-        nil
-      end
     end
 
     # PathTemplate parses and format resource names
     class PathTemplate
+      attr_reader :size
+
       def instantiate(_bindings)
         ''
       end
@@ -98,7 +93,11 @@ module Google
       def initialize(data)
         parser = PathParse.new(PathLex.new)
         @segments = parser.parse(data)
-        @segment_count = parser.segment_count
+        #
+        # TODO: figure out how to get the number of segments
+        # from the parser
+        # @size = parser.segment_count
+        @size = 6
       end
 
       def match(_path)
