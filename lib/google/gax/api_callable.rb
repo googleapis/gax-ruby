@@ -27,11 +27,16 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+require 'time'
+
 require 'google/gax/errors'
 require 'google/gax/grpc'
 
+# rubocop:disable Metrics/ModuleLength
 module Google
   module Gax
+    MILLIS_PER_SECOND = 1000.0
+
     # rubocop:disable Metrics/AbcSize
 
     # Converts an rpc call into an API call governed by the settings.
@@ -159,6 +164,8 @@ module Google
       end
     end
 
+    # rubocop:disable Metrics/MethodLength
+
     # Creates a proc equivalent to a_func, but that retries on certain
     # exceptions.
     #
@@ -171,19 +178,46 @@ module Google
     # Returns::
     #   A proc that will retry on exception.
     def _retryable(a_func, retry_options)
-      max_attempts = (retry_options.backoff_settings.total_timeout_millis /
-        retry_options.backoff_settings.initial_rpc_timeout_millis).to_i
+      delay_mult = retry_options.backoff_settings.retry_delay_multiplier
+      max_delay = (retry_options.backoff_settings.max_retry_delay_millis /
+                   MILLIS_PER_SECOND)
+      timeout_mult = retry_options.backoff_settings.rpc_timeout_multiplier
+      max_timeout = (retry_options.backoff_settings.max_rpc_timeout_millis /
+                     MILLIS_PER_SECOND)
+      total_timeout = (retry_options.backoff_settings.total_timeout_millis /
+                       MILLIS_PER_SECOND)
+
       proc do |*args|
-        attempt_count = 0
-        loop do
+        delay = retry_options.backoff_settings.initial_retry_delay_millis
+        timeout = (retry_options.backoff_settings.initial_rpc_timeout_millis /
+                   MILLIS_PER_SECOND)
+        exc = nil
+        result = nil
+        now = Time.now
+        deadline = now + total_timeout
+
+        while now < deadline
           begin
-            a_func.call(*args)
-          rescue
-            attempt_count += 1
-            next if attempt_count < max_attempts
-            raise
+            exc = nil
+            result = _add_timeout_arg(a_func, timeout).call(*args)
+            break
+          rescue => exception
+            if exception.respond_to?(:code) &&
+               !retry_options.retry_codes.include?(exception.code)
+              raise RetryError.new('Exception occurred in retry method that ' \
+                                   'was not classified as transient',
+                                   cause: exception)
+            end
+            exc = RetryError.new('Retry total timeout exceeded with exception',
+                                 cause: exception)
+            sleep(rand(delay) / MILLIS_PER_SECOND)
+            now = Time.now
+            delay = [delay * delay_mult, max_delay].min
+            timeout = [timeout * timeout_mult, max_timeout, deadline - now].min
           end
         end
+        raise exc unless exc.nil?
+        result
       end
     end
 

@@ -48,40 +48,182 @@ class PageStreamingResponse
   end
 end
 
+class CustomException < StandardError
+  attr_reader :code
+
+  def initialize(msg, code)
+    super(msg)
+    @code = code
+  end
+end
+
+FAKE_STATUS_CODE_1 = :FAKE_STATUS_CODE_1
+FAKE_STATUS_CODE_2 = :FAKE_STATUS_CODE_2
+
 describe Google::Gax do
   CallSettings = Google::Gax::CallSettings
 
-  it 'calls api call' do
-    settings = CallSettings.new
-    func = proc do
-      42
+  describe 'create_api_call' do
+    it 'calls api call' do
+      settings = CallSettings.new
+      func = proc do
+        42
+      end
+      my_callable = Google::Gax.create_api_call(func, settings)
+      expect(my_callable.call(nil)).to eq(42)
     end
-    my_callable = Google::Gax.create_api_call(func, settings)
-    expect(my_callable.call(nil)).to eq(42)
   end
 
-  it 'returns page-streamable' do
-    page_size = 3
-    pages_to_stream = 5
+  describe 'page streaming' do
+    it 'returns page-streamable' do
+      page_size = 3
+      pages_to_stream = 5
 
-    page_descriptor = Google::Gax::PageDescriptor.new(
-      :page_token, :next_page_token, :nums)
-    settings = CallSettings.new(page_descriptor: page_descriptor)
-    func = proc do |request|
-      if request.page_token > 0 &&
-         request.page_token < page_size * pages_to_stream
-        PageStreamingResponse.new(
-          nums: (request.page_token...(request.page_token + page_size)),
-          next_page_token: request.page_token + page_size)
-      elsif request.page_token >= page_size * pages_to_stream
-        PageStreamingResponse.new
-      else
-        PageStreamingResponse.new(nums: 0...page_size,
-                                  next_page_token: page_size)
+      page_descriptor = Google::Gax::PageDescriptor.new(
+        :page_token, :next_page_token, :nums)
+      settings = CallSettings.new(page_descriptor: page_descriptor)
+      func = proc do |request|
+        if request.page_token > 0 &&
+           request.page_token < page_size * pages_to_stream
+          PageStreamingResponse.new(
+            nums: (request.page_token...(request.page_token + page_size)),
+            next_page_token: request.page_token + page_size)
+        elsif request.page_token >= page_size * pages_to_stream
+          PageStreamingResponse.new
+        else
+          PageStreamingResponse.new(nums: 0...page_size,
+                                    next_page_token: page_size)
+        end
+      end
+      my_callable = Google::Gax.create_api_call(func, settings)
+      expect(my_callable.call(PageStreamingRequest.new).to_a).to eq(
+        (0...(page_size * pages_to_stream)).to_a)
+    end
+  end
+
+  describe 'retryable' do
+    RetryOptions = Google::Gax::RetryOptions
+    BackoffSettings = Google::Gax::BackoffSettings
+
+    retry_options = RetryOptions.new(
+      [FAKE_STATUS_CODE_1], BackoffSettings.new(0, 0, 0, 0, 0, 0, 1))
+    settings = CallSettings.new(timeout: 0, retry_options: retry_options)
+
+    it 'retries the API call' do
+      time_now = Time.now
+      allow(Time).to receive(:now).and_return(time_now)
+
+      to_attempt = 3
+
+      func = proc do
+        to_attempt -= 1
+        raise CustomException.new('', FAKE_STATUS_CODE_1) if to_attempt > 0
+        1729
+      end
+      my_callable = Google::Gax.create_api_call(func, settings)
+      expect(my_callable.call).to eq(1729)
+      expect(to_attempt).to eq(0)
+    end
+
+    it 'doesn\'t retry if no codes' do
+      retry_options = RetryOptions.new([],
+                                       BackoffSettings.new(1, 2, 3, 4, 5, 6, 7))
+
+      call_count = 0
+      func = proc do
+        call_count += 1
+        raise CustomException.new('', FAKE_STATUS_CODE_1)
+      end
+      my_callable = Google::Gax.create_api_call(
+        func, CallSettings.new(timeout: 0, retry_options: retry_options))
+      expect { my_callable.call }.to raise_error(Google::Gax::RetryError)
+      expect(call_count).to eq(1)
+    end
+
+    it 'aborts retries' do
+      func = proc { raise CustomException.new('', FAKE_STATUS_CODE_1) }
+      my_callable = Google::Gax.create_api_call(func, settings)
+      begin
+        my_callable.call
+        expect(true).to be false # should not reach to this line.
+      rescue Google::Gax::RetryError => exc
+        expect(exc.cause).to be_a(CustomException)
       end
     end
-    my_callable = Google::Gax.create_api_call(func, settings)
-    expect(my_callable.call(PageStreamingRequest.new).to_a).to eq(
-      (0...(page_size * pages_to_stream)).to_a)
+
+    it 'times out' do
+      to_attempt = 3
+      call_count = 0
+
+      time_now = Time.now
+      allow(Time).to receive(:now).exactly(4).times.and_return(
+        *([time_now] * to_attempt + [time_now + 2]))
+
+      func = proc do
+        call_count += 1
+        raise CustomException.new('', FAKE_STATUS_CODE_1)
+      end
+
+      my_callable = Google::Gax.create_api_call(func, settings)
+      begin
+        my_callable.call
+        except(true).to be false # should not reach to this line.
+      rescue Google::Gax::RetryError => exc
+        expect(exc.cause).to be_a(CustomException)
+      end
+      expect(call_count).to eq(to_attempt)
+    end
+
+    it 'aborts on unexpected exception' do
+      call_count = 0
+      func = proc do
+        call_count += 1
+        raise CustomException.new('', FAKE_STATUS_CODE_2)
+      end
+      my_callable = Google::Gax.create_api_call(func, settings)
+      expect { my_callable.call }.to raise_error(Google::Gax::RetryError)
+      expect(call_count).to eq(1)
+    end
+
+    it 'does not retry even when no responses' do
+      func = proc { nil }
+      my_callable = Google::Gax.create_api_call(func, settings)
+      expect(my_callable.call).to be_nil
+    end
+
+    it 'retries with exponential backoff' do
+      time_now = Time.now
+      start_time = time_now
+      incr_time = proc { |secs| time_now += secs }
+      call_count = 0
+      func = proc do |_, timeout|
+        call_count += 1
+        incr_time.call(timeout)
+        raise CustomException.new(timeout.to_s, FAKE_STATUS_CODE_1)
+      end
+
+      allow(Time).to receive(:now) { time_now }
+      allow(Kernel).to receive(:sleep) { |secs| incr_time.call(secs) }
+      backoff = BackoffSettings.new(3, 2, 24, 5, 2, 80, 2500)
+      retry_options = RetryOptions.new([FAKE_STATUS_CODE_1], backoff)
+      my_callable = Google::Gax.create_api_call(
+        func, CallSettings.new(timeout: 0, retry_options: retry_options))
+
+      begin
+        my_callable.call(0)
+        expect(true).to be false # should not reach to this line.
+      rescue Google::Gax::RetryError => exc
+        expect(exc.cause).to be_a(CustomException)
+      end
+      expect(time_now - start_time).to be >= (
+        backoff.total_timeout_millis / 1000.0)
+
+      calls_lower_bound = backoff.total_timeout_millis / (
+        backoff.max_retry_delay_millis + backoff.max_rpc_timeout_millis)
+      calls_upper_bound = (backoff.total_timeout_millis /
+                           backoff.initial_retry_delay_millis)
+      expect(call_count).to be > calls_lower_bound
+      expect(call_count).to be < calls_upper_bound
+    end
   end
 end
