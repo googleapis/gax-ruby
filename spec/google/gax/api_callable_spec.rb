@@ -30,13 +30,58 @@
 require 'google/gax/api_callable'
 require 'google/gax'
 
+class PageStreamingRequest
+  attr_accessor :page_token
+
+  def initialize(page_token: 0)
+    @page_token = page_token
+  end
+end
+
+class PageStreamingResponse
+  attr_reader :nums
+  attr_accessor :next_page_token
+
+  def initialize(nums:[], next_page_token:nil)
+    @nums = nums
+    @next_page_token = next_page_token
+  end
+end
+
 describe Google::Gax do
+  CallSettings = Google::Gax::CallSettings
+
   it 'calls api call' do
-    settings = Google::Gax::CallSettings.new()
-    func = proc do |req, timeout|
+    settings = CallSettings.new
+    func = proc do
       42
     end
     my_callable = Google::Gax.create_api_call(func, settings)
     expect(my_callable.call(nil)).to eq(42)
+  end
+
+  it 'returns page-streamable' do
+    page_size = 3
+    pages_to_stream = 5
+
+    page_descriptor = Google::Gax::PageDescriptor.new(
+      :page_token, :next_page_token, :nums)
+    settings = CallSettings.new(page_descriptor: page_descriptor)
+    func = proc do |request|
+      if request.page_token > 0 &&
+         request.page_token < page_size * pages_to_stream
+        PageStreamingResponse.new(
+          nums: (request.page_token...(request.page_token + page_size)),
+          next_page_token: request.page_token + page_size)
+      elsif request.page_token >= page_size * pages_to_stream
+        PageStreamingResponse.new
+      else
+        PageStreamingResponse.new(nums: 0...page_size,
+                                  next_page_token: page_size)
+      end
+    end
+    my_callable = Google::Gax.create_api_call(func, settings)
+    expect(my_callable.call(PageStreamingRequest.new).to_a).to eq(
+      (0...(page_size * pages_to_stream)).to_a)
   end
 end
