@@ -186,8 +186,13 @@ module Google
     #                       messages.
     BundleDescriptor = Struct.new(
       :bundled_field,
-      :request_desicriminator_fields,
-      :subresponse_field)
+      :request_descriminator_fields,
+      :subresponse_field) do
+      def initialize(bundled_field, request_desicriminator_fields,
+                     subresponse_field: nil)
+        super(bundled_field, request_desicriminator_fields, subresponse_field)
+      end
+    end
 
     # Holds values used to configure bundling.
     #
@@ -222,16 +227,22 @@ module Google
     #                     after the first element in the bundle was added to
     #                     it.
     BundleOptions = Struct.new(
-      :message_count_threshold,
-      :message_bytesize_threshold,
+      :element_count_threshold,
+      :element_count_limit,
+      :request_byte_threshold,
+      :request_byte_limit,
       :delay_threshold) do
-      def intiialize(
-        message_count_threshold: 0,
-        message_bytesize_threshold: 0,
+      def initialize(
+        element_count_threshold: 0,
+        element_count_limit: 0,
+        request_byte_threshold: 0,
+        request_byte_limit: 0,
         delay_threshold: 0)
         super(
-          message_count_threshold,
-          message_bytesize_threshold,
+          element_count_threshold,
+          element_count_limit,
+          request_byte_threshold,
+          request_byte_limit,
           delay_threshold)
       end
     end
