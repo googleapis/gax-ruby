@@ -27,8 +27,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require 'google/gax'
 require 'google/gax/errors'
+require 'google/gax/grpc'
 
 module Google
   module Gax
@@ -79,7 +79,6 @@ module Google
                            settings.bundler)
       end
 
-      # return _catch_errors(api_call, config.API_ERRORS)
       _catch_errors(api_call)
     end
 
@@ -90,12 +89,16 @@ module Google
     #   errors:: Configures the exceptions to wrap.
     # Returns::
     #   A proc that will wrap certain exceptions with GaxError
-    def _catch_errors(a_func, errors:StandardError)
+    def _catch_errors(a_func, errors: Grpc::API_ERRORS)
       proc do |*args|
         begin
           a_func.call(*args)
-        rescue errors => err
-          raise GaxError.new('RPC failed', cause: err)
+        rescue => err
+          if errors.any? { |eclass| err.is_a? eclass }
+            raise GaxError.new('RPC failed', cause: err)
+          else
+            raise err
+          end
         end
       end
     end
