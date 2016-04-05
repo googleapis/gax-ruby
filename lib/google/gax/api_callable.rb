@@ -32,15 +32,16 @@ require 'google/gax/errors'
 
 module Google
   module Gax
+    # rubocop:disable Metrics/AbcSize
     def create_api_call(func, settings)
-      api_call = if settings.retry_options && settings.retry_options.retry_codes
+      api_call = if settings.retry_codes?
                    _retryable(func, settings.retry_options)
                  else
                    _add_timeout_arg(func, settings.timeout)
                  end
 
       if settings.page_descriptor
-        if settings.bundler && settings.bundle_descriptor
+        if settings.bundler?
           raise 'ApiCallable has incompatible settings: ' \
               'bundling and page streaming'
         end
@@ -50,7 +51,7 @@ module Google
           settings.page_descriptor.response_page_token_field,
           settings.page_descriptor.resource_field)
       end
-      if settings.bundler && settings.bundle_descriptor
+      if settings.bundler?
         return _bundleable(api_call, settings.bundle_descriptor,
                            settings.bundler)
       end

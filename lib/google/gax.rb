@@ -57,6 +57,14 @@ module Google
         @bundle_descriptor = bundle_descriptor
       end
 
+      def retry_codes?
+        @retry_options && @retry_options.retry_codes
+      end
+
+      def bundler?
+        @bundler && @bundle_descriptor
+      end
+
       # rubocop:disable Metrics/MethodLength
       def merge(options)
         unless options
