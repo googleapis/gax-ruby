@@ -207,5 +207,7 @@ module Google
 
     module_function :create_api_call, :_catch_errors, :_bundleable,
                     :_page_streamable, :_retryable, :_add_timeout_arg
+    private_class_method :_catch_errors, :_bundleable, :_page_streamable,
+                         :_retryable, :_add_timeout_arg
   end
 end
