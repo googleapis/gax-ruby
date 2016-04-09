@@ -33,10 +33,10 @@ module Google
     class GaxError < StandardError
       attr_reader :cause
 
-      # +msg+:: describes the error that occurred.
-      # +cause+:: the exception raised by a lower layer of the RPC stack
-      #           (for example, gRPC) that caused this exception, or None
-      #           if this exception originated in GAX.
+      # @param [String] msg describes the error that occurred.
+      # @param [Error] cause the exception raised by a lower layer of
+      #   the RPC stack (for example, gRPC) that caused this
+      #   exception, or None if this exception originated in GAX.
       def initialize(msg, cause:nil)
         msg = "GaxError #{msg}, caused by #{cause}" if cause
         super(msg)

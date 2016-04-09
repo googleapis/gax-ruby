@@ -29,24 +29,21 @@
 
 module Google
   module Gax
-    # Helper for +construct_settings()+.
+    # Helper for #construct_settings
     #
-    # Args::
-    #   method_config::
-    #     A dictionary representing a single ``methods`` entry of the
-    #     standard API client config file. (See +construct_settings()+
-    #     for information on this yaml.)
-    #   method_retry_override::
-    #     A BundleOptions object, :OPTION_INHERIT, or nil. If set to
-    #     :OPTION_INHERIT, the retry settings are derived from method
-    #     config. Otherwise, this parameter overrides +method_config+.
-    #   bundle_descriptor::
-    #     A BundleDescriptor object describing the structure of
-    #     bundling for this method. If not set, this method will not
-    #     bundle.
-    # Returns::
-    #   An Executor that configures bundling, or nil if this method should not
-    #   bundle.
+    # @param method_config A dictionary representing a single
+    #   ``methods`` entry of the standard API client config file. (See
+    #   #construct_settings for information on this yaml.)
+    # @param [BundleOptions, :OPTION_INHERIT, nil] method_retry_override
+    #   If set to :OPTION_INHERIT, the retry settings are derived from
+    #   method config. Otherwise, this parameter overrides
+    #   +method_config+.
+
+    # @param [BundleDescriptor] bundle_descriptor A BundleDescriptor
+    #   object describing the structure of bundling for this
+    #   method. If not set, this method will not bundle.
+    # @return An Executor that configures bundling, or nil if this
+    #   method should not bundle.
     def _construct_bundling(method_config, method_bundling_override,
                             bundle_descriptor)
       if method_config.key?('bundling') && bundle_descriptor
@@ -63,30 +60,25 @@ module Google
       end
     end
 
-    # Helper for +construct_settings()+.
+    # Helper for #construct_settings
     #
-    # Args::
-    #   method_config::
-    #     A dictionary representing a single +methods+ entry of the
-    #     standard API client config file. (See +construct_settings()+
-    #     for information on this yaml.)
-    #   method_retry_override::
-    #     A RetryOptions object, :OPTION_INHERIT, or nil. If set to
-    #     :OPTION_INHERIT, the retry settings are derived from method
-    #     config. Otherwise, this parameter overrides +method_config+.
-    #   retry_codes_def::
-    #     A dictionary parsed from the +retry_codes_def+ entry of the
-    #     standard API client config file. (See +construct_settings()+
-    #     for information on this yaml.)
-    #   retry_params::
-    #     A dictionary parsed from the +retry_params+ entry of the
-    #     standard API client config file. (See +construct_settings()+
-    #     for information on this yaml.)
-    #   retry_names::
-    #     A dictionary mapping the string names used in the standard
-    #     API client config file to API response status codes.
-    # Returns::
-    #   A RetryOptions object, or nil.
+    # @param [Hash] method_config A dictionary representing a single
+    #   +methods+ entry of the standard API client config file. (See
+    #   #construct_settings for information on this yaml.)
+    # @param [RetryOptions, :OPTION_INHERIT, nil] method_retry_override
+    #   If set to :OPTION_INHERIT, the retry settings are derived from
+    #     method config. Otherwise, this parameter overrides
+    #     +method_config+.
+    # @param [Hash] retry_codes_def A dictionary parsed from the
+    #   +retry_codes_def+ entry of the standard API client config
+    #   file. (See #construct_settings for information on this yaml.)
+    # @param [Hash] retry_params A dictionary parsed from the
+    #   +retry_params+ entry of the standard API client config
+    #   file. (See #construct_settings for information on this yaml.)
+    # @param [Hash] retry_names A dictionary mapping the string names
+    #   used in the standard API client config file to API response
+    #   status codes.
+    # @return [RetryOptions, nil]
     def _construct_retry(method_config, method_retry_override, retry_codes,
                          retry_params, retry_names)
       unless method_retry_override == :OPTION_INHERIT
@@ -114,7 +106,7 @@ module Google
 
     # rubocop:disable Metrics/ParameterLists
 
-    # Constructs a dictionary mapping method names to +CallSettings+.
+    # Constructs a dictionary mapping method names to CallSettings.
     #
     # The +client_config+ parameter is parsed from a client configuration JSON
     # file of the form:
@@ -158,32 +150,29 @@ module Google
     #     }
     #   }
     #
-    # Args::
-    #   +service_name+::
-    #     The fully-qualified name of this service, used as a key into
-    #     the client config file (in the example above, this value
-    #     should be 'google.fake.v1.ServiceName').
-    #   +client_config+::
-    #     A dictionary parsed from the standard API client config file.
-    #   +bundling_override+:
-    #     A dictionary of method names to BundleOptions override those
-    #     specified in +client_config+.
-    #   +retry_override+::
-    #     A dictionary of method names to RetryOptions that override
-    #     those specified in +client_config+.
-    #   +retry_names+::
-    #     A dictionary mapping the strings referring to response
-    #     status codes to the Python objects representing those codes.
-    #   +timeout+::
-    #     The timeout parameter for all API calls in this dictionary.
-    #   +bundle_descriptors+::
-    #     A dictionary of method names to BundleDescriptor objects for
-    #     methods that are bundling-enabled.
-    #   +page_descriptors+::
-    #     A dictionary of method names to PageDescriptor objects for
-    #     methods that are page streaming-enabled.
-    # Returns::
-    #   A CallSettings, or nil if the service is not found in the config.
+    # @param [String] service_name The fully-qualified name of this
+    #   service, used as a key into the client config file (in the
+    #   example above, this value should be
+    #   'google.fake.v1.ServiceName').
+    # @param [Hash] client_config A dictionary parsed from the
+    #     standard API client config file.
+    # @param [Hash] bundling_override A dictionary of method names to
+    #   BundleOptions override those specified in +client_config+.
+    # @param [Hash] retry_override A dictionary of method names to
+    #   RetryOptions that override those specified in +client_config+.
+    # @param [Hash] retry_names A dictionary mapping the strings
+    #   referring to response status codes to the Python objects
+    #   representing those codes.
+    # @param [Numeric] timeout The timeout parameter for all API calls
+    #   in this dictionary.
+    # @param [Hash{String => BundleDescriptor}] bundle_descriptors
+    #   A dictionary of method names to BundleDescriptor objects for
+    #   methods that are bundling-enabled.
+    # @param [Hash{String => PageDescriptor}] page_descriptors A
+    #   dictionary of method names to PageDescriptor objects for
+    #   methods that are page streaming-enabled.
+    # @return [CallSettings, nil] A CallSettings, or nil if the
+    #   service is not found in the config.
     def construct_settings(
         service_name, client_config, bundling_override, retry_override,
         retry_names, timeout, bundle_descriptors: {}, page_descriptors: {})
@@ -218,5 +207,7 @@ module Google
 
     module_function :construct_settings, :_construct_bundling,
                     :_construct_retry, :_upper_camel_to_lower_underscore
+    private_class_method :_construct_bundling, :_construct_retry,
+                         :_upper_camel_to_lower_underscore
   end
 end
