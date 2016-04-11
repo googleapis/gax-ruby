@@ -36,6 +36,8 @@ module Google
     module Grpc
       API_ERRORS = [GRPC::BadStatus, GRPC::Cancelled].freeze
 
+      # rubocop:disable Metrics/ParameterLists
+
       # Creates a gRPC client stub.
       #
       # @param service_path [string] The domain name of the API remote host.
@@ -51,17 +53,13 @@ module Google
       #    function that transforms the metadata for requests, e.g., to give
       #    OAuth credentials.
       #
-      # @param scopes: The OAuth scopes for this service. This parameter is
+      # @param scopes The OAuth scopes for this service. This parameter is
       #    ignored if a custom metadata_transformer is supplied.
       #
-      # A block is required, the block is assumed to be the generated gRPC
-      # method to create a stub.
+      # @yield [address, creds]
+      #   the generated gRPC method to create a stub.
       #
-      # Returns:
-      #     A gRPC client stub.
-      # """
-      #
-      # rubocop:disable Metrics/ParameterLists
+      # @return A gRPC client stub.
       def create_stub(service_path,
                       port,
                       chan_creds: nil,

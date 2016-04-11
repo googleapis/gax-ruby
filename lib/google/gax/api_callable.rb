@@ -53,14 +53,11 @@ module Google
     # same signature as the original. Only when +settings+ configures bundling
     # does the signature change.
     #
-    # Args::
-    #   +func+:: is used to make a bare rpc call
-    #   +settings+:: provides the settings for this call
-    # Returns::
-    #   a bound method on a request stub used to make an rpc call
-    # Raises::
-    #   StandardError:: if +settings+ has incompatible values, e.g, if bundling
-    #                   and page_streaming are both configured
+    # @param [Proc] func used to make a bare rpc call
+    # @param [CallSettings] settings provides the settings for this call
+    # @return [Proc] a bound method on a request stub used to make an rpc call
+    # @raise [StandardError] if +settings+ has incompatible values,
+    #   e.g, if bundling and page_streaming are both configured
     def create_api_call(func, settings)
       api_call = if settings.retry_codes?
                    _retryable(func, settings.retry_options)
@@ -89,11 +86,9 @@ module Google
 
     # Updates a_func to wrap exceptions with GaxError
     #
-    # Args::
-    #   a_func:: A proc.
-    #   errors:: Configures the exceptions to wrap.
-    # Returns::
-    #   A proc that will wrap certain exceptions with GaxError
+    # @param [Proc] a_func
+    # @param [Array<Exception>] errors Configures the exceptions to wrap.
+    # @return [Proc] A proc that will wrap certain exceptions with GaxError
     def _catch_errors(a_func, errors: Grpc::API_ERRORS)
       proc do |*args|
         begin
@@ -117,13 +112,12 @@ module Google
     # The returned Event object can be used to obtain the eventual result of the
     # bundled call.
     #
-    # Args::
-    #   +a_func+:: an API call that supports bundling.
-    #   +desc+:: describes the bundling that +a_func+ supports.
-    #   +bundler+:: orchestrates bundling.
-    #
-    # Returns::
-    #   A proc takes the API call's request and returns an Event object.
+    # @param [Proc] a_func an API call that supports bundling.
+    # @param [BundleDescriptor] desc describes the bundling that
+    #   +a_func+ supports.
+    # @param bundler orchestrates bundling.
+    # @return [Proc] A proc takes the API call's request and returns
+    #   an Event object.
     def _bundleable(a_func, desc, bundler)
       proc do |request|
         the_id = bundling.compute_bundle_id(
@@ -135,15 +129,13 @@ module Google
 
     # Creates a proc that yields an iterable to performs page-streaming.
     #
-    # Args::
-    #   +a_func+:: an API call that is page streaming.
-    #   +request_page_token_field+:: The field of the page token in the request.
-    #   +response_page_token_field+::
-    #     The field of the next page token in the response.
-    #   +resource_field+:: The field to be streamed.
-    #
-    # Returns::
-    #   A proc that returns an iterable over the specified field.
+    # @param [Proc] a_func an API call that is page streaming.
+    # @param [String] request_page_token_field The field of the page
+    #   token in the request.
+    # @param [String] response_page_token_field The field of the next
+    #   page token in the response.
+    # @param [String] resource_field The field to be streamed.
+    # @return [Proc] A proc that returns an iterable over the specified field.
     def _page_streamable(
       a_func,
       request_page_token_field,
@@ -169,14 +161,11 @@ module Google
     # Creates a proc equivalent to a_func, but that retries on certain
     # exceptions.
     #
-    # Args::
-    #   +a_func+:: A proc.
-    #   +retry_options+::
-    #     Configures the exceptions upon which the proc should retry,
-    #     and the parameters to the exponential backoff retry algorithm.
-    #
-    # Returns::
-    #   A proc that will retry on exception.
+    # @param [Proc] a_func
+    # @param [RetryOptions] retry_options Configures the exceptions
+    #   upon which the proc should retry, and the parameters to the
+    #   exponential backoff retry algorithm.
+    # @return [Proc] A proc that will retry on exception.
     def _retryable(a_func, retry_options)
       delay_mult = retry_options.backoff_settings.retry_delay_multiplier
       max_delay = (retry_options.backoff_settings.max_retry_delay_millis /
@@ -226,12 +215,10 @@ module Google
     # This converts a proc, a_func, into another proc with an additional
     # positional arg.
     #
-    # Args::
-    #   +a_func+:: a proc to be updated
-    #   +timeout+:: to be added to the original proc as it final positional arg.
-    #
-    # Returns::
-    #   the original proc updated to the timeout arg
+    # @param [Proc] a_func a proc to be updated
+    # @param [Numeric] timeout to be added to the original proc as it
+    #   final positional arg.
+    # @return [Proc] the original proc updated to the timeout arg
     def _add_timeout_arg(a_func, timeout)
       proc do |*args|
         updated_args = args + [timeout]

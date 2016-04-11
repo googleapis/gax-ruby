@@ -37,20 +37,29 @@ require 'google/gax/version'
 module Google
   module Gax
     # Encapsulates the call settings for an ApiCallable
+    # @!attribute [r] timeout
+    #   @return [Numeric]
+    # @!attribute [r] retry_options
+    #   @return [RetryOptions]
+    # @!attribute [r] page_descriptor
+    #   @return [PageDescriptor]
+    # @!attribute [r] bundle_descriptor
+    #   @return [BundleDescriptor]
     class CallSettings
       attr_reader :timeout, :retry_options, :page_descriptor, :bundler,
                   :bundle_descriptor
 
-      # +timeout+:: The client-side timeout for API calls. This
-      #             parameter is ignored for retrying calls.
-      # +retry_options+:: The configuration for retrying upon transient
-      #                   error. If set to None, this call will not retry.
-      # +page_descriptor+:: indicates the structure of page
-      #                     streaming to be performed. If set to None,
-      #                     page streaming is not performed.
-      # +bundler+:: orchestrates bundling. If None, bundling is not performed.
-      # +bundle_descriptor+:: indicates the structure of the bundle.
-      #                       If None, bundling is not performed.
+      # @param [Numeric] timeout The client-side timeout for API calls. This
+      #   parameter is ignored for retrying calls.
+      # @param [RetryOptions] retry_options The configuration for retrying upon
+      #   transient error. If set to None, this call will not retry.
+      # @param [PageDescriptor] page_descriptor indicates the structure of page
+      #   streaming to be performed. If set to None, page streaming is not
+      #   performed.
+      # @param bundler orchestrates bundling. If None, bundling is not
+      #   performed.
+      # @param [BundleDescriptor] bundle_descriptor indicates the structure of
+      #   the bundle. If None, bundling is not performed.
       def initialize(
           timeout: 30, retry_options: nil, page_descriptor: nil,
           bundler: nil, bundle_descriptor: nil)
@@ -61,15 +70,22 @@ module Google
         @bundle_descriptor = bundle_descriptor
       end
 
+      # @return true when it has retry codes.
       def retry_codes?
         @retry_options && @retry_options.retry_codes
       end
 
+      # @return true when it has valid bundler configuration.
       def bundler?
         @bundler && @bundle_descriptor
       end
 
       # rubocop:disable Metrics/MethodLength
+
+      # Creates a new CallSetting instance which is based on this but merged
+      # settings from options.
+      # @param [CallOptions, nil] options The overriding call settings.
+      # @return a new merged call settings.
       def merge(options)
         unless options
           return CallSettings.new(
@@ -90,9 +106,7 @@ module Google
                         else
                           options.retry_options
                         end
-        if options.is_page_descriptor == :OPTION_INHERIT
-          page_descriptor = @page_descriptor
-        end
+        page_descriptor = @page_descriptor if options.is_page_streaming
 
         CallSettings.new(
           timeout: timeout,
@@ -104,14 +118,23 @@ module Google
     end
 
     # Encapsulates the overridable settings for a particular API call
+    # @!attribute [r] timeout
+    #   @return [Numeric, :OPTION_INHERIT]
+    # @!attribute [r] retry_options
+    #   @return [RetryOptions, :OPTION_INHERIT]
+    # @!attribute [r] is_page_streaming
+    #   @return [true, false, :OPTION_INHERIT]
     class CallOptions
-      attr_reader :timeout, :retry, :is_page_streaming
+      attr_reader :timeout, :retry_options, :is_page_streaming
 
-      # +timeout+:: The client-side timeout for API calls.
-      # +retry+:: The configuration for retrying upon transient error.
-      #           If set to None, this call will not retry.
-      # +is_page_streaming+:: If set and the call is configured for page
-      #                       streaming, page streaming is performed.
+      # @param [Numeric, :OPTION_INHERIT] timeout
+      #   The client-side timeout for API calls.
+      # @param [RetryOptions, :OPTION_INHERIT] retry_options
+      #   The configuration for retrying upon transient error.
+      #   If set to nil, this call will not retry.
+      # @param [true, false, :OPTION_INHERIT] is_page_streaming
+      #   If set and the call is configured for page streaming, page streaming
+      #   is performed.
       def initialize(
         timeout: :OPTION_INHERIT,
         retry_options: :OPTION_INHERIT,
@@ -123,46 +146,24 @@ module Google
     end
 
     # Describes the structure of a page-streaming call.
-    PageDescriptor = Struct.new(
+    class PageDescriptor < Struct.new(
       :request_page_token_field,
       :response_page_token_field,
       :resource_field)
+    end
 
     # Per-call configurable settings for retrying upon transient failure.
-    #
-    # +retry_codes+:: a list of exceptions upon which a retry should be
-    #                 attempted.
-    # +backoff_settings+:: a BackoffSettings object configuring the retry
-    #                      exponential backoff algorithm.
-    RetryOptions = Struct.new(:retry_codes, :backoff_settings)
+    class RetryOptions < Struct.new(:retry_codes, :backoff_settings)
+      # @!attribute retry_codes
+      #   @return [Array<Grpc::Code>] a list of exceptions upon which
+      #     a retry should be attempted.
+      # @!attribute backoff_settings
+      #   @return [BackoffSettings] configuring the retry exponential
+      #     backoff algorithm.
+    end
 
     # Parameters to the exponential backoff algorithm for retrying.
-    #
-    # +initial_retry_delay_millis+:: the initial delay time, in milliseconds,
-    #                                between the completion of the first failed
-    #                                request and the initiation of the first
-    #                                retrying request.
-    # +retry_delay_multiplier+:: the multiplier by which to increase the delay
-    #                            time between the completion of failed
-    #                            requests, and the initiation of the subsequent
-    #                            retrying request.
-    # +max_retry_delay_millis+:: the maximum delay time, in milliseconds,
-    #                            between requests. When this value is reached,
-    #                            +retry_delay_multiplier+ will no longer be
-    #                            used to increase delay time.
-    # +initial_rpc_timeout_millis+:: the initial timeout parameter to the
-    #                                request.
-    # +rpc_timeout_multiplier+:: the multiplier by which to increase the
-    #                            timeout parameter between failed requests.
-    # +max_rpc_timeout_millis+:: the maximum timeout parameter, in milliseconds,
-    #                            for a request. When this value is reached,
-    #                            +rpc_timeout_multiplier+ will no longer be
-    #                            used to increase the timeout.
-    # +total_timeout_millis+:: the total time, in milliseconds, starting from
-    #                          when the initial request is sent, after which an
-    #                          error will be returned, regardless of the
-    #                          retrying attempts made meanwhile.
-    BackoffSettings = Struct.new(
+    class BackoffSettings < Struct.new(
       :initial_retry_delay_millis,
       :retry_delay_multiplier,
       :max_retry_delay_millis,
@@ -170,31 +171,60 @@ module Google
       :rpc_timeout_multiplier,
       :max_rpc_timeout_millis,
       :total_timeout_millis)
+      # @!attribute initial_retry_delay_millis
+      #   @return [Numeric] the initial delay time, in milliseconds,
+      #     between the completion of the first failed request and the
+      #     initiation of the first retrying request.
+      # @!attribute retry_delay_multiplier
+      #   @return [Numeric] the multiplier by which to increase the
+      #     delay time between the completion of failed requests, and
+      #     the initiation of the subsequent retrying request.
+      # @!attribute max_retry_delay_millis
+      #   @return [Numeric] the maximum delay time, in milliseconds,
+      #     between requests. When this value is reached,
+      #     +retry_delay_multiplier+ will no longer be used to
+      #     increase delay time.
+      # @!attribute initial_rpc_timeout_millis
+      #   @return [Numeric] the initial timeout parameter to the request.
+      # @!attribute rpc_timeout_multiplier
+      #   @return [Numeric] the multiplier by which to increase the
+      #     timeout parameter between failed requests.
+      # @!attribute max_rpc_timeout_millis
+      #   @return [Numeric] the maximum timeout parameter, in
+      #     milliseconds, for a request. When this value is reached,
+      #     +rpc_timeout_multiplier+ will no longer be used to
+      #     increase the timeout.
+      # @!attribute total_timeout_millis
+      #   @return [Numeric] the total time, in milliseconds, starting
+      #     from when the initial request is sent, after which an
+      #     error will be returned, regardless of the retrying
+      #     attempts made meanwhile.
+    end
 
     # Describes the structure of bundled call.
     #
     # request_discriminator_fields may include '.' as a separator, which is
     # used to indicate object traversal.  This allows fields in nested objects
-    # to be
-    # used to determine what requests to bundle.
-    #
-    # +bundled_field+:: the repeated field in the request message that
-    #                   will have its elements aggregated by bundling
-    # +request_discriminator_fields+:: a list of fields in the
-    #                                  target request message class that are
-    #                                  used to determine which messages should
-    #                                  be bundled together.
-    # +subresponse_field+:: an optional field, when present it indicates the
-    #                       field in the response message that should be used
-    #                       to demultiplex the response into multiple response
-    #                       messages.
-    BundleDescriptor = Struct.new(
+    # to be used to determine what requests to bundle.
+    class BundleDescriptor < Struct.new(
       :bundled_field,
-      :request_descriminator_fields,
-      :subresponse_field) do
-      def initialize(bundled_field, request_desicriminator_fields,
+      :request_discriminator_fields,
+      :subresponse_field)
+      # @!attribute bundled_field
+      #   @return [String] the repeated field in the request message
+      #     that will have its elements aggregated by bundling
+      # @!attribute request_discriminator_fields
+      #   @return [Array<String>] a list of fields in the target
+      #     request message class that are used to determine which
+      #     messages should be bundled together.
+      # @!attribute subresponse_field
+      #   @return [String] an optional field, when present it
+      #     indicates the field in the response message that should be
+      #     used to demultiplex the response into multiple response
+      #     messages.
+      def initialize(bundled_field, request_discriminator_fields,
                      subresponse_field: nil)
-        super(bundled_field, request_desicriminator_fields, subresponse_field)
+        super(bundled_field, request_discriminator_fields, subresponse_field)
       end
     end
 
@@ -202,40 +232,41 @@ module Google
     #
     # The xxx_threshold attributes are used to configure when the bundled
     # request should be made.
-    #
-    # +element_count_threshold+:: the bundled request will be sent once the
-    #                             count of outstanding elements in the repeated
-    #                             field reaches this value.
-    # +element_count_limit+:: represents a hard limit on the number of elements
-    #                         in the repeated field of the bundle; if adding a
-    #                         request to a bundle would exceed this value, the
-    #                         bundle is sent and the new request is added to a
-    #                         fresh bundle. It is invalid for a single request
-    #                         to exceed this limit.
-    # +request_byte_threshold+:: the bundled request will be sent once the
-    #                            count of bytes in the request reaches this
-    #                            value. Note that this value is pessimistically
-    #                            approximated by summing the bytesizes of the
-    #                            elements in the repeated field, and therefore
-    #                            may be an under-approximation.
-    # +request_byte_limit+:: represents a hard limit on the size of the bundled
-    #                        request; if adding a request to a bundle would
-    #                        exceed this value, the bundle is sent and the new
-    #                        request is added to a fresh bundle. It is invalid
-    #                        for a single request to exceed this limit. Note
-    #                        that this value is pessimistically approximated by
-    #                        summing the bytesizes of the elements in the
-    #                        repeated field, with a buffer applied to
-    #                        correspond to the resulting under-approximation.
-    # +delay_threshold+:: the bundled request will be sent this amount of time
-    #                     after the first element in the bundle was added to
-    #                     it.
-    BundleOptions = Struct.new(
+    class BundleOptions < Struct.new(
       :element_count_threshold,
       :element_count_limit,
       :request_byte_threshold,
       :request_byte_limit,
-      :delay_threshold) do
+      :delay_threshold)
+      # @!attribute element_count_threshold
+      #   @return [Numeric] the bundled request will be sent once the
+      #     count of outstanding elements in the repeated field
+      #     reaches this value.
+      # @!attribute element_count_limit
+      #   @return [Numeric] represents a hard limit on the number of
+      #     elements in the repeated field of the bundle; if adding a
+      #     request to a bundle would exceed this value, the bundle is
+      #     sent and the new request is added to a fresh bundle. It is
+      #     invalid for a single request to exceed this limit.
+      # @!attribute request_byte_threshold
+      #   @return [Numeric] the bundled request will be sent once the
+      #     count of bytes in the request reaches this value. Note
+      #     that this value is pessimistically approximated by summing
+      #     the bytesizes of the elements in the repeated field, and
+      #     therefore may be an under-approximation.
+      # @!attribute request_byte_limit
+      #   @return [Numeric] represents a hard limit on the size of the
+      #     bundled request; if adding a request to a bundle would
+      #     exceed this value, the bundle is sent and the new request
+      #     is added to a fresh bundle. It is invalid for a single
+      #     request to exceed this limit. Note that this value is
+      #     pessimistically approximated by summing the bytesizes of
+      #     the elements in the repeated field, with a buffer applied
+      #     to correspond to the resulting under-approximation.
+      # @!attribute delay_threshold
+      #   @return [Numeric] the bundled request will be sent this
+      #     amount of time after the first element in the bundle was
+      #     added to it.
       def initialize(
         element_count_threshold: 0,
         element_count_limit: 0,
