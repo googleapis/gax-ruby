@@ -38,47 +38,96 @@ module Google
       token :LEFT_BRACE, /\{/
       token :RIGHT_BRACE, /\}/
       token :EQUALS, /=/
+      token :PATH_WILDCARD, /\*\*/ # has to occur before WILDCARD
       token :WILDCARD, /\*/
-      token :PATH_WILDCARD, /\*\*/
       token :LITERAL, %r{[^*=\}\{\/]+}
 
-      # TODO: raise exception
-      on_error do |p|
-        puts 'lexer error'
-        puts p
-        nil
+      on_error do |t|
+        if t
+          fail "Syntax error at '#{t.value}'"
+        else
+          fail 'Syntax error at EOF'
+        end
       end
     end
 
     # Parser for the path_template language
     class PathParse < Rly::Yacc
+      attr_reader :segment_count, :binding_var_count
+
+      def initialize(*args)
+        super
+        @segment_count = 0
+        @binding_var_count = 0
+      end
+
+      def parse(*args)
+        segments = super
+        has_path_wildcard = false
+        for s in segments
+          next unless s.kind == TERMINAL && s.literal == '**'
+          if has_path_wildcard
+            fail 'path template cannot contain more than one path wildcard'
+          else
+            has_path_wildcard = true
+          end
+        end
+        segments
+      end
+
       rule 'template : FORWARD_SLASH bound_segments
-                     | bound_segments' do |*p|
-        # do something
+                     | bound_segments' do |template, *segments|
+        template.value = segments[-1].value
       end
 
       rule 'bound_segments : bound_segment FORWARD_SLASH bound_segments
-                           | bound_segment' do |*p|
+                           | bound_segment' do |segs, a_seg, _, more_segs|
+        segs.value = a_seg.value
+        segs.value.push(*more_segs.value) unless more_segs.nil?
       end
 
       rule 'unbound_segments : unbound_terminal FORWARD_SLASH unbound_segments
-                             | unbound_terminal' do |*p|
+                             | unbound_terminal' do |segs, a_term, _, more_segs|
+        segs.value = a_term.value
+        segs.value.push(*more_segs.value) unless more_segs.nil?
       end
 
       rule 'bound_segment : bound_terminal
-                          | variable' do |*p|
+                          | variable' do |segment, term_or_var|
+        segment.value = term_or_var.value
       end
 
       rule 'unbound_terminal : WILDCARD
                              | PATH_WILDCARD
-                             | LITERAL' do |*p|
+                             | LITERAL' do |term, literal|
+        term.value = [Segment.new(TERMINAL, literal.value)]
+        @segment_count += 1
       end
 
-      rule 'bound_terminal : unbound_terminal' do |*p|
+      rule 'bound_terminal : unbound_terminal' do |bound, unbound|
+        p "what is unbound? #{unbound}"
+        if ['*', '**'].include?(unbound.value[0].literal)
+          bound.value = [
+            Segment.new(BINDING, format('$%d', @binding_var_count)),
+            unbound.value[0],
+            Segment.new(END_BINDING, '')
+          ]
+          @binding_var_count += 1
+        else
+          bound.value = unbound.value
+        end
       end
 
       rule 'variable : LEFT_BRACE LITERAL EQUALS unbound_segments RIGHT_BRACE
-                     | LEFT_BRACE LITERAL RIGHT_BRACE' do |*p|
+                     | LEFT_BRACE LITERAL RIGHT_BRACE' do |variable, *args|
+        variable.value = [Segment.new(BINDING, args[1].value)]
+        if args.size > 3
+          variable.value.push(*args[3].value)
+        else
+          variable.value.push(Segment.new(TERMINAL, '*'))
+          @segment_count += 1
+        end
+        variable.value.push(Segment.new(END_BINDING, ''))
       end
     end
 
@@ -93,11 +142,7 @@ module Google
       def initialize(data)
         parser = PathParse.new(PathLex.new)
         @segments = parser.parse(data)
-        #
-        # TODO: figure out how to get the number of segments
-        # from the parser
-        # @size = parser.segment_count
-        @size = 6
+        @size = parser.segment_count
       end
 
       def match(_path)
@@ -105,8 +150,16 @@ module Google
       end
     end
 
-    # Private methods
+    # Private constants/methods/classes
+    BINDING = 1
+    END_BINDING = 2
+    TERMINAL = 3
+
+    private_constant :BINDING, :END_BINDING, :TERMINAL
+
     private
+
+    Segment = Struct.new(:kind, :literal)
 
     def format(_segments)
       ''

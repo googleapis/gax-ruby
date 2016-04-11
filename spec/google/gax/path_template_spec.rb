@@ -38,8 +38,8 @@ describe Google::Gax::PathTemplate do
       expect(a_template.size).to eq(6)
     end
 
-    skip 'should fail on invalid tokens' do
-      testf = proc { PathTemplate.new('hello/wor*ld') }
+    it 'should fail on invalid tokens' do
+      testf = proc { PathTemplate.new('hello/wor* ld') }
       expect(testf).to raise_error
     end
 
