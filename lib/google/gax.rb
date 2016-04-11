@@ -27,7 +27,11 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+require 'google/gax/api_callable'
 require 'google/gax/errors'
+require 'google/gax/grpc'
+require 'google/gax/path_template'
+require 'google/gax/settings'
 require 'google/gax/version'
 
 module Google
