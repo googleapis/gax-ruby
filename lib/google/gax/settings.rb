@@ -97,7 +97,7 @@ module Google
           *params.values_at(*BackoffSettings.members.map(&:to_s)))
       end
 
-      RetryOptions.new(retry_codes: codes, backoff_settings: backoff_settings)
+      RetryOptions.new(codes, backoff_settings)
     end
 
     def _upper_camel_to_lower_underscore(string)

@@ -30,24 +30,6 @@
 require 'google/gax/api_callable'
 require 'google/gax'
 
-class PageStreamingRequest
-  attr_accessor :page_token
-
-  def initialize(page_token: 0)
-    @page_token = page_token
-  end
-end
-
-class PageStreamingResponse
-  attr_reader :nums
-  attr_accessor :next_page_token
-
-  def initialize(nums:[], next_page_token:nil)
-    @nums = nums
-    @next_page_token = next_page_token
-  end
-end
-
 class CustomException < StandardError
   attr_reader :code
 
@@ -66,11 +48,14 @@ describe Google::Gax do
   describe 'create_api_call' do
     it 'calls api call' do
       settings = CallSettings.new
-      func = proc do
+      timeout_arg = nil
+      func = proc do |timeout: nil|
+        timeout_arg = timeout
         42
       end
       my_callable = Google::Gax.create_api_call(func, settings)
       expect(my_callable.call(nil)).to eq(42)
+      expect(timeout_arg).to_not be_nil
     end
   end
 
@@ -80,24 +65,25 @@ describe Google::Gax do
       pages_to_stream = 5
 
       page_descriptor = Google::Gax::PageDescriptor.new(
-        :page_token, :next_page_token, :nums)
+        'page_token', 'next_page_token', 'nums')
       settings = CallSettings.new(page_descriptor: page_descriptor)
-      func = proc do |request|
-        if request.page_token > 0 &&
-           request.page_token < page_size * pages_to_stream
-          PageStreamingResponse.new(
-            nums: (request.page_token...(request.page_token + page_size)),
-            next_page_token: request.page_token + page_size)
-        elsif request.page_token >= page_size * pages_to_stream
-          PageStreamingResponse.new
+      timeout_arg = nil
+      func = proc do |request, timeout: nil|
+        timeout_arg = timeout
+        page_token = request['page_token']
+        if page_token > 0 && page_token < page_size * pages_to_stream
+          { 'nums' => (page_token...(page_token + page_size)),
+            'next_page_token' => page_token + page_size }
+        elsif page_token >= page_size * pages_to_stream
+          { 'nums' => [] }
         else
-          PageStreamingResponse.new(nums: 0...page_size,
-                                    next_page_token: page_size)
+          { 'nums' => 0...page_size, 'next_page_token' => page_size }
         end
       end
       my_callable = Google::Gax.create_api_call(func, settings)
-      expect(my_callable.call(PageStreamingRequest.new).to_a).to eq(
+      expect(my_callable.call('page_token' => 0).to_a).to eq(
         (0...(page_size * pages_to_stream)).to_a)
+      expect(timeout_arg).to_not be_nil
     end
   end
 
@@ -115,7 +101,9 @@ describe Google::Gax do
 
       to_attempt = 3
 
-      func = proc do
+      timeout_arg = nil
+      func = proc do |timeout: nil|
+        timeout_arg = timeout
         to_attempt -= 1
         raise CustomException.new('', FAKE_STATUS_CODE_1) if to_attempt > 0
         1729
@@ -123,6 +111,7 @@ describe Google::Gax do
       my_callable = Google::Gax.create_api_call(func, settings)
       expect(my_callable.call).to eq(1729)
       expect(to_attempt).to eq(0)
+      expect(timeout_arg).to_not be_nil
     end
 
     it 'doesn\'t retry if no codes' do
@@ -196,7 +185,7 @@ describe Google::Gax do
       start_time = time_now
       incr_time = proc { |secs| time_now += secs }
       call_count = 0
-      func = proc do |_, timeout|
+      func = proc do |_, timeout: nil|
         call_count += 1
         incr_time.call(timeout)
         raise CustomException.new(timeout.to_s, FAKE_STATUS_CODE_1)

@@ -90,9 +90,9 @@ module Google
     # @param [Array<Exception>] errors Configures the exceptions to wrap.
     # @return [Proc] A proc that will wrap certain exceptions with GaxError
     def _catch_errors(a_func, errors: Grpc::API_ERRORS)
-      proc do |*args|
+      proc do |request, **kwargs|
         begin
-          a_func.call(*args)
+          a_func.call(request, **kwargs)
         rescue => err
           if errors.any? { |eclass| err.is_a? eclass }
             raise GaxError.new('RPC failed', cause: err)
@@ -141,16 +141,19 @@ module Google
       request_page_token_field,
       response_page_token_field,
       resource_field)
-      proc do |request|
+      proc do |request, **kwargs|
         Enumerator.new do |y|
           loop do
-            response = a_func.call(request)
-            response.send(resource_field).each do |obj|
+            response = a_func.call(request, **kwargs)
+            response[resource_field].each do |obj|
               y << obj
             end
-            next_page_token = response.send(response_page_token_field)
-            break unless next_page_token
-            request.send(request_page_token_field.to_s + '=', next_page_token)
+            next_page_token = response[response_page_token_field]
+            if next_page_token.nil? || (next_page_token == 0) ||
+               (next_page_token.respond_to?(:empty?) && next_page_token.empty?)
+              break
+            end
+            request[request_page_token_field] = next_page_token
           end
         end
       end
@@ -176,7 +179,7 @@ module Google
       total_timeout = (retry_options.backoff_settings.total_timeout_millis /
                        MILLIS_PER_SECOND)
 
-      proc do |*args|
+      proc do |request, **kwargs|
         delay = retry_options.backoff_settings.initial_retry_delay_millis
         timeout = (retry_options.backoff_settings.initial_rpc_timeout_millis /
                    MILLIS_PER_SECOND)
@@ -188,7 +191,7 @@ module Google
         while now < deadline
           begin
             exc = nil
-            result = _add_timeout_arg(a_func, timeout).call(*args)
+            result = _add_timeout_arg(a_func, timeout).call(request, **kwargs)
             break
           rescue => exception
             if exception.respond_to?(:code) &&
@@ -220,9 +223,9 @@ module Google
     #   final positional arg.
     # @return [Proc] the original proc updated to the timeout arg
     def _add_timeout_arg(a_func, timeout)
-      proc do |*args|
-        updated_args = args + [timeout]
-        a_func.call(*updated_args)
+      proc do |request, **kwargs|
+        kwargs[:timeout] = timeout
+        a_func.call(request, **kwargs)
       end
     end
 

@@ -79,9 +79,9 @@ BUNDLE_DESCRIPTORS = {
 }.freeze
 
 RETRY_DICT = {
-  'code_a' => Exception,
-  'code_b' => Exception,
-  'code_c' => Exception
+  'code_a' => 1,
+  'code_b' => 2,
+  'code_c' => 3
 }.freeze
 
 describe Google::Gax do
@@ -97,6 +97,9 @@ describe Google::Gax do
     expect(settings.bundle_descriptor).to be_a(Google::Gax::BundleDescriptor)
     expect(settings.page_descriptor).to be_nil
     expect(settings.retry_options).to be_a(Google::Gax::RetryOptions)
+    expect(settings.retry_options.retry_codes).to be_a(Array)
+    expect(settings.retry_options.backoff_settings).to be_a(
+      Google::Gax::BackoffSettings)
 
     settings = defaults['page_streaming_method']
     expect(settings.timeout).to be(30)
@@ -104,6 +107,9 @@ describe Google::Gax do
     expect(settings.bundle_descriptor).to be_nil
     expect(settings.page_descriptor).to be_a(Google::Gax::PageDescriptor)
     expect(settings.retry_options).to be_a(Google::Gax::RetryOptions)
+    expect(settings.retry_options.retry_codes).to be_a(Array)
+    expect(settings.retry_options.backoff_settings).to be_a(
+      Google::Gax::BackoffSettings)
   end
 
   it 'overrides settings' do

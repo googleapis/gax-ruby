@@ -34,6 +34,10 @@ module Google
   module Gax
     # Grpc adapts the gRPC surface
     module Grpc
+      STATUS_CODE_NAMES = GRPC::Core::StatusCodes.constants.map do |sym|
+        [sym.to_s, GRPC::Core::StatusCodes.const_get(sym)]
+      end.to_h.freeze
+
       API_ERRORS = [GRPC::BadStatus, GRPC::Cancelled].freeze
 
       # rubocop:disable Metrics/ParameterLists
