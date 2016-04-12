@@ -43,17 +43,17 @@ describe Google::Gax::PathTemplate do
       expect(testf).to raise_error
     end
 
-    skip 'should fail when multiple path wildcards' do
+    it 'should fail when multiple path wildcards' do
       testf = proc { PathTemplate.new('buckets/*/**/**/objects/*') }
       expect(testf).to raise_error
     end
 
-    skip 'should fail on inner binding' do
+    it 'should fail on inner binding' do
       testf = proc { PathTemplate.new('buckets/{hello={world}}') }
       expect(testf).to raise_error
     end
 
-    skip 'should fail unexpected eof' do
+    it 'should fail unexpected eof' do
       testf = proc { PathTemplate.new('a/{hello=world') }
       expect(testf).to raise_error
     end

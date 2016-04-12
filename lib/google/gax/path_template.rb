@@ -40,14 +40,10 @@ module Google
       token :EQUALS, /=/
       token :PATH_WILDCARD, /\*\*/ # has to occur before WILDCARD
       token :WILDCARD, /\*/
-      token :LITERAL, %r{[^*=\}\{\/]+}
+      token :LITERAL, %r{[^*=\}\{\/ ]+}
 
       on_error do |t|
-        if t
-          fail "Syntax error at '#{t.value}'"
-        else
-          fail 'Syntax error at EOF'
-        end
+        raise t ? "Syntax error at '#{t.value}'" : 'Syntax error at EOF'
       end
     end
 
@@ -64,10 +60,10 @@ module Google
       def parse(*args)
         segments = super
         has_path_wildcard = false
-        for s in segments
+        segments.each do |s|
           next unless s.kind == TERMINAL && s.literal == '**'
           if has_path_wildcard
-            fail 'path template cannot contain more than one path wildcard'
+            raise 'path template cannot contain more than one path wildcard'
           else
             has_path_wildcard = true
           end
