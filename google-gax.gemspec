@@ -17,7 +17,7 @@ Gem::Specification.new do |s|
   s.files += Dir.glob('spec/**/*')
   s.require_paths = %w(lib)
   s.platform = Gem::Platform::RUBY
-  s.license = 'MIT'
+  s.license = 'BSD-3-Clause'
 
   s.add_dependency 'googleauth', '~> 0.5.1'
   s.add_dependency 'grpc', '~> 0.13.1'
