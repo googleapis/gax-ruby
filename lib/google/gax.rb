@@ -80,8 +80,6 @@ module Google
         @bundler && @bundle_descriptor
       end
 
-      # rubocop:disable Metrics/MethodLength
-
       # Creates a new CallSetting instance which is based on this but merged
       # settings from options.
       # @param [CallOptions, nil] options The overriding call settings.

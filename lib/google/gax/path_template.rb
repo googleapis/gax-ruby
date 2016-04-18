@@ -101,7 +101,6 @@ module Google
       end
 
       rule 'bound_terminal : unbound_terminal' do |bound, unbound|
-        p "what is unbound? #{unbound}"
         if ['*', '**'].include?(unbound.value[0].literal)
           bound.value = [
             Segment.new(BINDING, format('$%d', @binding_var_count)),
@@ -131,7 +130,13 @@ module Google
     class PathTemplate
       attr_reader :size
 
-      def instantiate(_bindings)
+      # Instantiates a path template using the provided bindings.
+      # @param [Hash] binding
+      #   A mapping of var names to binding strings.
+      # @return [String] An instantiated representation of this path template.
+      # @raise [ArgumentError] If a key isn't provided or if a sub-template
+      #   can't be parsed.
+      def instantiate(**_bindings)
         ''
       end
 
@@ -141,8 +146,43 @@ module Google
         @size = parser.segment_count
       end
 
-      def match(_path)
-        true
+      # Matches a fully qualified path template string.
+      # @param [String] path
+      #   A fully qualified path template string.
+      # @return [Hash] Var names to matched binding values.
+      # @raise [ArgumentError] If path can't be matched to the template.
+      def match(path)
+        that = path.split('/')
+        current_var = nil
+        bindings = {}
+        segment_count = @size
+        i = 0
+        @segments.each do |segment|
+          break if i >= that.size
+          if segment.kind == TERMINAL
+            if segment.literal == '*'
+              bindings[current_var] = that[i]
+              i += 1
+            elsif segment.literal == '**'
+              size = that.size - segment_count + 1
+              segment_count += size - 1
+              bindings[current_var] = that[i, size].join('/')
+              i += size
+            elsif segment.literal != that[i]
+              throw ArgumentError.new(
+                "mismatched literal: '#{segment.literal}' != '#{that[i]}'")
+            else
+              i += 1
+            end
+          elsif segment.kind == BINDING
+            current_var = segment.literal
+          end
+        end
+        if i != that.size || i != segment_count
+          throw ArgumentError.new(
+            "match error: could not instantiate a path template from #{path}")
+        end
+        bindings
       end
     end
 

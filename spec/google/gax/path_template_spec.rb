@@ -28,6 +28,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 require 'google/gax/path_template'
+require 'rly'
 
 describe Google::Gax::PathTemplate do
   PathTemplate = Google::Gax::PathTemplate
@@ -39,42 +40,36 @@ describe Google::Gax::PathTemplate do
     end
 
     it 'should fail on invalid tokens' do
-      testf = proc { PathTemplate.new('hello/wor* ld') }
-      expect(testf).to raise_error
+      expect { PathTemplate.new('hello/wor* ld') }.to raise_error
     end
 
     it 'should fail when multiple path wildcards' do
-      testf = proc { PathTemplate.new('buckets/*/**/**/objects/*') }
-      expect(testf).to raise_error
+      expect { PathTemplate.new('buckets/*/**/**/objects/*') }.to raise_error
     end
 
     it 'should fail on inner binding' do
-      testf = proc { PathTemplate.new('buckets/{hello={world}}') }
-      expect(testf).to raise_error
+      expect { PathTemplate.new('buckets/{hello={world}}') }.to raise_error
     end
 
     it 'should fail unexpected eof' do
-      testf = proc { PathTemplate.new('a/{hello=world') }
-      expect(testf).to raise_error
+      expect { PathTemplate.new('a/{hello=world') }.to raise_error
     end
   end
 
   describe 'method `match`' do
-    skip 'should fail on impossible match' do
-      template = PathTemplate('hello/world')
-      testf = proc { template.match('hello') }
-      expect(testf).to raise_error
-      testf = proc { template.match('hello/world/fail') }
-      expect(testf).to raise_error
+    it 'should fail on impossible match' do
+      template = PathTemplate.new('hello/world')
+      expect { template.match('hello') }.to raise_error(ArgumentError)
+      expect { template.match('hello/world/fail') }.to raise_error(
+        ArgumentError)
     end
 
-    skip 'should fail on mismatched literal' do
-      template = PathTemsplate('hello/world')
-      testf = proc { template.match('hello/world2') }
-      expect(testf).to raise_error
+    it 'should fail on mismatched literal' do
+      template = PathTemplate.new('hello/world')
+      expect { template.match('hello/world2') }.to raise_error(ArgumentError)
     end
 
-    skip 'should match atomic resource name' do
+    it 'should match atomic resource name' do
       template = PathTemplate.new('buckets/*/*/objects/*')
       want = { '$0' => 'f', '$1' => 'o', '$2' => 'bar' }
       expect(template.match('buckets/f/o/objects/bar')).to eq(want)
@@ -87,19 +82,19 @@ describe Google::Gax::PathTemplate do
       expect(template.match('buckets/world')).to eq(want)
     end
 
-    skip 'should match escaped chars' do
+    it 'should match escaped chars' do
       template = PathTemplate.new('buckets/*/objects')
       want = { '$0' => 'hello%2F%2Bworld' }
       expect(template.match('buckets/hello%2F%2Bworld/objects')).to eq(want)
     end
 
-    skip 'should match template with unbounded wildcard' do
+    it 'should match template with unbounded wildcard' do
       template = PathTemplate.new('buckets/*/objects/**')
       want = { '$0' => 'foo', '$1' => 'bar/baz' }
       expect(template.match('buckets/foo/objects/bar/baz')).to eq(want)
     end
 
-    skip 'should match with unbound in the middle' do
+    it 'should match with unbound in the middle' do
       template = PathTemplate.new('bar/**/foo/*')
       want = { '$0' => 'foo/foo', '$1' => 'bar' }
       expect(template.match('bar/foo/foo/foo/bar')).to eq(want)
