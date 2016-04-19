@@ -49,16 +49,16 @@ module Google
       attr_reader :timeout, :retry_options, :page_descriptor, :bundler,
                   :bundle_descriptor
 
-      # @param [Numeric] timeout The client-side timeout for API calls. This
+      # @param timeout [Numeric] The client-side timeout for API calls. This
       #   parameter is ignored for retrying calls.
-      # @param [RetryOptions] retry_options The configuration for retrying upon
+      # @param retry_options [RetryOptions] The configuration for retrying upon
       #   transient error. If set to None, this call will not retry.
-      # @param [PageDescriptor] page_descriptor indicates the structure of page
+      # @param page_descriptor [PageDescriptor] indicates the structure of page
       #   streaming to be performed. If set to None, page streaming is not
       #   performed.
       # @param bundler orchestrates bundling. If None, bundling is not
       #   performed.
-      # @param [BundleDescriptor] bundle_descriptor indicates the structure of
+      # @param bundle_descriptor [BundleDescriptor] indicates the structure of
       #   the bundle. If None, bundling is not performed.
       def initialize(
           timeout: 30, retry_options: nil, page_descriptor: nil,
@@ -82,7 +82,7 @@ module Google
 
       # Creates a new CallSetting instance which is based on this but merged
       # settings from options.
-      # @param [CallOptions, nil] options The overriding call settings.
+      # @param options [CallOptions, nil] The overriding call settings.
       # @return a new merged call settings.
       def merge(options)
         unless options
@@ -125,12 +125,12 @@ module Google
     class CallOptions
       attr_reader :timeout, :retry_options, :is_page_streaming
 
-      # @param [Numeric, :OPTION_INHERIT] timeout
+      # @param timeout [Numeric, :OPTION_INHERIT]
       #   The client-side timeout for API calls.
-      # @param [RetryOptions, :OPTION_INHERIT] retry_options
+      # @param retry_options [RetryOptions, :OPTION_INHERIT]
       #   The configuration for retrying upon transient error.
       #   If set to nil, this call will not retry.
-      # @param [true, false, :OPTION_INHERIT] is_page_streaming
+      # @param is_page_streaming [true, false, :OPTION_INHERIT]
       #   If set and the call is configured for page streaming, page streaming
       #   is performed.
       def initialize(

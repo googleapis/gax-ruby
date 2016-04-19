@@ -34,12 +34,12 @@ module Google
     # @param method_config A dictionary representing a single
     #   ``methods`` entry of the standard API client config file. (See
     #   #construct_settings for information on this yaml.)
-    # @param [BundleOptions, :OPTION_INHERIT, nil] method_retry_override
+    # @param method_retry_override [BundleOptions, :OPTION_INHERIT, nil]
     #   If set to :OPTION_INHERIT, the retry settings are derived from
     #   method config. Otherwise, this parameter overrides
     #   +method_config+.
 
-    # @param [BundleDescriptor] bundle_descriptor A BundleDescriptor
+    # @param bundle_descriptor [BundleDescriptor] A BundleDescriptor
     #   object describing the structure of bundling for this
     #   method. If not set, this method will not bundle.
     # @return An Executor that configures bundling, or nil if this
@@ -62,20 +62,20 @@ module Google
 
     # Helper for #construct_settings
     #
-    # @param [Hash] method_config A dictionary representing a single
+    # @param method_config [Hash] A dictionary representing a single
     #   +methods+ entry of the standard API client config file. (See
     #   #construct_settings for information on this yaml.)
-    # @param [RetryOptions, :OPTION_INHERIT, nil] method_retry_override
+    # @param method_retry_override [RetryOptions, :OPTION_INHERIT, nil]
     #   If set to :OPTION_INHERIT, the retry settings are derived from
     #     method config. Otherwise, this parameter overrides
     #     +method_config+.
-    # @param [Hash] retry_codes_def A dictionary parsed from the
+    # @param retry_codes_def [Hash] A dictionary parsed from the
     #   +retry_codes_def+ entry of the standard API client config
     #   file. (See #construct_settings for information on this yaml.)
-    # @param [Hash] retry_params A dictionary parsed from the
+    # @param retry_params [Hash] A dictionary parsed from the
     #   +retry_params+ entry of the standard API client config
     #   file. (See #construct_settings for information on this yaml.)
-    # @param [Hash] retry_names A dictionary mapping the string names
+    # @param retry_names [Hash] A dictionary mapping the string names
     #   used in the standard API client config file to API response
     #   status codes.
     # @return [RetryOptions, nil]
@@ -150,25 +150,25 @@ module Google
     #     }
     #   }
     #
-    # @param [String] service_name The fully-qualified name of this
+    # @param service_name [String] The fully-qualified name of this
     #   service, used as a key into the client config file (in the
     #   example above, this value should be
     #   'google.fake.v1.ServiceName').
-    # @param [Hash] client_config A dictionary parsed from the
+    # @param client_config [Hash] A dictionary parsed from the
     #     standard API client config file.
-    # @param [Hash] bundling_override A dictionary of method names to
+    # @param bundling_override [Hash] A dictionary of method names to
     #   BundleOptions override those specified in +client_config+.
-    # @param [Hash] retry_override A dictionary of method names to
+    # @param retry_override [Hash] A dictionary of method names to
     #   RetryOptions that override those specified in +client_config+.
-    # @param [Hash] retry_names A dictionary mapping the strings
+    # @param retry_names [Hash] A dictionary mapping the strings
     #   referring to response status codes to the Python objects
     #   representing those codes.
-    # @param [Numeric] timeout The timeout parameter for all API calls
+    # @param timeout [Numeric] The timeout parameter for all API calls
     #   in this dictionary.
-    # @param [Hash{String => BundleDescriptor}] bundle_descriptors
+    # @param bundle_descriptors [Hash{String => BundleDescriptor}]
     #   A dictionary of method names to BundleDescriptor objects for
     #   methods that are bundling-enabled.
-    # @param [Hash{String => PageDescriptor}] page_descriptors A
+    # @param page_descriptors [Hash{String => PageDescriptor}] A
     #   dictionary of method names to PageDescriptor objects for
     #   methods that are page streaming-enabled.
     # @return [CallSettings, nil] A CallSettings, or nil if the

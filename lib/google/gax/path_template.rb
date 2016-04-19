@@ -131,7 +131,7 @@ module Google
       attr_reader :size
 
       # Instantiates a path template using the provided bindings.
-      # @param [Hash] binding
+      # @param binding [Hash]
       #   A mapping of var names to binding strings.
       # @return [String] An instantiated representation of this path template.
       # @raise [ArgumentError] If a key isn't provided or if a sub-template
@@ -147,7 +147,7 @@ module Google
       end
 
       # Matches a fully qualified path template string.
-      # @param [String] path
+      # @param path [String]
       #   A fully qualified path template string.
       # @return [Hash] Var names to matched binding values.
       # @raise [ArgumentError] If path can't be matched to the template.

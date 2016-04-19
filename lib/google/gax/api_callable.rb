@@ -53,8 +53,8 @@ module Google
     # same signature as the original. Only when +settings+ configures bundling
     # does the signature change.
     #
-    # @param [Proc] func used to make a bare rpc call
-    # @param [CallSettings] settings provides the settings for this call
+    # @param func [Proc] used to make a bare rpc call
+    # @param settings [CallSettings provides the settings for this call
     # @return [Proc] a bound method on a request stub used to make an rpc call
     # @raise [StandardError] if +settings+ has incompatible values,
     #   e.g, if bundling and page_streaming are both configured
@@ -86,8 +86,8 @@ module Google
 
     # Updates a_func to wrap exceptions with GaxError
     #
-    # @param [Proc] a_func
-    # @param [Array<Exception>] errors Configures the exceptions to wrap.
+    # @param a_func [Proc]
+    # @param errors [Array<Exception>] Configures the exceptions to wrap.
     # @return [Proc] A proc that will wrap certain exceptions with GaxError
     def _catch_errors(a_func, errors: Grpc::API_ERRORS)
       proc do |request, **kwargs|
@@ -112,8 +112,8 @@ module Google
     # The returned Event object can be used to obtain the eventual result of the
     # bundled call.
     #
-    # @param [Proc] a_func an API call that supports bundling.
-    # @param [BundleDescriptor] desc describes the bundling that
+    # @param a_func [Proc] an API call that supports bundling.
+    # @param desc [BundleDescriptor] describes the bundling that
     #   +a_func+ supports.
     # @param bundler orchestrates bundling.
     # @return [Proc] A proc takes the API call's request and returns
@@ -129,12 +129,12 @@ module Google
 
     # Creates a proc that yields an iterable to performs page-streaming.
     #
-    # @param [Proc] a_func an API call that is page streaming.
-    # @param [String] request_page_token_field The field of the page
+    # @param a_func [Proc] an API call that is page streaming.
+    # @param request_page_token_field [String] The field of the page
     #   token in the request.
-    # @param [String] response_page_token_field The field of the next
+    # @param response_page_token_field [String] The field of the next
     #   page token in the response.
-    # @param [String] resource_field The field to be streamed.
+    # @param resource_field [String] The field to be streamed.
     # @return [Proc] A proc that returns an iterable over the specified field.
     def _page_streamable(
       a_func,
@@ -164,8 +164,8 @@ module Google
     # Creates a proc equivalent to a_func, but that retries on certain
     # exceptions.
     #
-    # @param [Proc] a_func
-    # @param [RetryOptions] retry_options Configures the exceptions
+    # @param a_func [Proc]
+    # @param retry_options [RetryOptions] Configures the exceptions
     #   upon which the proc should retry, and the parameters to the
     #   exponential backoff retry algorithm.
     # @return [Proc] A proc that will retry on exception.
@@ -218,8 +218,8 @@ module Google
     # This converts a proc, a_func, into another proc with an additional
     # positional arg.
     #
-    # @param [Proc] a_func a proc to be updated
-    # @param [Numeric] timeout to be added to the original proc as it
+    # @param a_func [Proc] a proc to be updated
+    # @param timeout [Numeric] to be added to the original proc as it
     #   final positional arg.
     # @return [Proc] the original proc updated to the timeout arg
     def _add_timeout_arg(a_func, timeout)
