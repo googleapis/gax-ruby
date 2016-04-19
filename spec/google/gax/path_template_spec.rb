@@ -33,6 +33,14 @@ require 'rly'
 describe Google::Gax::PathTemplate do
   PathTemplate = Google::Gax::PathTemplate
 
+  def symbolize_keys(a_hash)
+    Hash[a_hash.map { |(k, v)| [k.to_sym, v] }]
+  end
+
+  def runtime_error
+    raise_error RuntimeError
+  end
+
   describe 'method `initialize`' do
     it 'computes the length correctly' do
       a_template = PathTemplate.new('a/b/**/*/{a=hello/world}')
@@ -40,19 +48,19 @@ describe Google::Gax::PathTemplate do
     end
 
     it 'should fail on invalid tokens' do
-      expect { PathTemplate.new('hello/wor* ld') }.to raise_error
+      expect { PathTemplate.new('hello/wor* ld') }.to runtime_error
     end
 
     it 'should fail when multiple path wildcards' do
-      expect { PathTemplate.new('buckets/*/**/**/objects/*') }.to raise_error
+      expect { PathTemplate.new('buckets/*/**/**/objects/*') }.to runtime_error
     end
 
     it 'should fail on inner binding' do
-      expect { PathTemplate.new('buckets/{hello={world}}') }.to raise_error
+      expect { PathTemplate.new('buckets/{hello={world}}') }.to runtime_error
     end
 
     it 'should fail unexpected eof' do
-      expect { PathTemplate.new('a/{hello=world') }.to raise_error
+      expect { PathTemplate.new('a/{hello=world') }.to runtime_error
     end
   end
 
@@ -99,51 +107,52 @@ describe Google::Gax::PathTemplate do
       want = { '$0' => 'foo/foo', '$1' => 'bar' }
       expect(template.match('bar/foo/foo/foo/bar')).to eq(want)
     end
+  end
 
-    describe 'method `instantiate`' do
-      skip 'should instantiate atomic resource' do
-        template = PathTemplate.new('buckets/*/*/*/objects/*')
-        params = {
-          '$0' => 'f',
-          '$1' => 'o',
-          '$2' => 'o',
-          '$3' => 'google.com:a-b'
-        }
-        want = 'buckets/f/o/o/objects/google.com:a-b'
-        expect(template.instantiate(params)).to eq(want)
-      end
+  describe 'method `instantiate`' do
+    it 'should instantiate atomic resource' do
+      template = PathTemplate.new('buckets/*/*/*/objects/*')
+      params = symbolize_keys(
+        '$0' => 'f',
+        '$1' => 'o',
+        '$2' => 'o',
+        '$3' => 'google.com:a-b'
+      )
 
-      skip 'should fail when there are too few variables' do
-        template = PathTemplate.new('buckets/*/*/*/objects/*')
-        params = {
-          '$0' => 'f',
-          '$1' => 'o',
-          '$2' => 'o'
-        }
-        testf = proc { template.instantiate(params) }
-        expect(testf).to raise_error
-      end
-
-      skip 'should succeed with unbound in the middle' do
-        template = PathTemplate.new('bar/**/foo/*')
-        params = { '$0' => '1/2', '$1' => '3' }
-        want = 'bar/1/2/foo/3'
-        expect(template.instantiate(params)).to eq(want)
-      end
+      want = 'buckets/f/o/o/objects/google.com:a-b'
+      expect(template.instantiate(params)).to eq(want)
     end
 
-    describe 'method `to_s`' do
-      tests = {
-        'bar/**/foo/*' => 'bar/{$0=**}/foo/{$1=*}',
-        'buckets/*/objects/*' => 'buckets/{$0=*}/objects/{$1=*}',
-        '/buckets/{hello}' => 'buckets/{hello=*}',
-        '/buckets/{hello=what}/{world}' => 'buckets/{hello=what}/{world=*}',
-        '/buckets/helloazAZ09-.~_what' => 'buckets/helloazAZ09-.~_what'
-      }
-      tests.each do |t, want|
-        skip "should render method #{t} ok" do
-          expect(PathTemplate.new(t).to_s).to eq(want)
-        end
+    it 'should fail when there are too few variables' do
+      template = PathTemplate.new('buckets/*/*/*/objects/*')
+      params = symbolize_keys(
+        '$0' => 'f',
+        '$1' => 'o',
+        '$2' => 'o'
+      )
+      testf = proc { template.instantiate(**params) }
+      expect(testf).to raise_error ArgumentError
+    end
+
+    it 'should succeed with unbound in the middle' do
+      template = PathTemplate.new('bar/**/foo/*')
+      params = symbolize_keys('$0' => '1/2', '$1' => '3')
+      want = 'bar/1/2/foo/3'
+      expect(template.instantiate(**params)).to eq(want)
+    end
+  end
+
+  describe 'method `to_s`' do
+    tests = {
+      'bar/**/foo/*' => 'bar/{$0=**}/foo/{$1=*}',
+      'buckets/*/objects/*' => 'buckets/{$0=*}/objects/{$1=*}',
+      '/buckets/{hello}' => 'buckets/{hello=*}',
+      '/buckets/{hello=what}/{world}' => 'buckets/{hello=what}/{world=*}',
+      '/buckets/helloazAZ09-.~_what' => 'buckets/helloazAZ09-.~_what'
+    }
+    tests.each do |t, want|
+      it "should render method #{t} ok" do
+        expect(PathTemplate.new(t).to_s).to eq(want)
       end
     end
   end

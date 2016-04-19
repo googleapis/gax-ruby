@@ -60,6 +60,7 @@ module Google
       def parse(*args)
         segments = super
         has_path_wildcard = false
+        raise 'path template has no segments' if segments.nil?
         segments.each do |s|
           next unless s.kind == TERMINAL && s.literal == '**'
           if has_path_wildcard
@@ -128,7 +129,38 @@ module Google
 
     # PathTemplate parses and format resource names
     class PathTemplate
-      attr_reader :size
+      attr_reader :segments, :size
+
+      def initialize(data)
+        parser = PathParse.new(PathLex.new)
+        @segments = parser.parse(data)
+        @size = parser.segment_count
+      end
+
+      # Formats segments as a string.
+      #
+      # @param [Array<Segments>]
+      #   The segments to be formatted
+      # @return [String] the formatted output
+      def self.format_segments(*segments)
+        template = ''
+        slash = true
+        segments.each do |segment|
+          if segment.kind == TERMINAL
+            template += '/' if slash
+            template += segment.literal.to_s
+            next
+          end
+          slash = true
+          if segment.kind == BINDING
+            template += "/{#{segment.literal}="
+            slash = false
+          else
+            template += "#{segment.literal}}"
+          end
+        end
+        template[1, template.length] # exclude the initial slash
+      end
 
       # Instantiates a path template using the provided bindings.
       # @param [Hash] binding
@@ -136,14 +168,28 @@ module Google
       # @return [String] An instantiated representation of this path template.
       # @raise [ArgumentError] If a key isn't provided or if a sub-template
       #   can't be parsed.
-      def instantiate(**_bindings)
-        ''
-      end
-
-      def initialize(data)
-        parser = PathParse.new(PathLex.new)
-        @segments = parser.parse(data)
-        @size = parser.segment_count
+      def instantiate(**bindings)
+        out = []
+        binding = false
+        @segments.each do |segment|
+          if segment.kind == BINDING
+            literal_sym = segment.literal.to_sym
+            unless bindings.key?(literal_sym)
+              msg = "Value for key #{segment.literal} is not provided"
+              raise(ArgumentError, msg)
+            end
+            out.push(*PathTemplate.new(bindings[literal_sym]).segments)
+            binding = true
+          elsif segment.kind == END_BINDING
+            binding = false
+          else
+            next if binding
+            out << segment
+          end
+        end
+        path = self.class.format_segments(*out)
+        match(path)
+        path
       end
 
       # Matches a fully qualified path template string.
@@ -184,7 +230,13 @@ module Google
         end
         bindings
       end
+
+      def to_s
+        self.class.format_segments(*@segments)
+      end
     end
+
+    Segment = Struct.new(:kind, :literal)
 
     # Private constants/methods/classes
     BINDING = 1
@@ -192,13 +244,5 @@ module Google
     TERMINAL = 3
 
     private_constant :BINDING, :END_BINDING, :TERMINAL
-
-    private
-
-    Segment = Struct.new(:kind, :literal)
-
-    def format(_segments)
-      ''
-    end
   end
 end
