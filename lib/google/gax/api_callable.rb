@@ -37,6 +37,136 @@ module Google
   module Gax
     MILLIS_PER_SECOND = 1000.0
 
+    # A class to provide the Enumerable interface for page-streaming method.
+    # PagedEnumerable assumes that the API call returns a message for a page
+    # which holds a list of resources and the token to the next page.
+    #
+    # PagedEnumerable provides the enumerations over the resource data,
+    # and also provides the enumerations over the pages themselves.
+    #
+    # @attribute [r] page
+    #   @return [Page] The current page object.
+    class PagedEnumerable
+      # A class to represent a page in a PagedEnumerable. This also implements
+      # Enumerable, so it can iterate over the resource elements.
+      #
+      # @attribute [r] response
+      #   @return [Object] The actual response object.
+      class Page
+        include Enumerable
+        attr_reader :response
+
+        # @param response [Object]
+        #   The response object for the page.
+        # @param response_page_token_field [String]
+        #   The name of the field in response which holds the next page token.
+        # @param resource_field [String]
+        #   The name of the field in response which holds the resources.
+        def initialize(response, response_page_token_field, resource_field)
+          @response = response
+          @response_page_token_field = response_page_token_field
+          @resource_field = resource_field
+        end
+
+        # Creates another instance of Page with replacing the new response.
+        # @param response [Object] a new response object.
+        def dup_with(response)
+          self.class.new(response, @response_page_token_field, @resource_field)
+        end
+
+        # Iterate over the resources.
+        # @yield [Object] Gives the resource objects in the page.
+        def each
+          @response[@resource_field].each do |obj|
+            yield obj
+          end
+        end
+
+        def next_page_token
+          @response[@response_page_token_field]
+        end
+
+        # Truthiness of next_page_token.
+        def next_page_token?
+          !@response.nil? && !next_page_token.nil? && next_page_token != 0 &&
+            (!next_page_token.respond_to?(:empty) || !next_page_token.empty?)
+        end
+      end
+
+      include Enumerable
+      attr_reader :page
+
+      # @param a_func [Proc]
+      #   A proc to update the response object.
+      # @param request_page_token_field [String]
+      #   The name of the field in request which will have the page token.
+      # @param response_page_token_field [String]
+      #   The name of the field in the response which holds the next page token.
+      # @param resource_field [String]
+      #   The name of the field in the response which holds the resources.
+      def initialize(a_func, request_page_token_field,
+                     response_page_token_field, resource_field)
+        @func = a_func
+        @request_page_token_field = request_page_token_field
+        @page = Page.new(nil, response_page_token_field, resource_field)
+      end
+
+      # Initiate the streaming with the requests and keywords.
+      # @param request [Object]
+      #   The initial request object.
+      # @param kwargs [Hash]
+      #   Other keyword arguments to be passed to a_func.
+      # @return [PagedEnumerable]
+      #   returning self for further uses.
+      def start(request, **kwargs)
+        @request = request
+        @kwargs = kwargs
+        @page = @page.dup_with(@func.call(@request, **@kwargs))
+        self
+      end
+
+      # True if it's already started.
+      def started?
+        !@request.nil?
+      end
+
+      # Iterate over the resources.
+      # @yield [Object] Gives the resource objects in the stream.
+      # @raise [RuntimeError] if it's not started yet.
+      def each
+        each_page do |page|
+          page.each do |obj|
+            yield obj
+          end
+        end
+      end
+
+      # Iterate over the pages.
+      # @yield [Page] Gives the pages in the stream.
+      # @raise [RuntimeError] if it's not started yet.
+      def each_page
+        raise 'not started!' unless started?
+        yield @page
+        loop do
+          break unless next_page?
+          yield next_page
+        end
+      end
+
+      # True if it has the next page.
+      def next_page?
+        @page.next_page_token?
+      end
+
+      # Update the response in the current page.
+      # @return [Page] the new page object.
+      def next_page
+        return unless next_page?
+        @request[@request_page_token_field] = @page.next_page_token
+        @page = @page.dup_with(@func.call(@request, **@kwargs))
+      end
+    end
+
     # rubocop:disable Metrics/AbcSize
 
     # Converts an rpc call into an API call governed by the settings.
@@ -141,22 +271,11 @@ module Google
       request_page_token_field,
       response_page_token_field,
       resource_field)
-      proc do |request, **kwargs|
-        Enumerator.new do |y|
-          loop do
-            response = a_func.call(request, **kwargs)
-            response[resource_field].each do |obj|
-              y << obj
-            end
-            next_page_token = response[response_page_token_field]
-            if next_page_token.nil? || (next_page_token == 0) ||
-               (next_page_token.respond_to?(:empty?) && next_page_token.empty?)
-              break
-            end
-            request[request_page_token_field] = next_page_token
-          end
-        end
-      end
+      enumerable = PagedEnumerable.new(a_func,
+                                       request_page_token_field,
+                                       response_page_token_field,
+                                       resource_field)
+      enumerable.method(:start)
     end
 
     # rubocop:disable Metrics/MethodLength
