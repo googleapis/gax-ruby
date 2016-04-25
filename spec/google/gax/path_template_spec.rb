@@ -109,8 +109,8 @@ describe Google::Gax::PathTemplate do
     end
   end
 
-  describe 'method `instantiate`' do
-    it 'should instantiate atomic resource' do
+  describe 'method `render`' do
+    it 'should render atomic resource' do
       template = PathTemplate.new('buckets/*/*/*/objects/*')
       params = symbolize_keys(
         '$0' => 'f',
@@ -120,7 +120,7 @@ describe Google::Gax::PathTemplate do
       )
 
       want = 'buckets/f/o/o/objects/google.com:a-b'
-      expect(template.instantiate(params)).to eq(want)
+      expect(template.render(params)).to eq(want)
     end
 
     it 'should fail when there are too few variables' do
@@ -130,7 +130,7 @@ describe Google::Gax::PathTemplate do
         '$1' => 'o',
         '$2' => 'o'
       )
-      testf = proc { template.instantiate(**params) }
+      testf = proc { template.render(**params) }
       expect(testf).to raise_error ArgumentError
     end
 
@@ -138,7 +138,7 @@ describe Google::Gax::PathTemplate do
       template = PathTemplate.new('bar/**/foo/*')
       params = symbolize_keys('$0' => '1/2', '$1' => '3')
       want = 'bar/1/2/foo/3'
-      expect(template.instantiate(**params)).to eq(want)
+      expect(template.render(**params)).to eq(want)
     end
   end
 

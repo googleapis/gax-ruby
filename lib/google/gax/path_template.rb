@@ -162,13 +162,13 @@ module Google
         template[1, template.length] # exclude the initial slash
       end
 
-      # Instantiates a path template using the provided bindings.
+      # Renders a path template using the provided bindings.
       # @param binding [Hash]
       #   A mapping of var names to binding strings.
-      # @return [String] An instantiated representation of this path template.
+      # @return [String] A rendered representation of this path template.
       # @raise [ArgumentError] If a key isn't provided or if a sub-template
       #   can't be parsed.
-      def instantiate(**bindings)
+      def render(**bindings)
         out = []
         binding = false
         @segments.each do |segment|
