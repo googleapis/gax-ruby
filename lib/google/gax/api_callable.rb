@@ -194,8 +194,8 @@ module Google
             result = _add_timeout_arg(a_func, timeout).call(request, **kwargs)
             break
           rescue => exception
-            if exception.respond_to?(:code) &&
-               !retry_options.retry_codes.include?(exception.code)
+            unless exception.respond_to?(:code) &&
+                   retry_options.retry_codes.include?(exception.code)
               raise RetryError.new('Exception occurred in retry method that ' \
                                    'was not classified as transient',
                                    cause: exception)
