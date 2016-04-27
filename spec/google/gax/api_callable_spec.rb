@@ -60,30 +60,44 @@ describe Google::Gax do
   end
 
   describe 'page streaming' do
-    it 'returns page-streamable' do
-      page_size = 3
-      pages_to_stream = 5
+    page_size = 3
+    pages_to_stream = 5
 
-      page_descriptor = Google::Gax::PageDescriptor.new(
-        'page_token', 'next_page_token', 'nums')
-      settings = CallSettings.new(page_descriptor: page_descriptor)
-      timeout_arg = nil
-      func = proc do |request, timeout: nil|
-        timeout_arg = timeout
-        page_token = request['page_token']
-        if page_token > 0 && page_token < page_size * pages_to_stream
-          { 'nums' => (page_token...(page_token + page_size)),
-            'next_page_token' => page_token + page_size }
-        elsif page_token >= page_size * pages_to_stream
-          { 'nums' => [] }
-        else
-          { 'nums' => 0...page_size, 'next_page_token' => page_size }
-        end
+    page_descriptor = Google::Gax::PageDescriptor.new(
+      'page_token', 'next_page_token', 'nums')
+    settings = CallSettings.new(page_descriptor: page_descriptor)
+    timeout_arg = nil
+    func = proc do |request, timeout: nil|
+      timeout_arg = timeout
+      page_token = request['page_token']
+      if page_token > 0 && page_token < page_size * pages_to_stream
+        { 'nums' => (page_token...(page_token + page_size)),
+          'next_page_token' => page_token + page_size }
+      elsif page_token >= page_size * pages_to_stream
+        { 'nums' => [] }
+      else
+        { 'nums' => 0...page_size, 'next_page_token' => page_size }
       end
+    end
+
+    it 'iterates over elements' do
       my_callable = Google::Gax.create_api_call(func, settings)
       expect(my_callable.call('page_token' => 0).to_a).to eq(
         (0...(page_size * pages_to_stream)).to_a)
       expect(timeout_arg).to_not be_nil
+    end
+
+    it 'offers interface for pages' do
+      my_callable = Google::Gax.create_api_call(func, settings)
+      stream = my_callable.call('page_token' => 0)
+      page = stream.page
+      expect(page.to_a).to eq((0...page_size).to_a)
+      expect(page.next_page_token?).to be_truthy
+      page = stream.next_page
+      expect(page.to_a).to eq((page_size...(page_size * 2)).to_a)
+
+      stream = my_callable.call('page_token' => 0)
+      expect(stream.enum_for(:each_page).to_a.size).to eq(pages_to_stream + 1)
     end
   end
 
