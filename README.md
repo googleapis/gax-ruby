@@ -1,6 +1,9 @@
 Google API Extensions for Ruby
 ================================
 
+[![Build Status](https://travis-ci.org/googleapis/gax-ruby.svg?branch=master)](https://travis-ci.org/googleapis/gax-ruby)
+[![Code Coverage](https://img.shields.io/codecov/c/github/googleapis/gax-ruby.svg)](https://codecov.io/github/googleapis/gax-ruby)
+
 Google API Extensions for Ruby (gax-ruby) is a set of modules which aids the
 development of APIs for clients and servers based on [gRPC][] and Google API
 conventions.
