@@ -3,11 +3,11 @@ Contributing
 
 Here are some guidelines for hacking on [gax-ruby][].
 
--  Please **sign** one of the [Contributor License Agreements][#contributor-license-agreements] below.
+-  Please **sign** one of the [Contributor License Agreements](#contributor-license-agreements) below.
 -  [File an issue][] to notify the maintainers about what you're working on.
--  [Fork the repo][]; develop and [test your code changes][]; add docs.
+-  [Fork the repo][]; develop and [test your code changes](#running-tests); add docs.
 -  Make sure that your [commit messages][] clearly describe the changes.
--  [Make the pull request][].
+-  [Make the pull request](#make-the-pull-request).
 
 [Fork the repo]: https://help.github.com/articles/fork-a-repo
 [forking]: https://help.github.com/articles/fork-a-repo
@@ -28,8 +28,6 @@ Fork gax-ruby
 
 We will use GitHub's mechanism for [forking][] repositories and making pull
 requests. Fork the repository, and make your changes in the forked repository.
-
-[test your code changes]:
 
 Include tests
 -------------
@@ -65,7 +63,7 @@ You'll have to create a development environment to hack on
 
   # Configure remotes such that you can pull changes from the gax-ruby
   # repository into your local repository.
-  git remote add upstream https://github.com:googleapis/gax-ruby
+  git remote add upstream https://github.com/googleapis/gax-ruby
 
   # fetch and merge changes from upstream into master
   git fetch upstream
