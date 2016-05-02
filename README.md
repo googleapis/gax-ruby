@@ -49,7 +49,7 @@ stable.
 Details
 -------
 
-For detailed documentation of the modules in gax-python, please watch [DOCUMENTATION][].
+For detailed documentation of the modules in gax-ruby, please watch [DOCUMENTATION][].
 
 [DOCUMENTATION]: http://www.rubydoc.info/gems/google-gax
 

@@ -89,7 +89,7 @@ module Google
         # Truthiness of next_page_token.
         def next_page_token?
           !@response.nil? && !next_page_token.nil? && next_page_token != 0 &&
-            (!next_page_token.respond_to?(:empty) || !next_page_token.empty?)
+            (!next_page_token.respond_to?(:empty?) || !next_page_token.empty?)
         end
       end
 
