@@ -71,7 +71,8 @@ A_CONFIG = {
 
 PAGE_DESCRIPTORS = {
   'page_streaming_method' => Google::Gax::PageDescriptor.new(
-    'page_token', 'next_page_token', 'page_streams')
+    'page_token', 'next_page_token', 'page_streams'
+  )
 }.freeze
 
 BUNDLE_DESCRIPTORS = {
@@ -89,7 +90,8 @@ describe Google::Gax do
     defaults = Google::Gax.construct_settings(
       SERVICE_NAME, A_CONFIG, {}, RETRY_DICT, 30,
       bundle_descriptors: BUNDLE_DESCRIPTORS,
-      page_descriptors: PAGE_DESCRIPTORS)
+      page_descriptors: PAGE_DESCRIPTORS
+    )
     settings = defaults['bundling_method']
     expect(settings.timeout).to be(30)
     # TODO: uncomment this when bundling is added.
@@ -99,7 +101,8 @@ describe Google::Gax do
     expect(settings.retry_options).to be_a(Google::Gax::RetryOptions)
     expect(settings.retry_options.retry_codes).to be_a(Array)
     expect(settings.retry_options.backoff_settings).to be_a(
-      Google::Gax::BackoffSettings)
+      Google::Gax::BackoffSettings
+    )
 
     settings = defaults['page_streaming_method']
     expect(settings.timeout).to be(30)
@@ -109,7 +112,8 @@ describe Google::Gax do
     expect(settings.retry_options).to be_a(Google::Gax::RetryOptions)
     expect(settings.retry_options.retry_codes).to be_a(Array)
     expect(settings.retry_options.backoff_settings).to be_a(
-      Google::Gax::BackoffSettings)
+      Google::Gax::BackoffSettings
+    )
   end
 
   it 'overrides settings' do
@@ -128,7 +132,8 @@ describe Google::Gax do
     defaults = Google::Gax.construct_settings(
       SERVICE_NAME, A_CONFIG, overrides, RETRY_DICT, 30,
       bundle_descriptors: BUNDLE_DESCRIPTORS,
-      page_descriptors: PAGE_DESCRIPTORS)
+      page_descriptors: PAGE_DESCRIPTORS
+    )
 
     settings = defaults['bundling_method']
     expect(settings.timeout).to be(30)
@@ -181,7 +186,8 @@ describe Google::Gax do
     defaults = Google::Gax.construct_settings(
       SERVICE_NAME, A_CONFIG, override, RETRY_DICT, 30,
       bundle_descriptors: BUNDLE_DESCRIPTORS,
-      page_descriptors: PAGE_DESCRIPTORS)
+      page_descriptors: PAGE_DESCRIPTORS
+    )
 
     settings = defaults['bundling_method']
     backoff = settings.retry_options.backoff_settings
@@ -195,6 +201,7 @@ describe Google::Gax do
     expect(backoff.retry_delay_multiplier).to be(1.5)
     expect(backoff.max_retry_delay_millis).to be(1000)
     expect(settings.retry_options.retry_codes).to match_array(
-      [RETRY_DICT['code_a']])
+      [RETRY_DICT['code_a']]
+    )
   end
 end

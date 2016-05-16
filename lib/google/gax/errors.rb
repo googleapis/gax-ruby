@@ -37,7 +37,7 @@ module Google
       # @param cause [Error] the exception raised by a lower layer of
       #   the RPC stack (for example, gRPC) that caused this
       #   exception, or None if this exception originated in GAX.
-      def initialize(msg, cause:nil)
+      def initialize(msg, cause: nil)
         msg = "GaxError #{msg}, caused by #{cause}" if cause
         super(msg)
         @cause = cause

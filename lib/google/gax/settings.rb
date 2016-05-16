@@ -77,7 +77,8 @@ module Google
       if retry_params && method_config.key?('retry_params_name')
         params = retry_params[method_config['retry_params_name']]
         backoff_settings = BackoffSettings.new(
-          *params.values_at(*BackoffSettings.members.map(&:to_s)))
+          *params.values_at(*BackoffSettings.members.map(&:to_s))
+        )
       end
 
       RetryOptions.new(codes, backoff_settings)
@@ -213,16 +214,15 @@ module Google
     #   methods that are page streaming-enabled.
     # @return [CallSettings, nil] A CallSettings, or nil if the
     #   service is not found in the config.
-    def construct_settings(
-        service_name, client_config, config_overrides,
-        retry_names, timeout, bundle_descriptors: {}, page_descriptors: {})
+    def construct_settings(service_name, client_config, config_overrides,
+                           retry_names, timeout, bundle_descriptors: {},
+                           page_descriptors: {})
       defaults = {}
 
       service_config = client_config.fetch('interfaces', {})[service_name]
       return nil unless service_config
 
-      overrides = config_overrides.fetch('interfaces', {}).fetch(
-        service_name, nil)
+      overrides = config_overrides.fetch('interfaces', {})[service_name]
       service_config = override_config(service_config, overrides)
 
       service_config['methods'].each_pair do |method_name, method_config|
@@ -232,16 +232,15 @@ module Google
 
         defaults[snake_name] = CallSettings.new(
           timeout: timeout,
-          retry_options: construct_retry(
-            method_config,
-            service_config['retry_codes'],
-            service_config['retry_params'],
-            retry_names),
+          retry_options: construct_retry(method_config,
+                                         service_config['retry_codes'],
+                                         service_config['retry_params'],
+                                         retry_names),
           page_descriptor: page_descriptors[snake_name],
-          bundler: construct_bundling(
-            method_config,
-            bundle_descriptor),
-          bundle_descriptor: bundle_descriptor)
+          bundler: construct_bundling(method_config,
+                                      bundle_descriptor),
+          bundle_descriptor: bundle_descriptor
+        )
       end
 
       defaults

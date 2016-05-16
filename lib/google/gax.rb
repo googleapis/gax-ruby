@@ -60,9 +60,8 @@ module Google
       #   performed.
       # @param bundle_descriptor [BundleDescriptor] indicates the structure of
       #   the bundle. If None, bundling is not performed.
-      def initialize(
-          timeout: 30, retry_options: nil, page_descriptor: nil,
-          bundler: nil, bundle_descriptor: nil)
+      def initialize(timeout: 30, retry_options: nil, page_descriptor: nil,
+                     bundler: nil, bundle_descriptor: nil)
         @timeout = timeout
         @retry_options = retry_options
         @page_descriptor = page_descriptor
@@ -86,12 +85,11 @@ module Google
       # @return a new merged call settings.
       def merge(options)
         unless options
-          return CallSettings.new(
-            timeout: @timeout,
-            retry_options: @retry_options,
-            page_descriptor: @page_descriptor,
-            bundler: @bundler,
-            bundle_descriptor: @bundle_descriptor)
+          return CallSettings.new(timeout: @timeout,
+                                  retry_options: @retry_options,
+                                  page_descriptor: @page_descriptor,
+                                  bundler: @bundler,
+                                  bundle_descriptor: @bundle_descriptor)
         end
 
         timeout = if options.timeout == :OPTION_INHERIT
@@ -106,12 +104,11 @@ module Google
                         end
         page_descriptor = @page_descriptor if options.is_page_streaming
 
-        CallSettings.new(
-          timeout: timeout,
-          retry_options: retry_options,
-          page_descriptor: page_descriptor,
-          bundler: @bundler,
-          bundle_descriptor: @bundle_descriptor)
+        CallSettings.new(timeout: timeout,
+                         retry_options: retry_options,
+                         page_descriptor: page_descriptor,
+                         bundler: @bundler,
+                         bundle_descriptor: @bundle_descriptor)
       end
     end
 
@@ -133,10 +130,9 @@ module Google
       # @param is_page_streaming [true, false, :OPTION_INHERIT]
       #   If set and the call is configured for page streaming, page streaming
       #   is performed.
-      def initialize(
-        timeout: :OPTION_INHERIT,
-        retry_options: :OPTION_INHERIT,
-        is_page_streaming: :OPTION_INHERIT)
+      def initialize(timeout: :OPTION_INHERIT,
+                     retry_options: :OPTION_INHERIT,
+                     is_page_streaming: :OPTION_INHERIT)
         @timeout = timeout
         @retry_options = retry_options
         @is_page_streaming = is_page_streaming
@@ -144,10 +140,9 @@ module Google
     end
 
     # Describes the structure of a page-streaming call.
-    class PageDescriptor < Struct.new(
-      :request_page_token_field,
-      :response_page_token_field,
-      :resource_field)
+    class PageDescriptor < Struct.new(:request_page_token_field,
+                                      :response_page_token_field,
+                                      :resource_field)
     end
 
     # Per-call configurable settings for retrying upon transient failure.
@@ -168,7 +163,8 @@ module Google
       :initial_rpc_timeout_millis,
       :rpc_timeout_multiplier,
       :max_rpc_timeout_millis,
-      :total_timeout_millis)
+      :total_timeout_millis
+    )
       # @!attribute initial_retry_delay_millis
       #   @return [Numeric] the initial delay time, in milliseconds,
       #     between the completion of the first failed request and the
@@ -204,10 +200,9 @@ module Google
     # request_discriminator_fields may include '.' as a separator, which is
     # used to indicate object traversal.  This allows fields in nested objects
     # to be used to determine what requests to bundle.
-    class BundleDescriptor < Struct.new(
-      :bundled_field,
-      :request_discriminator_fields,
-      :subresponse_field)
+    class BundleDescriptor < Struct.new(:bundled_field,
+                                        :request_discriminator_fields,
+                                        :subresponse_field)
       # @!attribute bundled_field
       #   @return [String] the repeated field in the request message
       #     that will have its elements aggregated by bundling
@@ -230,12 +225,11 @@ module Google
     #
     # The xxx_threshold attributes are used to configure when the bundled
     # request should be made.
-    class BundleOptions < Struct.new(
-      :element_count_threshold,
-      :element_count_limit,
-      :request_byte_threshold,
-      :request_byte_limit,
-      :delay_threshold)
+    class BundleOptions < Struct.new(:element_count_threshold,
+                                     :element_count_limit,
+                                     :request_byte_threshold,
+                                     :request_byte_limit,
+                                     :delay_threshold)
       # @!attribute element_count_threshold
       #   @return [Numeric] the bundled request will be sent once the
       #     count of outstanding elements in the repeated field
@@ -265,12 +259,11 @@ module Google
       #   @return [Numeric] the bundled request will be sent this
       #     amount of time after the first element in the bundle was
       #     added to it.
-      def initialize(
-        element_count_threshold: 0,
-        element_count_limit: 0,
-        request_byte_threshold: 0,
-        request_byte_limit: 0,
-        delay_threshold: 0)
+      def initialize(element_count_threshold: 0,
+                     element_count_limit: 0,
+                     request_byte_threshold: 0,
+                     request_byte_limit: 0,
+                     delay_threshold: 0)
         super(
           element_count_threshold,
           element_count_limit,

@@ -216,7 +216,8 @@ module Google
               i += size
             elsif segment.literal != that[i]
               throw ArgumentError.new(
-                "mismatched literal: '#{segment.literal}' != '#{that[i]}'")
+                "mismatched literal: '#{segment.literal}' != '#{that[i]}'"
+              )
             else
               i += 1
             end
@@ -226,7 +227,8 @@ module Google
         end
         if i != that.size || i != segment_count
           throw ArgumentError.new(
-            "match error: could not instantiate a path template from #{path}")
+            "match error: could not instantiate a path template from #{path}"
+          )
         end
         bindings
       end
