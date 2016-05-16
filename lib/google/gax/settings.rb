@@ -34,29 +34,20 @@ module Google
     # @param method_config A dictionary representing a single
     #   ``methods`` entry of the standard API client config file. (See
     #   #construct_settings for information on this yaml.)
-    # @param method_retry_override [BundleOptions, :OPTION_INHERIT, nil]
-    #   If set to :OPTION_INHERIT, the retry settings are derived from
-    #   method config. Otherwise, this parameter overrides
-    #   +method_config+.
-
     # @param bundle_descriptor [BundleDescriptor] A BundleDescriptor
     #   object describing the structure of bundling for this
     #   method. If not set, this method will not bundle.
     # @return An Executor that configures bundling, or nil if this
     #   method should not bundle.
-    def _construct_bundling(method_config, method_bundling_override,
-                            bundle_descriptor)
-      if method_config.key?('bundling') && bundle_descriptor
-        if method_bundling_override == :OPTION_INHERIT
-          options = BundleOptions.new
-          method_config['bundling'].each_pair do |key, value|
-            options[key.intern] = value
-          end
-          # TODO: comment-out when bundling is supported.
-          # Executor.new(options)
-        elsif method_bundling_override
-          # Executor.new(method_bundling_override)
+    def construct_bundling(method_config, bundle_descriptor)
+      if method_config && method_config.key?('bundling') && bundle_descriptor
+        options = BundleOptions.new
+        method_config['bundling'].each_pair do |key, value|
+          options[key.intern] = value
         end
+        # TODO: comment-out when bundling is supported.
+        # Executor.new(options)
+        nil
       end
     end
 
@@ -65,11 +56,7 @@ module Google
     # @param method_config [Hash] A dictionary representing a single
     #   +methods+ entry of the standard API client config file. (See
     #   #construct_settings for information on this yaml.)
-    # @param method_retry_override [RetryOptions, :OPTION_INHERIT, nil]
-    #   If set to :OPTION_INHERIT, the retry settings are derived from
-    #     method config. Otherwise, this parameter overrides
-    #     +method_config+.
-    # @param retry_codes_def [Hash] A dictionary parsed from the
+    # @param retry_codes [Hash] A dictionary parsed from the
     #   +retry_codes_def+ entry of the standard API client config
     #   file. (See #construct_settings for information on this yaml.)
     # @param retry_params [Hash] A dictionary parsed from the
@@ -79,12 +66,8 @@ module Google
     #   used in the standard API client config file to API response
     #   status codes.
     # @return [RetryOptions, nil]
-    def _construct_retry(method_config, method_retry_override, retry_codes,
-                         retry_params, retry_names)
-      unless method_retry_override == :OPTION_INHERIT
-        return method_retry_override
-      end
-
+    def construct_retry(method_config, retry_codes, retry_params, retry_names)
+      return nil unless method_config
       retry_codes ||= {}
       retry_codes_name = method_config['retry_codes_name']
       codes = retry_codes.fetch(retry_codes_name, []).map do |name|
@@ -100,8 +83,67 @@ module Google
       RetryOptions.new(codes, backoff_settings)
     end
 
-    def _upper_camel_to_lower_underscore(string)
+    def upper_camel_to_lower_underscore(string)
       string.scan(/[[:upper:]][^[:upper:]]*/).map(&:downcase).join('_')
+    end
+
+    # Update config_base specifying retry params with overrides.
+    #
+    # @param config_base [Hash] A hash of retry params.
+    # @overrides [Hash] A hash to update config_base.
+    def override_retry(config_base, overrides)
+      overrides.each_pair do |name, params|
+        if config_base.key?(name)
+          config_base[name].update(params)
+        else
+          config_base[name] = params
+        end
+      end
+    end
+
+    # Update config_base specifying method condigs with overrides.
+    #
+    # @param config_base [Hash] A hash of method config.
+    # @param overrides [Hash] A hash to update config_base.
+    def override_methods(config_base, overrides)
+      overrides.each_pair do |name, params|
+        if params
+          params.each_pair do |key, param|
+            next unless config_base[name].key?(key)
+            if key == 'bundling' && param
+              config_base[name][key].update(param)
+            else
+              config_base[name][key] = param || {}
+            end
+          end
+        else
+          config_base[name] = nil
+        end
+      end
+    end
+
+    # Merge overriding configs into config_base and return the new config.
+    #
+    # If overrides is empty, it returns the same config_base. Otherwise,
+    # it creates a copy of config_base and some parts are updated by overrides.
+    #
+    # @param config_base [Hash] A hash for base config.
+    # @param overrides [Hash] A hash in the same structure of config_base.
+    # @return [Hash]
+    def override_config(config_base, overrides)
+      return config_base unless overrides
+      # Using Marshal to deep-copy the config_base.
+      new_config = Marshal.load(Marshal.dump(config_base))
+      if overrides.key?('retry_codes')
+        new_config['retry_codes'].update(overrides['retry_codes'])
+      end
+      if overrides.key?('retry_params')
+        override_retry(new_config['retry_params'], overrides['retry_params'])
+      end
+      if overrides.key?('methods')
+        override_methods(new_config['methods'], overrides['methods'])
+      end
+      new_config
     end
 
     # rubocop:disable Metrics/ParameterLists
@@ -154,12 +196,10 @@ module Google
     #   service, used as a key into the client config file (in the
     #   example above, this value should be
     #   'google.fake.v1.ServiceName').
-    # @param client_config [Hash] A dictionary parsed from the
-    #     standard API client config file.
-    # @param bundling_override [Hash] A dictionary of method names to
-    #   BundleOptions override those specified in +client_config+.
-    # @param retry_override [Hash] A dictionary of method names to
-    #   RetryOptions that override those specified in +client_config+.
+    # @param client_config [Hash] A hash parsed from the standard
+    #   API client config file.
+    # @param config_overrides [Hash] A hash in the same structure of
+    #   client_config to override the settings.
     # @param retry_names [Hash] A dictionary mapping the strings
     #   referring to response status codes to the Python objects
     #   representing those codes.
@@ -174,30 +214,32 @@ module Google
     # @return [CallSettings, nil] A CallSettings, or nil if the
     #   service is not found in the config.
     def construct_settings(
-        service_name, client_config, bundling_override, retry_override,
+        service_name, client_config, config_overrides,
         retry_names, timeout, bundle_descriptors: {}, page_descriptors: {})
       defaults = {}
 
       service_config = client_config.fetch('interfaces', {})[service_name]
       return nil unless service_config
 
+      overrides = config_overrides.fetch('interfaces', {}).fetch(
+        service_name, nil)
+      service_config = override_config(service_config, overrides)
+
       service_config['methods'].each_pair do |method_name, method_config|
-        snake_name = _upper_camel_to_lower_underscore(method_name)
+        snake_name = upper_camel_to_lower_underscore(method_name)
 
         bundle_descriptor = bundle_descriptors[snake_name]
 
         defaults[snake_name] = CallSettings.new(
           timeout: timeout,
-          retry_options: _construct_retry(
+          retry_options: construct_retry(
             method_config,
-            retry_override.fetch(snake_name, :OPTION_INHERIT),
             service_config['retry_codes'],
             service_config['retry_params'],
             retry_names),
           page_descriptor: page_descriptors[snake_name],
-          bundler: _construct_bundling(
+          bundler: construct_bundling(
             method_config,
-            bundling_override.fetch(snake_name, :OPTION_INHERIT),
             bundle_descriptor),
           bundle_descriptor: bundle_descriptor)
       end
@@ -205,9 +247,11 @@ module Google
       defaults
     end
 
-    module_function :construct_settings, :_construct_bundling,
-                    :_construct_retry, :_upper_camel_to_lower_underscore
-    private_class_method :_construct_bundling, :_construct_retry,
-                         :_upper_camel_to_lower_underscore
+    module_function :construct_settings, :construct_bundling,
+                    :construct_retry, :upper_camel_to_lower_underscore,
+                    :override_retry, :override_methods, :override_config
+    private_class_method :construct_bundling, :construct_retry,
+                         :upper_camel_to_lower_underscore,
+                         :override_retry, :override_methods, :override_config
   end
 end

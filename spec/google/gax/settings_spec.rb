@@ -87,7 +87,7 @@ RETRY_DICT = {
 describe Google::Gax do
   it 'creates settings' do
     defaults = Google::Gax.construct_settings(
-      SERVICE_NAME, A_CONFIG, {}, {}, RETRY_DICT, 30,
+      SERVICE_NAME, A_CONFIG, {}, RETRY_DICT, 30,
       bundle_descriptors: BUNDLE_DESCRIPTORS,
       page_descriptors: PAGE_DESCRIPTORS)
     settings = defaults['bundling_method']
@@ -113,11 +113,20 @@ describe Google::Gax do
   end
 
   it 'overrides settings' do
-    bundling_override = { 'bundling_method' => nil }
-    retry_override = { 'page_streaming_method' => nil }
+    overrides = {
+      'interfaces' => {
+        SERVICE_NAME => {
+          'methods' => {
+            'PageStreamingMethod' => nil,
+            'BundlingMethod' => {
+              'bundling' => nil
+            }
+          }
+        }
+      }
+    }
     defaults = Google::Gax.construct_settings(
-      SERVICE_NAME, A_CONFIG, bundling_override, retry_override,
-      RETRY_DICT, 30,
+      SERVICE_NAME, A_CONFIG, overrides, RETRY_DICT, 30,
       bundle_descriptors: BUNDLE_DESCRIPTORS,
       page_descriptors: PAGE_DESCRIPTORS)
 
@@ -130,5 +139,62 @@ describe Google::Gax do
     expect(settings.timeout).to be(30)
     expect(settings.page_descriptor).to be_a(Google::Gax::PageDescriptor)
     expect(settings.retry_options).to be_nil
+  end
+
+  it 'overrides settings more precisely' do
+    override = {
+      'interfaces' => {
+        SERVICE_NAME => {
+          'retry_codes' => {
+            'foo_retry' => [],
+            'baz_retry' => ['code_a']
+          },
+          'retry_params' => {
+            'default' => {
+              'initial_retry_delay_millis' => 200,
+              'retry_delay_multiplier' => 1.5
+            },
+            '10x' => {
+              'initial_retry_delay_millis' => 1000,
+              'retry_delay_multiplier' => 1.2,
+              'max_retry_delay_millis' => 10_000,
+              'initial_rpc_timeout_millis' => 3000,
+              'rpc_timeout_multiplier' => 1.3,
+              'max_rpc_timeout_millis' => 30_000,
+              'total_timeout_millis' => 300_000
+            }
+          },
+          'methods' => {
+            'PageStreamingMethod' => {
+              'retry_codes_name' => 'baz_retry'
+            },
+            'BundlingMethod' => {
+              'retry_params_name' => '10x',
+              'bundling' => {
+                'element_count_limit' => 20
+              }
+            }
+          }
+        }
+      }
+    }
+    defaults = Google::Gax.construct_settings(
+      SERVICE_NAME, A_CONFIG, override, RETRY_DICT, 30,
+      bundle_descriptors: BUNDLE_DESCRIPTORS,
+      page_descriptors: PAGE_DESCRIPTORS)
+
+    settings = defaults['bundling_method']
+    backoff = settings.retry_options.backoff_settings
+    expect(backoff.initial_retry_delay_millis).to be(1000)
+    expect(settings.retry_options.retry_codes).to match_array([])
+    expect(settings.bundler).to be(nil)
+    expect(settings.bundle_descriptor).to be_a(Google::Gax::BundleDescriptor)
+    settings = defaults['page_streaming_method']
+    backoff = settings.retry_options.backoff_settings
+    expect(backoff.initial_retry_delay_millis).to be(200)
+    expect(backoff.retry_delay_multiplier).to be(1.5)
+    expect(backoff.max_retry_delay_millis).to be(1000)
+    expect(settings.retry_options.retry_codes).to match_array(
+      [RETRY_DICT['code_a']])
   end
 end
