@@ -87,7 +87,7 @@ module Google
       RetryOptions.new(codes, backoff_settings)
     end
 
-    # Helper for ``construct_settings()``.
+    # Helper for #construct_settings.
     #
     # Takes two retry options, and merges them into a single RetryOption
     # instance.
