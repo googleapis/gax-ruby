@@ -63,8 +63,8 @@ describe Google::Gax do
     page_size = 3
     pages_to_stream = 5
 
-    page_descriptor = Google::Gax::PageDescriptor.new(
-      'page_token', 'next_page_token', 'nums')
+    page_descriptor = Google::Gax::PageDescriptor.new('page_token',
+                                                      'next_page_token', 'nums')
     settings = CallSettings.new(page_descriptor: page_descriptor)
     timeout_arg = nil
     func = proc do |request, timeout: nil|
@@ -82,8 +82,9 @@ describe Google::Gax do
 
     it 'iterates over elements' do
       my_callable = Google::Gax.create_api_call(func, settings)
-      expect(my_callable.call('page_token' => 0).to_a).to eq(
-        (0...(page_size * pages_to_stream)).to_a)
+      expect(my_callable.call('page_token' => 0).to_a).to match_array(
+        (0...(page_size * pages_to_stream))
+      )
       expect(timeout_arg).to_not be_nil
     end
 
@@ -105,8 +106,8 @@ describe Google::Gax do
     RetryOptions = Google::Gax::RetryOptions
     BackoffSettings = Google::Gax::BackoffSettings
 
-    retry_options = RetryOptions.new(
-      [FAKE_STATUS_CODE_1], BackoffSettings.new(0, 0, 0, 0, 0, 0, 1))
+    retry_options = RetryOptions.new([FAKE_STATUS_CODE_1],
+                                     BackoffSettings.new(0, 0, 0, 0, 0, 0, 1))
     settings = CallSettings.new(timeout: 0, retry_options: retry_options)
 
     it 'retries the API call' do
@@ -138,7 +139,8 @@ describe Google::Gax do
         raise CustomException.new('', FAKE_STATUS_CODE_1)
       end
       my_callable = Google::Gax.create_api_call(
-        func, CallSettings.new(timeout: 0, retry_options: retry_options))
+        func, CallSettings.new(timeout: 0, retry_options: retry_options)
+      )
       expect { my_callable.call }.to raise_error(Google::Gax::RetryError)
       expect(call_count).to eq(1)
     end
@@ -160,7 +162,8 @@ describe Google::Gax do
 
       time_now = Time.now
       allow(Time).to receive(:now).exactly(4).times.and_return(
-        *([time_now] * to_attempt + [time_now + 2]))
+        *([time_now] * to_attempt + [time_now + 2])
+      )
 
       func = proc do
         call_count += 1
@@ -210,7 +213,8 @@ describe Google::Gax do
       backoff = BackoffSettings.new(3, 2, 24, 5, 2, 80, 2500)
       retry_options = RetryOptions.new([FAKE_STATUS_CODE_1], backoff)
       my_callable = Google::Gax.create_api_call(
-        func, CallSettings.new(timeout: 0, retry_options: retry_options))
+        func, CallSettings.new(timeout: 0, retry_options: retry_options)
+      )
 
       begin
         my_callable.call(0)

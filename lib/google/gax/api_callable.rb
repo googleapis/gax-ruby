@@ -204,7 +204,8 @@ module Google
           api_call,
           settings.page_descriptor.request_page_token_field,
           settings.page_descriptor.response_page_token_field,
-          settings.page_descriptor.resource_field)
+          settings.page_descriptor.resource_field
+        )
       end
       if settings.bundler?
         return _bundleable(api_call, settings.bundle_descriptor,
@@ -250,9 +251,8 @@ module Google
     #   an Event object.
     def _bundleable(a_func, desc, bundler)
       proc do |request|
-        the_id = bundling.compute_bundle_id(
-          request,
-          desc.request_discriminator_fields)
+        the_id = bundling.compute_bundle_id(request,
+                                            desc.request_discriminator_fields)
         return bundler.schedule(a_func, the_id, desc, request)
       end
     end
@@ -266,11 +266,10 @@ module Google
     #   page token in the response.
     # @param resource_field [String] The field to be streamed.
     # @return [Proc] A proc that returns an iterable over the specified field.
-    def _page_streamable(
-      a_func,
-      request_page_token_field,
-      response_page_token_field,
-      resource_field)
+    def _page_streamable(a_func,
+                         request_page_token_field,
+                         response_page_token_field,
+                         resource_field)
       enumerable = PagedEnumerable.new(a_func,
                                        request_page_token_field,
                                        response_page_token_field,

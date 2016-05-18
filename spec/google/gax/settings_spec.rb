@@ -71,7 +71,8 @@ A_CONFIG = {
 
 PAGE_DESCRIPTORS = {
   'page_streaming_method' => Google::Gax::PageDescriptor.new(
-    'page_token', 'next_page_token', 'page_streams')
+    'page_token', 'next_page_token', 'page_streams'
+  )
 }.freeze
 
 BUNDLE_DESCRIPTORS = {
@@ -87,9 +88,10 @@ RETRY_DICT = {
 describe Google::Gax do
   it 'creates settings' do
     defaults = Google::Gax.construct_settings(
-      SERVICE_NAME, A_CONFIG, {}, {}, RETRY_DICT, 30,
+      SERVICE_NAME, A_CONFIG, {}, RETRY_DICT, 30,
       bundle_descriptors: BUNDLE_DESCRIPTORS,
-      page_descriptors: PAGE_DESCRIPTORS)
+      page_descriptors: PAGE_DESCRIPTORS
+    )
     settings = defaults['bundling_method']
     expect(settings.timeout).to be(30)
     # TODO: uncomment this when bundling is added.
@@ -99,7 +101,8 @@ describe Google::Gax do
     expect(settings.retry_options).to be_a(Google::Gax::RetryOptions)
     expect(settings.retry_options.retry_codes).to be_a(Array)
     expect(settings.retry_options.backoff_settings).to be_a(
-      Google::Gax::BackoffSettings)
+      Google::Gax::BackoffSettings
+    )
 
     settings = defaults['page_streaming_method']
     expect(settings.timeout).to be(30)
@@ -109,17 +112,28 @@ describe Google::Gax do
     expect(settings.retry_options).to be_a(Google::Gax::RetryOptions)
     expect(settings.retry_options.retry_codes).to be_a(Array)
     expect(settings.retry_options.backoff_settings).to be_a(
-      Google::Gax::BackoffSettings)
+      Google::Gax::BackoffSettings
+    )
   end
 
   it 'overrides settings' do
-    bundling_override = { 'bundling_method' => nil }
-    retry_override = { 'page_streaming_method' => nil }
+    overrides = {
+      'interfaces' => {
+        SERVICE_NAME => {
+          'methods' => {
+            'PageStreamingMethod' => nil,
+            'BundlingMethod' => {
+              'bundling' => nil
+            }
+          }
+        }
+      }
+    }
     defaults = Google::Gax.construct_settings(
-      SERVICE_NAME, A_CONFIG, bundling_override, retry_override,
-      RETRY_DICT, 30,
+      SERVICE_NAME, A_CONFIG, overrides, RETRY_DICT, 30,
       bundle_descriptors: BUNDLE_DESCRIPTORS,
-      page_descriptors: PAGE_DESCRIPTORS)
+      page_descriptors: PAGE_DESCRIPTORS
+    )
 
     settings = defaults['bundling_method']
     expect(settings.timeout).to be(30)
@@ -130,5 +144,61 @@ describe Google::Gax do
     expect(settings.timeout).to be(30)
     expect(settings.page_descriptor).to be_a(Google::Gax::PageDescriptor)
     expect(settings.retry_options).to be_nil
+  end
+
+  it 'overrides settings more precisely' do
+    override = {
+      'interfaces' => {
+        SERVICE_NAME => {
+          'retry_codes' => {
+            'bar_retry' => [],
+            'baz_retry' => ['code_a']
+          },
+          'retry_params' => {
+            'default' => {
+              'initial_retry_delay_millis' => 1000,
+              'retry_delay_multiplier' => 1.2,
+              'max_retry_delay_millis' => 10_000,
+              'initial_rpc_timeout_millis' => 3000,
+              'rpc_timeout_multiplier' => 1.3,
+              'max_rpc_timeout_millis' => 30_000,
+              'total_timeout_millis' => 300_000
+            }
+          },
+          'methods' => {
+            'BundlingMethod' => {
+              'retry_params_name' => 'default',
+              'retry_codes_name' => 'baz_retry'
+            }
+          }
+        }
+      }
+    }
+    defaults = Google::Gax.construct_settings(
+      SERVICE_NAME, A_CONFIG, override, RETRY_DICT, 30,
+      bundle_descriptors: BUNDLE_DESCRIPTORS,
+      page_descriptors: PAGE_DESCRIPTORS
+    )
+
+    settings = defaults['bundling_method']
+    backoff = settings.retry_options.backoff_settings
+    expect(backoff.initial_retry_delay_millis).to be(1000)
+    expect(settings.retry_options.retry_codes).to match_array(
+      [RETRY_DICT['code_a']]
+    )
+    expect(settings.bundler).to be(nil)
+    expect(settings.bundle_descriptor).to be_a(Google::Gax::BundleDescriptor)
+
+    # page_streaming_method is unaffected because it's not specified in
+    # overrides. 'bar_retry' or 'default' definitions in overrides should
+    # not affect the methods which are not in the overrides.
+    settings = defaults['page_streaming_method']
+    backoff = settings.retry_options.backoff_settings
+    expect(backoff.initial_retry_delay_millis).to be(100)
+    expect(backoff.retry_delay_multiplier).to be(1.2)
+    expect(backoff.max_retry_delay_millis).to be(1000)
+    expect(settings.retry_options.retry_codes).to match_array(
+      [RETRY_DICT['code_c']]
+    )
   end
 end

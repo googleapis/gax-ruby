@@ -69,7 +69,8 @@ describe Google::Gax::PathTemplate do
       template = PathTemplate.new('hello/world')
       expect { template.match('hello') }.to raise_error(ArgumentError)
       expect { template.match('hello/world/fail') }.to raise_error(
-        ArgumentError)
+        ArgumentError
+      )
     end
 
     it 'should fail on mismatched literal' do
