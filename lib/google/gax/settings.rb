@@ -31,18 +31,18 @@ module Google
   module Gax
     # Helper for #construct_settings
     #
-    # @param method_config A dictionary representing a single
-    #   ``methods`` entry of the standard API client config file. (See
-    #   #construct_settings for information on this yaml.)
+    # @param bundle_config A Hash specifying a bundle parameters, the value for
+    #   'bundling' field in a method config (See ``construct_settings()`` for
+    #   information on this config.)
     # @param bundle_descriptor [BundleDescriptor] A BundleDescriptor
     #   object describing the structure of bundling for this
     #   method. If not set, this method will not bundle.
     # @return An Executor that configures bundling, or nil if this
     #   method should not bundle.
-    def construct_bundling(method_config, bundle_descriptor)
-      if method_config && method_config.key?('bundling') && bundle_descriptor
+    def construct_bundling(bundle_config, bundle_descriptor)
+      if bundle_config && bundle_descriptor
         options = BundleOptions.new
-        method_config['bundling'].each_pair do |key, value|
+        bundle_config.each_pair do |key, value|
           options[key.intern] = value
         end
         # TODO: comment-out when bundling is supported.
@@ -68,12 +68,15 @@ module Google
     # @return [RetryOptions, nil]
     def construct_retry(method_config, retry_codes, retry_params, retry_names)
       return nil unless method_config
-      retry_codes ||= {}
-      retry_codes_name = method_config['retry_codes_name']
-      codes = retry_codes.fetch(retry_codes_name, []).map do |name|
-        retry_names[name]
+      codes = nil
+      if retry_codes && method_config.key?('retry_codes_name')
+        retry_codes_name = method_config['retry_codes_name']
+        codes = retry_codes.fetch(retry_codes_name, []).map do |name|
+          retry_names[name]
+        end
       end
 
+      backoff_settings = nil
       if retry_params && method_config.key?('retry_params_name')
         params = retry_params[method_config['retry_params_name']]
         backoff_settings = BackoffSettings.new(
@@ -84,67 +87,35 @@ module Google
       RetryOptions.new(codes, backoff_settings)
     end
 
+    # Helper for ``construct_settings()``.
+    #
+    # Takes two retry options, and merges them into a single RetryOption
+    # instance.
+    #
+    # @param retry_options [RetryOptions] The base RetryOptions.
+    # @param overrides [RetryOptions] The RetryOptions used for overriding
+    #   +retry+. Use the values if it is not nil. If entire
+    #   +overrides+ is nli, ignore the base retry and return nil.
+    # @return [RetryOptions, nil]
+    def merge_retry_options(retry_options, overrides)
+      return nil if overrides.nil?
+
+      if overrides.retry_codes.nil? && overrides.backoff_settings.nil?
+        return retry_options
+      end
+
+      codes = retry_options.retry_codes
+      codes = overrides.retry_codes unless overrides.retry_codes.nil?
+      backoff_settings = retry_options.backoff_settings
+      unless overrides.backoff_settings.nil?
+        backoff_settings = overrides.backoff_settings
+      end
+
+      RetryOptions.new(codes, backoff_settings)
+    end
+
     def upper_camel_to_lower_underscore(string)
       string.scan(/[[:upper:]][^[:upper:]]*/).map(&:downcase).join('_')
-    end
-
-    # Update config_base specifying retry params with overrides.
-    #
-    # @param config_base [Hash] A hash of retry params.
-    # @overrides [Hash] A hash to update config_base.
-    def override_retry(config_base, overrides)
-      overrides.each_pair do |name, params|
-        if config_base.key?(name)
-          config_base[name].update(params)
-        else
-          config_base[name] = params
-        end
-      end
-    end
-
-    # Update config_base specifying method condigs with overrides.
-    #
-    # @param config_base [Hash] A hash of method config.
-    # @param overrides [Hash] A hash to update config_base.
-    def override_methods(config_base, overrides)
-      overrides.each_pair do |name, params|
-        if params
-          params.each_pair do |key, param|
-            next unless config_base[name].key?(key)
-            if key == 'bundling' && param
-              config_base[name][key].update(param)
-            else
-              config_base[name][key] = param || {}
-            end
-          end
-        else
-          config_base[name] = nil
-        end
-      end
-    end
-
-    # Merge overriding configs into config_base and return the new config.
-    #
-    # If overrides is empty, it returns the same config_base. Otherwise,
-    # it creates a copy of config_base and some parts are updated by overrides.
-    #
-    # @param config_base [Hash] A hash for base config.
-    # @param overrides [Hash] A hash in the same structure of config_base.
-    # @return [Hash]
-    def override_config(config_base, overrides)
-      return config_base unless overrides
-      # Using Marshal to deep-copy the config_base.
-      new_config = Marshal.load(Marshal.dump(config_base))
-      if overrides.key?('retry_codes')
-        new_config['retry_codes'].update(overrides['retry_codes'])
-      end
-      if overrides.key?('retry_params')
-        override_retry(new_config['retry_params'], overrides['retry_params'])
-      end
-      if overrides.key?('methods')
-        override_methods(new_config['methods'], overrides['methods'])
-      end
-      new_config
     end
 
     # rubocop:disable Metrics/ParameterLists
@@ -222,22 +193,34 @@ module Google
       service_config = client_config.fetch('interfaces', {})[service_name]
       return nil unless service_config
 
-      overrides = config_overrides.fetch('interfaces', {})[service_name]
-      service_config = override_config(service_config, overrides)
+      overrides = config_overrides.fetch('interfaces', {})[service_name] || {}
 
       service_config['methods'].each_pair do |method_name, method_config|
         snake_name = upper_camel_to_lower_underscore(method_name)
 
+        overriding_method =
+          overrides.fetch('methods', {}).fetch(method_name, {})
+
+        bundling_config = method_config.fetch('bundling', nil)
+        if overriding_method && overriding_method.key?('bundling')
+          bundling_config = overriding_method['bundling']
+        end
         bundle_descriptor = bundle_descriptors[snake_name]
 
         defaults[snake_name] = CallSettings.new(
           timeout: timeout,
-          retry_options: construct_retry(method_config,
-                                         service_config['retry_codes'],
-                                         service_config['retry_params'],
-                                         retry_names),
+          retry_options: merge_retry_options(
+            construct_retry(method_config,
+                            service_config['retry_codes'],
+                            service_config['retry_params'],
+                            retry_names),
+            construct_retry(overriding_method,
+                            overrides['retry_codes'],
+                            overrides['retry_params'],
+                            retry_names)
+          ),
           page_descriptor: page_descriptors[snake_name],
-          bundler: construct_bundling(method_config,
+          bundler: construct_bundling(bundling_config,
                                       bundle_descriptor),
           bundle_descriptor: bundle_descriptor
         )
@@ -248,9 +231,9 @@ module Google
 
     module_function :construct_settings, :construct_bundling,
                     :construct_retry, :upper_camel_to_lower_underscore,
-                    :override_retry, :override_methods, :override_config
+                    :merge_retry_options
     private_class_method :construct_bundling, :construct_retry,
                          :upper_camel_to_lower_underscore,
-                         :override_retry, :override_methods, :override_config
+                         :merge_retry_options
   end
 end
