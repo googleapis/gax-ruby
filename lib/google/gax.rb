@@ -52,14 +52,14 @@ module Google
       # @param timeout [Numeric] The client-side timeout for API calls. This
       #   parameter is ignored for retrying calls.
       # @param retry_options [RetryOptions] The configuration for retrying upon
-      #   transient error. If set to None, this call will not retry.
+      #   transient error. If set to nil, this call will not retry.
       # @param page_descriptor [PageDescriptor] indicates the structure of page
-      #   streaming to be performed. If set to None, page streaming is not
+      #   streaming to be performed. If set to nil, page streaming is not
       #   performed.
-      # @param bundler orchestrates bundling. If None, bundling is not
+      # @param bundler orchestrates bundling. If nil, bundling is not
       #   performed.
       # @param bundle_descriptor [BundleDescriptor] indicates the structure of
-      #   the bundle. If None, bundling is not performed.
+      #   the bundle. If nil, bundling is not performed.
       def initialize(timeout: 30, retry_options: nil, page_descriptor: nil,
                      bundler: nil, bundle_descriptor: nil)
         @timeout = timeout
@@ -205,7 +205,7 @@ module Google
                                         :subresponse_field)
       # @!attribute bundled_field
       #   @return [String] the repeated field in the request message
-      #     that will have its elements aggregated by bundling
+      #     that will have its elements aggregated by bundling.
       # @!attribute request_discriminator_fields
       #   @return [Array<String>] a list of fields in the target
       #     request message class that are used to determine which
