@@ -190,9 +190,9 @@ module Google
     #   e.g, if bundling and page_streaming are both configured
     def create_api_call(func, settings)
       api_call = if settings.retry_codes?
-                   _retryable(func, settings.retry_options)
+                   retryable(func, settings.retry_options)
                  else
-                   _add_timeout_arg(func, settings.timeout)
+                   add_timeout_arg(func, settings.timeout)
                  end
 
       if settings.page_descriptor
@@ -200,7 +200,7 @@ module Google
           raise 'ApiCallable has incompatible settings: ' \
               'bundling and page streaming'
         end
-        return _page_streamable(
+        return page_streamable(
           api_call,
           settings.page_descriptor.request_page_token_field,
           settings.page_descriptor.response_page_token_field,
@@ -208,11 +208,11 @@ module Google
         )
       end
       if settings.bundler?
-        return _bundleable(api_call, settings.bundle_descriptor,
-                           settings.bundler)
+        return bundleable(api_call, settings.bundle_descriptor,
+                          settings.bundler)
       end
 
-      _catch_errors(api_call)
+      catch_errors(api_call)
     end
 
     # Updates a_func to wrap exceptions with GaxError
@@ -220,7 +220,7 @@ module Google
     # @param a_func [Proc]
     # @param errors [Array<Exception>] Configures the exceptions to wrap.
     # @return [Proc] A proc that will wrap certain exceptions with GaxError
-    def _catch_errors(a_func, errors: Grpc::API_ERRORS)
+    def catch_errors(a_func, errors: Grpc::API_ERRORS)
       proc do |request, **kwargs|
         begin
           a_func.call(request, **kwargs)
@@ -249,7 +249,7 @@ module Google
     # @param bundler orchestrates bundling.
     # @return [Proc] A proc takes the API call's request and returns
     #   an Event object.
-    def _bundleable(a_func, desc, bundler)
+    def bundleable(a_func, desc, bundler)
       proc do |request|
         the_id = bundling.compute_bundle_id(request,
                                             desc.request_discriminator_fields)
@@ -266,10 +266,10 @@ module Google
     #   page token in the response.
     # @param resource_field [String] The field to be streamed.
     # @return [Proc] A proc that returns an iterable over the specified field.
-    def _page_streamable(a_func,
-                         request_page_token_field,
-                         response_page_token_field,
-                         resource_field)
+    def page_streamable(a_func,
+                        request_page_token_field,
+                        response_page_token_field,
+                        resource_field)
       enumerable = PagedEnumerable.new(a_func,
                                        request_page_token_field,
                                        response_page_token_field,
@@ -287,7 +287,7 @@ module Google
     #   upon which the proc should retry, and the parameters to the
     #   exponential backoff retry algorithm.
     # @return [Proc] A proc that will retry on exception.
-    def _retryable(a_func, retry_options)
+    def retryable(a_func, retry_options)
       delay_mult = retry_options.backoff_settings.retry_delay_multiplier
       max_delay = (retry_options.backoff_settings.max_retry_delay_millis /
                    MILLIS_PER_SECOND)
@@ -309,7 +309,7 @@ module Google
         while now < deadline
           begin
             exc = nil
-            result = _add_timeout_arg(a_func, timeout).call(request, **kwargs)
+            result = add_timeout_arg(a_func, timeout).call(request, **kwargs)
             break
           rescue => exception
             unless exception.respond_to?(:code) &&
@@ -340,16 +340,16 @@ module Google
     # @param timeout [Numeric] to be added to the original proc as it
     #   final positional arg.
     # @return [Proc] the original proc updated to the timeout arg
-    def _add_timeout_arg(a_func, timeout)
+    def add_timeout_arg(a_func, timeout)
       proc do |request, **kwargs|
         kwargs[:timeout] = timeout
         a_func.call(request, **kwargs)
       end
     end
 
-    module_function :create_api_call, :_catch_errors, :_bundleable,
-                    :_page_streamable, :_retryable, :_add_timeout_arg
-    private_class_method :_catch_errors, :_bundleable, :_page_streamable,
-                         :_retryable, :_add_timeout_arg
+    module_function :create_api_call, :catch_errors, :bundleable,
+                    :page_streamable, :retryable, :add_timeout_arg
+    private_class_method :catch_errors, :bundleable, :page_streamable,
+                         :retryable, :add_timeout_arg
   end
 end

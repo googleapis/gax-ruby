@@ -48,20 +48,21 @@ module Google
       #
       # @param port [Fixnum] The port on which to connect to the remote host.
       #
-      # @param chan_creds [Object] A ClientCredentials object for use with an
-      #    SSL-enabled Channel. If none, credentials are pulled from a default
-      #    location.
+      # @param chan_creds [Grpc::Core::ChannelCredentials]
+      #   A ChannelCredentials object for use with an SSL-enabled Channel.
+      #   If nil, credentials are pulled from a default location.
       #
-      # @param channel [Object] A Channel object through which to make calls. If
-      #    none, a secure channel is constructed.
+      # @param channel [Object]
+      #   A Channel object through which to make calls. If nil, a secure
+      #   channel is constructed.
       #
       # @param updater_proc [Proc]
-      #    A function that transforms the metadata for requests, e.g., to give
-      #    OAuth credentials.
+      #   A function that transforms the metadata for requests, e.g., to give
+      #   OAuth credentials.
       #
       # @param scopes [Array<String>]
-      #    The OAuth scopes for this service. This parameter is ignored if
-      #    a custom metadata_transformer is supplied.
+      #   The OAuth scopes for this service. This parameter is ignored if
+      #   a custom metadata_transformer is supplied.
       #
       # @yield [address, creds]
       #   the generated gRPC method to create a stub.
