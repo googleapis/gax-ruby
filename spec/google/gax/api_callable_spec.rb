@@ -100,6 +100,14 @@ describe Google::Gax do
       stream = my_callable.call('page_token' => 0)
       expect(stream.enum_for(:each_page).to_a.size).to eq(pages_to_stream + 1)
     end
+
+    it 'starts from the specified page_token' do
+      my_settings = settings.merge(Google::Gax::CallOptions.new(page_token: 3))
+      my_callable = Google::Gax.create_api_call(func, my_settings)
+      expect(my_callable.call({}).to_a).to match_array(
+        3...(page_size * pages_to_stream)
+      )
+    end
   end
 
   describe 'retryable' do

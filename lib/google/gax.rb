@@ -36,6 +36,8 @@ require 'google/gax/version'
 
 module Google
   module Gax
+    # rubocop:disable Metrics/ParameterLists
+
     # Encapsulates the call settings for an ApiCallable
     # @!attribute [r] timeout
     #   @return [Numeric]
@@ -43,11 +45,13 @@ module Google
     #   @return [RetryOptions]
     # @!attribute [r] page_descriptor
     #   @return [PageDescriptor]
+    # @!attribute [r] page_token
+    #   @return [Object]
     # @!attribute [r] bundle_descriptor
     #   @return [BundleDescriptor]
     class CallSettings
-      attr_reader :timeout, :retry_options, :page_descriptor, :bundler,
-                  :bundle_descriptor
+      attr_reader :timeout, :retry_options, :page_descriptor, :page_token,
+                  :bundler, :bundle_descriptor
 
       # @param timeout [Numeric] The client-side timeout for API calls. This
       #   parameter is ignored for retrying calls.
@@ -56,15 +60,19 @@ module Google
       # @param page_descriptor [PageDescriptor] indicates the structure of page
       #   streaming to be performed. If set to nil, page streaming is not
       #   performed.
+      # @param page_token [Object] determines the page token used in the
+      #   page streaming request. If there is no page_descriptor, this has no
+      #   meaning.
       # @param bundler orchestrates bundling. If nil, bundling is not
       #   performed.
       # @param bundle_descriptor [BundleDescriptor] indicates the structure of
       #   the bundle. If nil, bundling is not performed.
       def initialize(timeout: 30, retry_options: nil, page_descriptor: nil,
-                     bundler: nil, bundle_descriptor: nil)
+                     page_token: nil, bundler: nil, bundle_descriptor: nil)
         @timeout = timeout
         @retry_options = retry_options
         @page_descriptor = page_descriptor
+        @page_token = page_token
         @bundler = bundler
         @bundle_descriptor = bundle_descriptor
       end
@@ -88,6 +96,7 @@ module Google
           return CallSettings.new(timeout: @timeout,
                                   retry_options: @retry_options,
                                   page_descriptor: @page_descriptor,
+                                  page_token: @page_token,
                                   bundler: @bundler,
                                   bundle_descriptor: @bundle_descriptor)
         end
@@ -102,11 +111,16 @@ module Google
                         else
                           options.retry_options
                         end
-        page_descriptor = @page_descriptor if options.is_page_streaming
+        page_token = if options.page_token == :OPTION_INHERIT
+                       @page_token
+                     else
+                       options.page_token
+                     end
 
         CallSettings.new(timeout: timeout,
                          retry_options: retry_options,
-                         page_descriptor: page_descriptor,
+                         page_descriptor: @page_descriptor,
+                         page_token: page_token,
                          bundler: @bundler,
                          bundle_descriptor: @bundle_descriptor)
       end
@@ -117,25 +131,25 @@ module Google
     #   @return [Numeric, :OPTION_INHERIT]
     # @!attribute [r] retry_options
     #   @return [RetryOptions, :OPTION_INHERIT]
-    # @!attribute [r] is_page_streaming
-    #   @return [true, false, :OPTION_INHERIT]
+    # @!attribute [r] page_token
+    #   @return [Object, :OPTION_INHERIT, :INITIAL_PAGE]
     class CallOptions
-      attr_reader :timeout, :retry_options, :is_page_streaming
+      attr_reader :timeout, :retry_options, :page_token
 
       # @param timeout [Numeric, :OPTION_INHERIT]
       #   The client-side timeout for API calls.
       # @param retry_options [RetryOptions, :OPTION_INHERIT]
       #   The configuration for retrying upon transient error.
       #   If set to nil, this call will not retry.
-      # @param is_page_streaming [true, false, :OPTION_INHERIT]
+      # @param page_token [Object, :OPTION_INHERIT]
       #   If set and the call is configured for page streaming, page streaming
-      #   is performed.
+      #   is starting with this page_token.
       def initialize(timeout: :OPTION_INHERIT,
                      retry_options: :OPTION_INHERIT,
-                     is_page_streaming: :OPTION_INHERIT)
+                     page_token: :OPTION_INHERIT)
         @timeout = timeout
         @retry_options = retry_options
-        @is_page_streaming = is_page_streaming
+        @page_token = page_token
       end
     end
 

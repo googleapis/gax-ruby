@@ -44,14 +44,37 @@ module Google
     # PagedEnumerable provides the enumerations over the resource data,
     # and also provides the enumerations over the pages themselves.
     #
+    # Example 1: normal iteration over resources.
+    #   paged_enumerable.each { |resource| puts resource }
+    #
+    # Example 2: per-page iteration.
+    #   paged_enumerable.each_page { |page| puts page }
+    #
+    # Example 3: Enumerable over pages.
+    #   pages = paged_enumerable.enum_for(:each_page).to_a
+    #
+    # Example 4: more exact operations over pages.
+    #   while some_condition()
+    #     page = paged_enumerable.page
+    #     do_something(page)
+    #     break if paged_enumerable.next_page?
+    #     paged_enumerable.next_page
+    #   end
+    #
     # @attribute [r] page
     #   @return [Page] The current page object.
+    # @attribute [r] response
+    #   @return [Object] The current response object.
+    # @attribute [r] page_token
+    #   @return [Object] The page token to be used for the next API call.
     class PagedEnumerable
       # A class to represent a page in a PagedEnumerable. This also implements
       # Enumerable, so it can iterate over the resource elements.
       #
       # @attribute [r] response
-      #   @return [Object] The actual response object.
+      #   @return [Object] the actual response object.
+      # @attribute [r] next_page_token
+      #   @return [Object] the page token to be used for the next API call.
       class Page
         include Enumerable
         attr_reader :response
@@ -112,14 +135,17 @@ module Google
       end
 
       # Initiate the streaming with the requests and keywords.
+      # @param page_token [Object]
+      #   The page token for the first page to be streamed, or nil.
       # @param request [Object]
       #   The initial request object.
       # @param kwargs [Hash]
       #   Other keyword arguments to be passed to a_func.
       # @return [PagedEnumerable]
       #   returning self for further uses.
-      def start(request, **kwargs)
+      def start(page_token, request, **kwargs)
         @request = request
+        @request[@request_page_token_field] = page_token if page_token
         @kwargs = kwargs
         @page = @page.dup_with(@func.call(@request, **@kwargs))
         self
@@ -165,6 +191,14 @@ module Google
         @request[@request_page_token_field] = @page.next_page_token
         @page = @page.dup_with(@func.call(@request, **@kwargs))
       end
+
+      def response
+        @page.response
+      end
+
+      def page_token
+        @page.next_page_token
+      end
     end
 
     # rubocop:disable Metrics/AbcSize
@@ -204,7 +238,8 @@ module Google
           api_call,
           settings.page_descriptor.request_page_token_field,
           settings.page_descriptor.response_page_token_field,
-          settings.page_descriptor.resource_field
+          settings.page_descriptor.resource_field,
+          settings.page_token
         )
       end
       if settings.bundler?
@@ -265,16 +300,21 @@ module Google
     # @param response_page_token_field [String] The field of the next
     #   page token in the response.
     # @param resource_field [String] The field to be streamed.
+    # @param page_token [Object] The page_token for the first page to be
+    #   streamed, or nil.
     # @return [Proc] A proc that returns an iterable over the specified field.
     def page_streamable(a_func,
                         request_page_token_field,
                         response_page_token_field,
-                        resource_field)
+                        resource_field,
+                        page_token)
       enumerable = PagedEnumerable.new(a_func,
                                        request_page_token_field,
                                        response_page_token_field,
                                        resource_field)
-      enumerable.method(:start)
+      proc do |request, **kwargs|
+        enumerable.start(page_token, request, **kwargs)
+      end
     end
 
     # rubocop:disable Metrics/MethodLength
