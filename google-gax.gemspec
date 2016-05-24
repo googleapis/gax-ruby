@@ -19,6 +19,8 @@ Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   s.license = 'BSD-3-Clause'
 
+  s.required_ruby_version = '>= 2.0.0'
+
   s.add_dependency 'googleauth', '~> 0.5.1'
   s.add_dependency 'grpc', '~> 0.13.1'
   s.add_dependency 'rly', '~> 0.2.3'

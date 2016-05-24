@@ -110,6 +110,43 @@ describe Google::Gax do
     end
   end
 
+  describe 'failures without retry' do
+    it 'simply fails' do
+      settings = CallSettings.new
+      timeout_arg = nil
+      call_count = 0
+      func = proc do |timeout: nil|
+        timeout_arg = timeout
+        call_count += 1
+        raise GRPC::Cancelled, ''
+      end
+      my_callable = Google::Gax.create_api_call(func, settings)
+      begin
+        my_callable.call
+        expect(true).to be false # should not reach to this line.
+      rescue Google::Gax::GaxError => exc
+        expect(exc.cause).to be_a(GRPC::Cancelled)
+      end
+      expect(timeout_arg).to_not be_nil
+      expect(call_count).to eq(1)
+    end
+
+    it 'does not wrap unknown errors' do
+      settings = CallSettings.new
+      timeout_arg = nil
+      call_count = 0
+      func = proc do |timeout: nil|
+        timeout_arg = timeout
+        call_count += 1
+        raise CustomException.new('', FAKE_STATUS_CODE_1)
+      end
+      my_callable = Google::Gax.create_api_call(func, settings)
+      expect { my_callable.call }.to raise_error(CustomException)
+      expect(timeout_arg).to_not be_nil
+      expect(call_count).to eq(1)
+    end
+  end
+
   describe 'retryable' do
     RetryOptions = Google::Gax::RetryOptions
     BackoffSettings = Google::Gax::BackoffSettings
@@ -181,7 +218,7 @@ describe Google::Gax do
       my_callable = Google::Gax.create_api_call(func, settings)
       begin
         my_callable.call
-        except(true).to be false # should not reach to this line.
+        expect(true).to be false # should not reach to this line.
       rescue Google::Gax::RetryError => exc
         expect(exc.cause).to be_a(CustomException)
       end
