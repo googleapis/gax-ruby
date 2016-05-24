@@ -33,6 +33,7 @@ require 'google/gax/errors'
 require 'google/gax/grpc'
 
 # rubocop:disable Metrics/ModuleLength
+
 module Google
   module Gax
     MILLIS_PER_SECOND = 1000.0
@@ -169,9 +170,9 @@ module Google
 
       # Iterate over the pages.
       # @yield [Page] Gives the pages in the stream.
-      # @raise [RuntimeError] if it's not started yet.
+      # @raise [GaxError] if it's not started yet.
       def each_page
-        raise 'not started!' unless started?
+        raise GaxError, 'not started!' unless started?
         yield @page
         loop do
           break unless next_page?
@@ -259,12 +260,8 @@ module Google
       proc do |request, **kwargs|
         begin
           a_func.call(request, **kwargs)
-        rescue => err
-          if errors.any? { |eclass| err.is_a? eclass }
-            raise GaxError.new('RPC failed', cause: err)
-          else
-            raise err
-          end
+        rescue *errors
+          raise GaxError, 'RPC failed'
         end
       end
     end
@@ -341,32 +338,29 @@ module Google
         delay = retry_options.backoff_settings.initial_retry_delay_millis
         timeout = (retry_options.backoff_settings.initial_rpc_timeout_millis /
                    MILLIS_PER_SECOND)
-        exc = nil
         result = nil
         now = Time.now
         deadline = now + total_timeout
 
-        while now < deadline
+        loop do
           begin
-            exc = nil
             result = add_timeout_arg(a_func, timeout).call(request, **kwargs)
             break
           rescue => exception
             unless exception.respond_to?(:code) &&
                    retry_options.retry_codes.include?(exception.code)
-              raise RetryError.new('Exception occurred in retry method that ' \
-                                   'was not classified as transient',
-                                   cause: exception)
+              raise RetryError, 'Exception occurred in retry method that ' \
+                'was not classified as transient'
             end
-            exc = RetryError.new('Retry total timeout exceeded with exception',
-                                 cause: exception)
             sleep(rand(delay) / MILLIS_PER_SECOND)
             now = Time.now
             delay = [delay * delay_mult, max_delay].min
             timeout = [timeout * timeout_mult, max_timeout, deadline - now].min
+            if now >= deadline
+              raise RetryError, 'Retry total timeout exceeded with exception'
+            end
           end
         end
-        raise exc unless exc.nil?
         result
       end
     end
