@@ -136,7 +136,7 @@ module Google
 
       # Initiate the streaming with the requests and keywords.
       # @param page_token [Object]
-      #   The initial page_token or nil.
+      #   The page token for the first page to be streamed, or nil.
       # @param request [Object]
       #   The initial request object.
       # @param kwargs [Hash]
@@ -300,6 +300,8 @@ module Google
     # @param response_page_token_field [String] The field of the next
     #   page token in the response.
     # @param resource_field [String] The field to be streamed.
+    # @param page_token [Object] The page_token for the first page to be
+    #   streamed, or nil.
     # @return [Proc] A proc that returns an iterable over the specified field.
     def page_streamable(a_func,
                         request_page_token_field,
