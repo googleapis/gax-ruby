@@ -128,11 +128,13 @@ module Google
       #   The name of the field in the response which holds the next page token.
       # @param resource_field [String]
       #   The name of the field in the response which holds the resources.
-      def initialize(a_func, request_page_token_field,
-                     response_page_token_field, resource_field)
+      def initialize(a_func, settings, page_descriptor)
         @func = a_func
-        @request_page_token_field = request_page_token_field
-        @page = Page.new(nil, response_page_token_field, resource_field)
+        @settings = settings
+        @request_page_token_field = page_descriptor.request_page_token_field
+        @page = Page.new(nil,
+                         page_descriptor.response_page_token_field,
+                         page_descriptor.resource_field)
       end
 
       # Initiate the streaming with the requests and keywords.
@@ -144,11 +146,15 @@ module Google
       #   Other keyword arguments to be passed to a_func.
       # @return [PagedEnumerable]
       #   returning self for further uses.
-      def start(page_token, request, **kwargs)
+      def start(request, options, **kwargs)
         @request = request
-        @request[@request_page_token_field] = page_token if page_token
+        @call_options = options
+        settings = @settings.merge(options)
+        if settings.page_token
+          @request[@request_page_token_field] = settings.page_token
+        end
         @kwargs = kwargs
-        @page = @page.dup_with(@func.call(@request, **@kwargs))
+        @page = @page.dup_with(@func.call(@request, @call_options, **@kwargs))
         self
       end
 
@@ -190,7 +196,7 @@ module Google
       def next_page
         return unless next_page?
         @request[@request_page_token_field] = @page.next_page_token
-        @page = @page.dup_with(@func.call(@request, **@kwargs))
+        @page = @page.dup_with(@func.call(@request, @call_options, **@kwargs))
       end
 
       def response
@@ -199,6 +205,69 @@ module Google
 
       def page_token
         @page.next_page_token
+      end
+    end
+
+    class Retryable
+      def initialize(func, settings)
+        @func = func
+        @settings = settings
+      end
+
+      def call(request, options, **kwargs)
+        settings = @settings.merge(options)
+        if settings.retry_codes?
+          call_with_retry(request, settings.retry_options, **kwargs)
+        else
+          call_with_timeout(request, settings.timeout, **kwargs)
+        end
+      end
+
+      # rubocop:disable Metrics/MethodLength
+
+      def call_with_retry(request, retry_options, **kwargs)
+        delay_mult = retry_options.backoff_settings.retry_delay_multiplier
+        max_delay = (retry_options.backoff_settings.max_retry_delay_millis /
+                     MILLIS_PER_SECOND)
+        timeout_mult = retry_options.backoff_settings.rpc_timeout_multiplier
+        max_timeout = (retry_options.backoff_settings.max_rpc_timeout_millis /
+                       MILLIS_PER_SECOND)
+        total_timeout = (retry_options.backoff_settings.total_timeout_millis /
+                         MILLIS_PER_SECOND)
+        delay = retry_options.backoff_settings.initial_retry_delay_millis
+        timeout = (retry_options.backoff_settings.initial_rpc_timeout_millis /
+                   MILLIS_PER_SECOND)
+        result = nil
+        now = Time.now
+        deadline = now + total_timeout
+
+        loop do
+          begin
+            result = call_with_timeout(request, timeout, **kwargs)
+            break
+          rescue => exception
+            unless exception.respond_to?(:code) &&
+                   retry_options.retry_codes.include?(exception.code)
+              raise RetryError, 'Exception occurred in retry method that ' \
+                'was not classified as transient'
+            end
+            sleep(rand(delay) / MILLIS_PER_SECOND)
+            now = Time.now
+            delay = [delay * delay_mult, max_delay].min
+            timeout = [timeout * timeout_mult, max_timeout, deadline - now].min
+            if now >= deadline
+              raise RetryError, 'Retry total timeout exceeded with exception'
+            end
+          end
+        end
+        result
+      end
+
+      # rubocop:enable Metrics/MethodLength
+
+      def call_with_timeout(request, timeout, **kwargs)
+        kwargs[:timeout] = timeout
+        @func.call(request, **kwargs)
       end
     end
 
@@ -224,24 +293,14 @@ module Google
     # @raise [StandardError] if +settings+ has incompatible values,
     #   e.g, if bundling and page_streaming are both configured
     def create_api_call(func, settings)
-      api_call = if settings.retry_codes?
-                   retryable(func, settings.retry_options)
-                 else
-                   add_timeout_arg(func, settings.timeout)
-                 end
+      api_call = Retryable.new(func, settings)
 
       if settings.page_descriptor
         if settings.bundler?
           raise 'ApiCallable has incompatible settings: ' \
               'bundling and page streaming'
         end
-        return page_streamable(
-          api_call,
-          settings.page_descriptor.request_page_token_field,
-          settings.page_descriptor.response_page_token_field,
-          settings.page_descriptor.resource_field,
-          settings.page_token
-        )
+        return page_streamable(api_call, settings, settings.page_descriptor)
       end
       if settings.bundler?
         return bundleable(api_call, settings.bundle_descriptor,
@@ -257,9 +316,9 @@ module Google
     # @param errors [Array<Exception>] Configures the exceptions to wrap.
     # @return [Proc] A proc that will wrap certain exceptions with GaxError
     def catch_errors(a_func, errors: Grpc::API_ERRORS)
-      proc do |request, **kwargs|
+      proc do |request, options, **kwargs|
         begin
-          a_func.call(request, **kwargs)
+          a_func.call(request, options, **kwargs)
         rescue *errors
           raise GaxError, 'RPC failed'
         end
@@ -281,11 +340,16 @@ module Google
     # @param bundler orchestrates bundling.
     # @return [Proc] A proc takes the API call's request and returns
     #   an Event object.
-    def bundleable(a_func, desc, bundler)
-      proc do |request|
-        the_id = bundling.compute_bundle_id(request,
-                                            desc.request_discriminator_fields)
-        return bundler.schedule(a_func, the_id, desc, request)
+    def bundleable(a_func, settings, desc, bundler)
+      proc do |request, options, **kwargs|
+        this_settings = settings.merge(options)
+        if this_settings.bundler?
+          the_id = bundling.compute_bundle_id(request,
+                                              desc.request_discriminator_fields)
+          bundler.schedule(a_func, the_id, desc, request)
+        else
+          a_func.call(request, options, **kwargs)
+        end
       end
     end
 
@@ -300,90 +364,13 @@ module Google
     # @param page_token [Object] The page_token for the first page to be
     #   streamed, or nil.
     # @return [Proc] A proc that returns an iterable over the specified field.
-    def page_streamable(a_func,
-                        request_page_token_field,
-                        response_page_token_field,
-                        resource_field,
-                        page_token)
-      enumerable = PagedEnumerable.new(a_func,
-                                       request_page_token_field,
-                                       response_page_token_field,
-                                       resource_field)
-      proc do |request, **kwargs|
-        enumerable.start(page_token, request, **kwargs)
-      end
-    end
-
-    # rubocop:disable Metrics/MethodLength
-
-    # Creates a proc equivalent to a_func, but that retries on certain
-    # exceptions.
-    #
-    # @param a_func [Proc]
-    # @param retry_options [RetryOptions] Configures the exceptions
-    #   upon which the proc should retry, and the parameters to the
-    #   exponential backoff retry algorithm.
-    # @return [Proc] A proc that will retry on exception.
-    def retryable(a_func, retry_options)
-      delay_mult = retry_options.backoff_settings.retry_delay_multiplier
-      max_delay = (retry_options.backoff_settings.max_retry_delay_millis /
-                   MILLIS_PER_SECOND)
-      timeout_mult = retry_options.backoff_settings.rpc_timeout_multiplier
-      max_timeout = (retry_options.backoff_settings.max_rpc_timeout_millis /
-                     MILLIS_PER_SECOND)
-      total_timeout = (retry_options.backoff_settings.total_timeout_millis /
-                       MILLIS_PER_SECOND)
-
-      proc do |request, **kwargs|
-        delay = retry_options.backoff_settings.initial_retry_delay_millis
-        timeout = (retry_options.backoff_settings.initial_rpc_timeout_millis /
-                   MILLIS_PER_SECOND)
-        result = nil
-        now = Time.now
-        deadline = now + total_timeout
-
-        loop do
-          begin
-            result = add_timeout_arg(a_func, timeout).call(request, **kwargs)
-            break
-          rescue => exception
-            unless exception.respond_to?(:code) &&
-                   retry_options.retry_codes.include?(exception.code)
-              raise RetryError, 'Exception occurred in retry method that ' \
-                'was not classified as transient'
-            end
-            sleep(rand(delay) / MILLIS_PER_SECOND)
-            now = Time.now
-            delay = [delay * delay_mult, max_delay].min
-            timeout = [timeout * timeout_mult, max_timeout, deadline - now].min
-            if now >= deadline
-              raise RetryError, 'Retry total timeout exceeded with exception'
-            end
-          end
-        end
-        result
-      end
-    end
-
-    # Updates +a_func+ so that it gets called with the timeout as its final arg.
-    #
-    # This converts a proc, a_func, into another proc with an additional
-    # positional arg.
-    #
-    # @param a_func [Proc] a proc to be updated
-    # @param timeout [Numeric] to be added to the original proc as it
-    #   final positional arg.
-    # @return [Proc] the original proc updated to the timeout arg
-    def add_timeout_arg(a_func, timeout)
-      proc do |request, **kwargs|
-        kwargs[:timeout] = timeout
-        a_func.call(request, **kwargs)
-      end
+    def page_streamable(a_func, settings, page_descriptor)
+      enumerable = PagedEnumerable.new(a_func, settings, page_descriptor)
+      enumerable.method(:start)
     end
 
     module_function :create_api_call, :catch_errors, :bundleable,
-                    :page_streamable, :retryable, :add_timeout_arg
-    private_class_method :catch_errors, :bundleable, :page_streamable,
-                         :retryable, :add_timeout_arg
+                    :page_streamable
+    private_class_method :catch_errors, :bundleable, :page_streamable
   end
 end
