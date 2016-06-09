@@ -54,7 +54,7 @@ describe Google::Gax do
         42
       end
       my_callable = Google::Gax.create_api_call(func, settings)
-      expect(my_callable.call(nil)).to eq(42)
+      expect(my_callable.call(nil, nil)).to eq(42)
       expect(timeout_arg).to_not be_nil
     end
   end
@@ -80,31 +80,30 @@ describe Google::Gax do
       end
     end
 
+    my_callable = Google::Gax.create_api_call(func, settings)
+
     it 'iterates over elements' do
-      my_callable = Google::Gax.create_api_call(func, settings)
-      expect(my_callable.call('page_token' => 0).to_a).to match_array(
+      expect(my_callable.call({ 'page_token' => 0 }, nil).to_a).to match_array(
         (0...(page_size * pages_to_stream))
       )
       expect(timeout_arg).to_not be_nil
     end
 
     it 'offers interface for pages' do
-      my_callable = Google::Gax.create_api_call(func, settings)
-      stream = my_callable.call('page_token' => 0)
+      stream = my_callable.call({ 'page_token' => 0 }, nil)
       page = stream.page
       expect(page.to_a).to eq((0...page_size).to_a)
       expect(page.next_page_token?).to be_truthy
       page = stream.next_page
       expect(page.to_a).to eq((page_size...(page_size * 2)).to_a)
 
-      stream = my_callable.call('page_token' => 0)
+      stream = my_callable.call({ 'page_token' => 0 }, nil)
       expect(stream.enum_for(:each_page).to_a.size).to eq(pages_to_stream + 1)
     end
 
     it 'starts from the specified page_token' do
-      my_settings = settings.merge(Google::Gax::CallOptions.new(page_token: 3))
-      my_callable = Google::Gax.create_api_call(func, my_settings)
-      expect(my_callable.call({}).to_a).to match_array(
+      my_options = Google::Gax::CallOptions.new(page_token: 3)
+      expect(my_callable.call({}, my_options).to_a).to match_array(
         3...(page_size * pages_to_stream)
       )
     end
@@ -122,7 +121,7 @@ describe Google::Gax do
       end
       my_callable = Google::Gax.create_api_call(func, settings)
       begin
-        my_callable.call
+        my_callable.call(nil, nil)
         expect(true).to be false # should not reach to this line.
       rescue Google::Gax::GaxError => exc
         expect(exc.cause).to be_a(GRPC::Cancelled)
@@ -141,7 +140,7 @@ describe Google::Gax do
         raise CustomException.new('', FAKE_STATUS_CODE_1)
       end
       my_callable = Google::Gax.create_api_call(func, settings)
-      expect { my_callable.call }.to raise_error(CustomException)
+      expect { my_callable.call(nil, nil) }.to raise_error(CustomException)
       expect(timeout_arg).to_not be_nil
       expect(call_count).to eq(1)
     end
@@ -150,6 +149,7 @@ describe Google::Gax do
   describe 'retryable' do
     RetryOptions = Google::Gax::RetryOptions
     BackoffSettings = Google::Gax::BackoffSettings
+    RetryError = Google::Gax::RetryError
 
     retry_options = RetryOptions.new([FAKE_STATUS_CODE_1],
                                      BackoffSettings.new(0, 0, 0, 0, 0, 0, 1))
@@ -169,8 +169,31 @@ describe Google::Gax do
         1729
       end
       my_callable = Google::Gax.create_api_call(func, settings)
-      expect(my_callable.call).to eq(1729)
+      expect(my_callable.call(nil, nil)).to eq(1729)
       expect(to_attempt).to eq(0)
+      expect(timeout_arg).to_not be_nil
+    end
+
+    it 'overrides the call options' do
+      time_now = Time.now
+      allow(Time).to receive(:now).and_return(time_now)
+
+      to_attempt = 3
+
+      timeout_arg = nil
+      func = proc do |timeout: nil|
+        timeout_arg = timeout
+        to_attempt -= 1
+        raise CustomException.new('', FAKE_STATUS_CODE_1) if to_attempt > 0
+        1729
+      end
+      my_callable = Google::Gax.create_api_call(func, settings)
+
+      my_options = Google::Gax::CallOptions.new(retry_options: nil)
+      expect do
+        my_callable.call(nil, my_options)
+      end.to raise_error(CustomException)
+      expect(to_attempt).to eq(2)
       expect(timeout_arg).to_not be_nil
     end
 
@@ -186,7 +209,7 @@ describe Google::Gax do
       my_callable = Google::Gax.create_api_call(
         func, CallSettings.new(timeout: 0, retry_options: retry_options)
       )
-      expect { my_callable.call }.to raise_error(Google::Gax::RetryError)
+      expect { my_callable.call(nil, nil) }.to raise_error(RetryError)
       expect(call_count).to eq(1)
     end
 
@@ -194,7 +217,7 @@ describe Google::Gax do
       func = proc { raise CustomException.new('', FAKE_STATUS_CODE_1) }
       my_callable = Google::Gax.create_api_call(func, settings)
       begin
-        my_callable.call
+        my_callable.call(nil, nil)
         expect(true).to be false # should not reach to this line.
       rescue Google::Gax::RetryError => exc
         expect(exc.cause).to be_a(CustomException)
@@ -217,7 +240,7 @@ describe Google::Gax do
 
       my_callable = Google::Gax.create_api_call(func, settings)
       begin
-        my_callable.call
+        my_callable.call(nil, nil)
         expect(true).to be false # should not reach to this line.
       rescue Google::Gax::RetryError => exc
         expect(exc.cause).to be_a(CustomException)
@@ -232,14 +255,14 @@ describe Google::Gax do
         raise CustomException.new('', FAKE_STATUS_CODE_2)
       end
       my_callable = Google::Gax.create_api_call(func, settings)
-      expect { my_callable.call }.to raise_error(Google::Gax::RetryError)
+      expect { my_callable.call(nil, nil) }.to raise_error(RetryError)
       expect(call_count).to eq(1)
     end
 
     it 'does not retry even when no responses' do
       func = proc { nil }
       my_callable = Google::Gax.create_api_call(func, settings)
-      expect(my_callable.call).to be_nil
+      expect(my_callable.call(nil, nil)).to be_nil
     end
 
     it 'retries with exponential backoff' do
@@ -262,7 +285,7 @@ describe Google::Gax do
       )
 
       begin
-        my_callable.call(0)
+        my_callable.call(0, nil)
         expect(true).to be false # should not reach to this line.
       rescue Google::Gax::RetryError => exc
         expect(exc.cause).to be_a(CustomException)

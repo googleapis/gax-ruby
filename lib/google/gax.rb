@@ -50,8 +50,7 @@ module Google
     # @!attribute [r] bundle_descriptor
     #   @return [BundleDescriptor]
     class CallSettings
-      attr_reader :timeout, :retry_options, :page_descriptor, :page_token,
-                  :bundler, :bundle_descriptor
+      attr_reader :options, :page_descriptor, :bundler, :bundle_descriptor
 
       # @param timeout [Numeric] The client-side timeout for API calls. This
       #   parameter is ignored for retrying calls.
@@ -69,60 +68,17 @@ module Google
       #   the bundle. If nil, bundling is not performed.
       def initialize(timeout: 30, retry_options: nil, page_descriptor: nil,
                      page_token: nil, bundler: nil, bundle_descriptor: nil)
-        @timeout = timeout
-        @retry_options = retry_options
+        @options = CallOptions.new(timeout: timeout,
+                                   retry_options: retry_options,
+                                   page_token: page_token)
         @page_descriptor = page_descriptor
-        @page_token = page_token
         @bundler = bundler
         @bundle_descriptor = bundle_descriptor
-      end
-
-      # @return true when it has retry codes.
-      def retry_codes?
-        @retry_options && @retry_options.retry_codes
       end
 
       # @return true when it has valid bundler configuration.
       def bundler?
         @bundler && @bundle_descriptor
-      end
-
-      # Creates a new CallSetting instance which is based on this but merged
-      # settings from options.
-      # @param options [CallOptions, nil] The overriding call settings.
-      # @return a new merged call settings.
-      def merge(options)
-        unless options
-          return CallSettings.new(timeout: @timeout,
-                                  retry_options: @retry_options,
-                                  page_descriptor: @page_descriptor,
-                                  page_token: @page_token,
-                                  bundler: @bundler,
-                                  bundle_descriptor: @bundle_descriptor)
-        end
-
-        timeout = if options.timeout == :OPTION_INHERIT
-                    @timeout
-                  else
-                    options.timeout
-                  end
-        retry_options = if options.retry_options == :OPTION_INHERIT
-                          @retry_options
-                        else
-                          options.retry_options
-                        end
-        page_token = if options.page_token == :OPTION_INHERIT
-                       @page_token
-                     else
-                       options.page_token
-                     end
-
-        CallSettings.new(timeout: timeout,
-                         retry_options: retry_options,
-                         page_descriptor: @page_descriptor,
-                         page_token: page_token,
-                         bundler: @bundler,
-                         bundle_descriptor: @bundle_descriptor)
       end
     end
 
@@ -150,6 +106,35 @@ module Google
         @timeout = timeout
         @retry_options = retry_options
         @page_token = page_token
+      end
+
+      # @return true when it has retry codes.
+      def retry_codes?
+        @retry_options && @retry_options.retry_codes
+      end
+
+      # Creates a new CallOptions instance which is based on this but merged
+      # from options.
+      # @param options [CallOptions, nil] The overriding call settings.
+      # @return a new merged call options.
+      def merge(other)
+        if other
+          CallOptions.new(
+            timeout: override(@timeout, other.timeout),
+            retry_options: override(@retry_options, other.retry_options),
+            page_token: override(@page_token, other.page_token)
+          )
+        else
+          CallOptions.new(timeout: @timeout,
+                          retry_options: @retry_options,
+                          page_token: @page_token)
+        end
+      end
+
+      private
+
+      def override(base, overriding)
+        (overriding == :OPTION_INHERIT) ? base : overriding
       end
     end
 
