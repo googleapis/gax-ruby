@@ -128,9 +128,9 @@ module Google
       #   The name of the field in the response which holds the next page token.
       # @param resource_field [String]
       #   The name of the field in the response which holds the resources.
-      def initialize(a_func, settings, page_descriptor)
+      def initialize(a_func, options, page_descriptor)
         @func = a_func
-        @settings = settings
+        @base_options = options
         @request_page_token_field = page_descriptor.request_page_token_field
         @page = Page.new(nil,
                          page_descriptor.response_page_token_field,
@@ -148,13 +148,12 @@ module Google
       #   returning self for further uses.
       def start(request, options, **kwargs)
         @request = request
-        @call_options = options
-        settings = @settings.merge(options)
-        if settings.page_token
-          @request[@request_page_token_field] = settings.page_token
+        @options = @base_options.merge(options)
+        if @options.page_token
+          @request[@request_page_token_field] = @options.page_token
         end
         @kwargs = kwargs
-        @page = @page.dup_with(@func.call(@request, @call_options, **@kwargs))
+        @page = @page.dup_with(@func.call(@request, @options, **@kwargs))
         self
       end
 
@@ -196,7 +195,7 @@ module Google
       def next_page
         return unless next_page?
         @request[@request_page_token_field] = @page.next_page_token
-        @page = @page.dup_with(@func.call(@request, @call_options, **@kwargs))
+        @page = @page.dup_with(@func.call(@request, @options, **@kwargs))
       end
 
       def response
@@ -209,17 +208,17 @@ module Google
     end
 
     class Retryable
-      def initialize(func, settings)
+      def initialize(func, options)
         @func = func
-        @settings = settings
+        @options = options
       end
 
       def call(request, options, **kwargs)
-        settings = @settings.merge(options)
-        if settings.retry_codes?
-          call_with_retry(request, settings.retry_options, **kwargs)
+        this_options = @options.merge(options)
+        if this_options.retry_codes?
+          call_with_retry(request, this_options.retry_options, **kwargs)
         else
-          call_with_timeout(request, settings.timeout, **kwargs)
+          call_with_timeout(request, this_options.timeout, **kwargs)
         end
       end
 
@@ -293,14 +292,16 @@ module Google
     # @raise [StandardError] if +settings+ has incompatible values,
     #   e.g, if bundling and page_streaming are both configured
     def create_api_call(func, settings)
-      api_call = Retryable.new(func, settings)
+      api_call = Retryable.new(func, settings.options)
 
       if settings.page_descriptor
         if settings.bundler?
           raise 'ApiCallable has incompatible settings: ' \
               'bundling and page streaming'
         end
-        return page_streamable(api_call, settings, settings.page_descriptor)
+        return page_streamable(api_call,
+                               settings.options,
+                               settings.page_descriptor)
       end
       if settings.bundler?
         return bundleable(api_call, settings.bundle_descriptor,
@@ -340,16 +341,11 @@ module Google
     # @param bundler orchestrates bundling.
     # @return [Proc] A proc takes the API call's request and returns
     #   an Event object.
-    def bundleable(a_func, settings, desc, bundler)
+    def bundleable(a_func, desc, bundler)
       proc do |request, options, **kwargs|
-        this_settings = settings.merge(options)
-        if this_settings.bundler?
-          the_id = bundling.compute_bundle_id(request,
-                                              desc.request_discriminator_fields)
-          bundler.schedule(a_func, the_id, desc, request)
-        else
-          a_func.call(request, options, **kwargs)
-        end
+        the_id = bundling.compute_bundle_id(request,
+                                            desc.request_discriminator_fields)
+        bundler.schedule(a_func, the_id, desc, request)
       end
     end
 
@@ -364,8 +360,8 @@ module Google
     # @param page_token [Object] The page_token for the first page to be
     #   streamed, or nil.
     # @return [Proc] A proc that returns an iterable over the specified field.
-    def page_streamable(a_func, settings, page_descriptor)
-      enumerable = PagedEnumerable.new(a_func, settings, page_descriptor)
+    def page_streamable(a_func, options, page_descriptor)
+      enumerable = PagedEnumerable.new(a_func, options, page_descriptor)
       enumerable.method(:start)
     end
 

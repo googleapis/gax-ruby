@@ -93,25 +93,25 @@ describe Google::Gax do
       page_descriptors: PAGE_DESCRIPTORS
     )
     settings = defaults['bundling_method']
-    expect(settings.timeout).to be(30)
+    expect(settings.options.timeout).to be(30)
     # TODO: uncomment this when bundling is added.
     # expect(settings.bundler).to be_a(Google::Gax::Executor)
     expect(settings.bundle_descriptor).to be_a(Google::Gax::BundleDescriptor)
     expect(settings.page_descriptor).to be_nil
-    expect(settings.retry_options).to be_a(Google::Gax::RetryOptions)
-    expect(settings.retry_options.retry_codes).to be_a(Array)
-    expect(settings.retry_options.backoff_settings).to be_a(
+    expect(settings.options.retry_options).to be_a(Google::Gax::RetryOptions)
+    expect(settings.options.retry_options.retry_codes).to be_a(Array)
+    expect(settings.options.retry_options.backoff_settings).to be_a(
       Google::Gax::BackoffSettings
     )
 
     settings = defaults['page_streaming_method']
-    expect(settings.timeout).to be(30)
+    expect(settings.options.timeout).to be(30)
     expect(settings.bundler).to be_nil
     expect(settings.bundle_descriptor).to be_nil
     expect(settings.page_descriptor).to be_a(Google::Gax::PageDescriptor)
-    expect(settings.retry_options).to be_a(Google::Gax::RetryOptions)
-    expect(settings.retry_options.retry_codes).to be_a(Array)
-    expect(settings.retry_options.backoff_settings).to be_a(
+    expect(settings.options.retry_options).to be_a(Google::Gax::RetryOptions)
+    expect(settings.options.retry_options.retry_codes).to be_a(Array)
+    expect(settings.options.retry_options.backoff_settings).to be_a(
       Google::Gax::BackoffSettings
     )
   end
@@ -136,14 +136,14 @@ describe Google::Gax do
     )
 
     settings = defaults['bundling_method']
-    expect(settings.timeout).to be(30)
+    expect(settings.options.timeout).to be(30)
     expect(settings.bundler).to be_nil
     expect(settings.page_descriptor).to be_nil
 
     settings = defaults['page_streaming_method']
-    expect(settings.timeout).to be(30)
+    expect(settings.options.timeout).to be(30)
     expect(settings.page_descriptor).to be_a(Google::Gax::PageDescriptor)
-    expect(settings.retry_options).to be_nil
+    expect(settings.options.retry_options).to be_nil
   end
 
   it 'overrides settings more precisely' do
@@ -181,9 +181,9 @@ describe Google::Gax do
     )
 
     settings = defaults['bundling_method']
-    backoff = settings.retry_options.backoff_settings
+    backoff = settings.options.retry_options.backoff_settings
     expect(backoff.initial_retry_delay_millis).to be(1000)
-    expect(settings.retry_options.retry_codes).to match_array(
+    expect(settings.options.retry_options.retry_codes).to match_array(
       [RETRY_DICT['code_a']]
     )
     expect(settings.bundler).to be(nil)
@@ -193,11 +193,11 @@ describe Google::Gax do
     # overrides. 'bar_retry' or 'default' definitions in overrides should
     # not affect the methods which are not in the overrides.
     settings = defaults['page_streaming_method']
-    backoff = settings.retry_options.backoff_settings
+    backoff = settings.options.retry_options.backoff_settings
     expect(backoff.initial_retry_delay_millis).to be(100)
     expect(backoff.retry_delay_multiplier).to be(1.2)
     expect(backoff.max_retry_delay_millis).to be(1000)
-    expect(settings.retry_options.retry_codes).to match_array(
+    expect(settings.options.retry_options.retry_codes).to match_array(
       [RETRY_DICT['code_c']]
     )
   end
