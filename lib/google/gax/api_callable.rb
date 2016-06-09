@@ -32,8 +32,6 @@ require 'time'
 require 'google/gax/errors'
 require 'google/gax/grpc'
 
-# rubocop:disable Metrics/ModuleLength
-
 module Google
   module Gax
     MILLIS_PER_SECOND = 1000.0
@@ -120,14 +118,12 @@ module Google
       include Enumerable
       attr_reader :page
 
-      # @param a_func [Proc]
+      # @param a_func [#call]
       #   A proc to update the response object.
-      # @param request_page_token_field [String]
-      #   The name of the field in request which will have the page token.
-      # @param response_page_token_field [String]
-      #   The name of the field in the response which holds the next page token.
-      # @param resource_field [String]
-      #   The name of the field in the response which holds the resources.
+      # @param options [CallOptions]
+      #   The default call options.
+      # @param page_descriptor [PageDescriptor]
+      #   The description of iterating pages.
       def initialize(a_func, options, page_descriptor)
         @func = a_func
         @base_options = options
@@ -138,10 +134,10 @@ module Google
       end
 
       # Initiate the streaming with the requests and keywords.
-      # @param page_token [Object]
-      #   The page token for the first page to be streamed, or nil.
       # @param request [Object]
       #   The initial request object.
+      # @param options [CallOptions, nil]
+      #   The current call options.
       # @param kwargs [Hash]
       #   Other keyword arguments to be passed to a_func.
       # @return [PagedEnumerable]
@@ -207,12 +203,23 @@ module Google
       end
     end
 
+    # A class to support retrying with backoff, but the actual retrying
+    # behaviors can be customizable at individual invocation.
     class Retryable
+      # @param func [#call]
+      #   A callable for the API call.
+      # @param options [CallOptions]
+      #   The base call options.
       def initialize(func, options)
         @func = func
         @options = options
       end
 
+      # Invokes with the specified options.
+      # @param request [Object]
+      #   The request object.
+      # @param options [CallOptions, nil]
+      #   The custom call options.
       def call(request, options, **kwargs)
         this_options = @options.merge(options)
         if this_options.retry_codes?
@@ -222,8 +229,13 @@ module Google
         end
       end
 
-      # rubocop:disable Metrics/MethodLength
+      # rubocop:disable Metrics/AbcSize
 
+      # Invokes with the retry backoffs.
+      # @param request [Object]
+      #   The request object.
+      # @param retry_options [RetryOptions]
+      #   The current retry options.
       def call_with_retry(request, retry_options, **kwargs)
         delay_mult = retry_options.backoff_settings.retry_delay_multiplier
         max_delay = (retry_options.backoff_settings.max_retry_delay_millis /
@@ -262,15 +274,18 @@ module Google
         result
       end
 
-      # rubocop:enable Metrics/MethodLength
+      # rubocop:enable Metrics/AbcSize
 
+      # Call with the specified timeout parameter.
+      # @param request [Object]
+      #   The request object.
+      # @param timeout [Numeric]
+      #   The timeout parameter.
       def call_with_timeout(request, timeout, **kwargs)
         kwargs[:timeout] = timeout
         @func.call(request, **kwargs)
       end
     end
-
-    # rubocop:disable Metrics/AbcSize
 
     # Converts an rpc call into an API call governed by the settings.
     #
@@ -286,9 +301,9 @@ module Google
     # same signature as the original. Only when +settings+ configures bundling
     # does the signature change.
     #
-    # @param func [Proc] used to make a bare rpc call
+    # @param func [#call] used to make a bare rpc call
     # @param settings [CallSettings provides the settings for this call
-    # @return [Proc] a bound method on a request stub used to make an rpc call
+    # @return [#call] a bound method on a request stub used to make an rpc call
     # @raise [StandardError] if +settings+ has incompatible values,
     #   e.g, if bundling and page_streaming are both configured
     def create_api_call(func, settings)
@@ -313,7 +328,7 @@ module Google
 
     # Updates a_func to wrap exceptions with GaxError
     #
-    # @param a_func [Proc]
+    # @param a_func [#call]
     # @param errors [Array<Exception>] Configures the exceptions to wrap.
     # @return [Proc] A proc that will wrap certain exceptions with GaxError
     def catch_errors(a_func, errors: Grpc::API_ERRORS)
@@ -335,7 +350,7 @@ module Google
     # The returned Event object can be used to obtain the eventual result of the
     # bundled call.
     #
-    # @param a_func [Proc] an API call that supports bundling.
+    # @param a_func [#call] an API call that supports bundling.
     # @param desc [BundleDescriptor] describes the bundling that
     #   +a_func+ supports.
     # @param bundler orchestrates bundling.
@@ -345,21 +360,18 @@ module Google
       proc do |request, options, **kwargs|
         the_id = bundling.compute_bundle_id(request,
                                             desc.request_discriminator_fields)
-        bundler.schedule(a_func, the_id, desc, request)
+        bundler.schedule(a_func, the_id, desc, request, options, **kwargs)
       end
     end
 
     # Creates a proc that yields an iterable to performs page-streaming.
     #
-    # @param a_func [Proc] an API call that is page streaming.
-    # @param request_page_token_field [String] The field of the page
-    #   token in the request.
-    # @param response_page_token_field [String] The field of the next
-    #   page token in the response.
-    # @param resource_field [String] The field to be streamed.
-    # @param page_token [Object] The page_token for the first page to be
-    #   streamed, or nil.
-    # @return [Proc] A proc that returns an iterable over the specified field.
+    # @param a_func [#call] an API call that is page streaming.
+    # @param options [CallOptions]
+    #   The base call options.
+    # @param page_descriptor [PageDescriptor]
+    #   The description of iterating pages.
+    # @return [#call] A proc that returns an iterable over the specified field.
     def page_streamable(a_func, options, page_descriptor)
       enumerable = PagedEnumerable.new(a_func, options, page_descriptor)
       enumerable.method(:start)

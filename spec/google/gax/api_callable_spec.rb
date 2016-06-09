@@ -83,21 +83,21 @@ describe Google::Gax do
     my_callable = Google::Gax.create_api_call(func, settings)
 
     it 'iterates over elements' do
-      expect(my_callable.call({'page_token' => 0}, nil).to_a).to match_array(
+      expect(my_callable.call({ 'page_token' => 0 }, nil).to_a).to match_array(
         (0...(page_size * pages_to_stream))
       )
       expect(timeout_arg).to_not be_nil
     end
 
     it 'offers interface for pages' do
-      stream = my_callable.call({'page_token' => 0}, nil)
+      stream = my_callable.call({ 'page_token' => 0 }, nil)
       page = stream.page
       expect(page.to_a).to eq((0...page_size).to_a)
       expect(page.next_page_token?).to be_truthy
       page = stream.next_page
       expect(page.to_a).to eq((page_size...(page_size * 2)).to_a)
 
-      stream = my_callable.call({'page_token' => 0}, nil)
+      stream = my_callable.call({ 'page_token' => 0 }, nil)
       expect(stream.enum_for(:each_page).to_a.size).to eq(pages_to_stream + 1)
     end
 
@@ -190,9 +190,9 @@ describe Google::Gax do
       my_callable = Google::Gax.create_api_call(func, settings)
 
       my_options = Google::Gax::CallOptions.new(retry_options: nil)
-      expect {
+      expect do
         my_callable.call(nil, my_options)
-      }.to raise_error(CustomException)
+      end.to raise_error(CustomException)
       expect(to_attempt).to eq(2)
       expect(timeout_arg).to_not be_nil
     end

@@ -113,10 +113,10 @@ module Google
         @retry_options && @retry_options.retry_codes
       end
 
-      # Creates a new CallSetting instance which is based on this but merged
-      # settings from options.
+      # Creates a new CallOptions instance which is based on this but merged
+      # from options.
       # @param options [CallOptions, nil] The overriding call settings.
-      # @return a new merged call settings.
+      # @return a new merged call options.
       def merge(other)
         if other
           CallOptions.new(
@@ -132,6 +132,7 @@ module Google
       end
 
       private
+
       def override(base, overriding)
         (overriding == :OPTION_INHERIT) ? base : overriding
       end
