@@ -56,6 +56,11 @@ describe Google::Gax do
       my_callable = Google::Gax.create_api_call(func, settings)
       expect(my_callable.call(nil)).to eq(42)
       expect(timeout_arg).to_not be_nil
+
+      new_timeout = timeout_arg + 20
+      options = Google::Gax::CallOptions.new(timeout: new_timeout)
+      expect(my_callable.call(nil, options)).to eq(42)
+      expect(timeout_arg).to eq(new_timeout)
     end
   end
 

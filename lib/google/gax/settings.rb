@@ -183,11 +183,13 @@ module Google
     # @param page_descriptors [Hash{String => PageDescriptor}] A
     #   dictionary of method names to PageDescriptor objects for
     #   methods that are page streaming-enabled.
+    # @param kwargs [Hash]
+    #   Additional keyword argments to be passed to the API call.
     # @return [CallSettings, nil] A CallSettings, or nil if the
     #   service is not found in the config.
     def construct_settings(service_name, client_config, config_overrides,
                            retry_names, timeout, bundle_descriptors: {},
-                           page_descriptors: {})
+                           page_descriptors: {}, kwargs: {})
       defaults = {}
 
       service_config = client_config.fetch('interfaces', {})[service_name]
@@ -222,7 +224,8 @@ module Google
           page_descriptor: page_descriptors[snake_name],
           bundler: construct_bundling(bundling_config,
                                       bundle_descriptor),
-          bundle_descriptor: bundle_descriptor
+          bundle_descriptor: bundle_descriptor,
+          kwargs: kwargs
         )
       end
 
