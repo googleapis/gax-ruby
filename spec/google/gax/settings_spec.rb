@@ -90,7 +90,8 @@ describe Google::Gax do
     defaults = Google::Gax.construct_settings(
       SERVICE_NAME, A_CONFIG, {}, RETRY_DICT, 30,
       bundle_descriptors: BUNDLE_DESCRIPTORS,
-      page_descriptors: PAGE_DESCRIPTORS
+      page_descriptors: PAGE_DESCRIPTORS,
+      kwargs: { 'key' => 'value' }
     )
     settings = defaults['bundling_method']
     expect(settings.timeout).to be(30)
@@ -103,6 +104,7 @@ describe Google::Gax do
     expect(settings.retry_options.backoff_settings).to be_a(
       Google::Gax::BackoffSettings
     )
+    expect(settings.kwargs).to match('key' => 'value')
 
     settings = defaults['page_streaming_method']
     expect(settings.timeout).to be(30)
@@ -114,6 +116,7 @@ describe Google::Gax do
     expect(settings.retry_options.backoff_settings).to be_a(
       Google::Gax::BackoffSettings
     )
+    expect(settings.kwargs).to match('key' => 'value')
   end
 
   it 'overrides settings' do

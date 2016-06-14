@@ -120,35 +120,33 @@ module Google
       include Enumerable
       attr_reader :page
 
-      # @param a_func [Proc]
-      #   A proc to update the response object.
       # @param request_page_token_field [String]
       #   The name of the field in request which will have the page token.
       # @param response_page_token_field [String]
       #   The name of the field in the response which holds the next page token.
       # @param resource_field [String]
       #   The name of the field in the response which holds the resources.
-      def initialize(a_func, request_page_token_field,
+      def initialize(request_page_token_field,
                      response_page_token_field, resource_field)
-        @func = a_func
         @request_page_token_field = request_page_token_field
         @page = Page.new(nil, response_page_token_field, resource_field)
       end
 
       # Initiate the streaming with the requests and keywords.
-      # @param page_token [Object]
-      #   The page token for the first page to be streamed, or nil.
+      # @param api_call [Proc]
+      #   A proc to update the response object.
       # @param request [Object]
       #   The initial request object.
-      # @param kwargs [Hash]
-      #   Other keyword arguments to be passed to a_func.
+      # @param settings [CallSettings]
+      #   The call settings to enumerate pages.
       # @return [PagedEnumerable]
       #   returning self for further uses.
-      def start(page_token, request, **kwargs)
+      def start(api_call, request, settings)
+        @func = api_call
         @request = request
+        page_token = settings.page_token
         @request[@request_page_token_field] = page_token if page_token
-        @kwargs = kwargs
-        @page = @page.dup_with(@func.call(@request, **@kwargs))
+        @page = @page.dup_with(@func.call(@request))
         self
       end
 
@@ -190,7 +188,7 @@ module Google
       def next_page
         return unless next_page?
         @request[@request_page_token_field] = @page.next_page_token
-        @page = @page.dup_with(@func.call(@request, **@kwargs))
+        @page = @page.dup_with(@func.call(@request))
       end
 
       def response
@@ -224,31 +222,35 @@ module Google
     # @raise [StandardError] if +settings+ has incompatible values,
     #   e.g, if bundling and page_streaming are both configured
     def create_api_call(func, settings)
-      api_call = if settings.retry_codes?
-                   retryable(func, settings.retry_options)
-                 else
-                   add_timeout_arg(func, settings.timeout)
-                 end
+      api_caller = proc do |api_call, request|
+        api_call.call(request)
+      end
 
       if settings.page_descriptor
         if settings.bundler?
           raise 'ApiCallable has incompatible settings: ' \
               'bundling and page streaming'
         end
-        return page_streamable(
-          api_call,
-          settings.page_descriptor.request_page_token_field,
-          settings.page_descriptor.response_page_token_field,
-          settings.page_descriptor.resource_field,
-          settings.page_token
-        )
-      end
-      if settings.bundler?
-        return bundleable(api_call, settings.bundle_descriptor,
-                          settings.bundler)
+        page_descriptor = settings.page_descriptor
+        api_caller = page_streamable(page_descriptor.request_page_token_field,
+                                     page_descriptor.response_page_token_field,
+                                     page_descriptor.resource_field)
+      elsif settings.bundler?
+        api_caller = bundleable(settings.bundle_descriptor)
       end
 
-      catch_errors(api_call)
+      proc do |request, options = nil|
+        this_settings = settings.merge(options)
+        api_call = if settings.retry_codes?
+                     retryable(func, this_settings.retry_options,
+                               this_settings.kwargs)
+                   else
+                     add_timeout_arg(func, this_settings.timeout,
+                                     this_settings.kwargs)
+                   end
+        api_call = catch_errors(api_call)
+        api_caller.call(api_call, request, this_settings)
+      end
     end
 
     # Updates a_func to wrap exceptions with GaxError
@@ -257,9 +259,9 @@ module Google
     # @param errors [Array<Exception>] Configures the exceptions to wrap.
     # @return [Proc] A proc that will wrap certain exceptions with GaxError
     def catch_errors(a_func, errors: Grpc::API_ERRORS)
-      proc do |request, **kwargs|
+      proc do |request|
         begin
-          a_func.call(request, **kwargs)
+          a_func.call(request)
         rescue *errors
           raise GaxError, 'RPC failed'
         end
@@ -281,11 +283,12 @@ module Google
     # @param bundler orchestrates bundling.
     # @return [Proc] A proc takes the API call's request and returns
     #   an Event object.
-    def bundleable(a_func, desc, bundler)
-      proc do |request|
+    def bundleable(desc)
+      proc do |api_call, request, settings|
+        return api_call(request) unless settings.bundler
         the_id = bundling.compute_bundle_id(request,
                                             desc.request_discriminator_fields)
-        return bundler.schedule(a_func, the_id, desc, request)
+        return bundler.schedule(api_call, the_id, desc, request)
       end
     end
 
@@ -300,18 +303,13 @@ module Google
     # @param page_token [Object] The page_token for the first page to be
     #   streamed, or nil.
     # @return [Proc] A proc that returns an iterable over the specified field.
-    def page_streamable(a_func,
-                        request_page_token_field,
+    def page_streamable(request_page_token_field,
                         response_page_token_field,
-                        resource_field,
-                        page_token)
-      enumerable = PagedEnumerable.new(a_func,
-                                       request_page_token_field,
+                        resource_field)
+      enumerable = PagedEnumerable.new(request_page_token_field,
                                        response_page_token_field,
                                        resource_field)
-      proc do |request, **kwargs|
-        enumerable.start(page_token, request, **kwargs)
-      end
+      enumerable.method(:start)
     end
 
     # rubocop:disable Metrics/MethodLength
@@ -324,7 +322,7 @@ module Google
     #   upon which the proc should retry, and the parameters to the
     #   exponential backoff retry algorithm.
     # @return [Proc] A proc that will retry on exception.
-    def retryable(a_func, retry_options)
+    def retryable(a_func, retry_options, kwargs)
       delay_mult = retry_options.backoff_settings.retry_delay_multiplier
       max_delay = (retry_options.backoff_settings.max_retry_delay_millis /
                    MILLIS_PER_SECOND)
@@ -334,7 +332,7 @@ module Google
       total_timeout = (retry_options.backoff_settings.total_timeout_millis /
                        MILLIS_PER_SECOND)
 
-      proc do |request, **kwargs|
+      proc do |request|
         delay = retry_options.backoff_settings.initial_retry_delay_millis
         timeout = (retry_options.backoff_settings.initial_rpc_timeout_millis /
                    MILLIS_PER_SECOND)
@@ -344,7 +342,7 @@ module Google
 
         loop do
           begin
-            result = add_timeout_arg(a_func, timeout).call(request, **kwargs)
+            result = add_timeout_arg(a_func, timeout, kwargs).call(request)
             break
           rescue => exception
             unless exception.respond_to?(:code) &&
@@ -374,8 +372,8 @@ module Google
     # @param timeout [Numeric] to be added to the original proc as it
     #   final positional arg.
     # @return [Proc] the original proc updated to the timeout arg
-    def add_timeout_arg(a_func, timeout)
-      proc do |request, **kwargs|
+    def add_timeout_arg(a_func, timeout, kwargs)
+      proc do |request|
         kwargs[:timeout] = timeout
         a_func.call(request, **kwargs)
       end

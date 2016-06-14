@@ -49,9 +49,11 @@ module Google
     #   @return [Object]
     # @!attribute [r] bundle_descriptor
     #   @return [BundleDescriptor]
+    # @!attribute [r] kwargs
+    #   @return [Hash]
     class CallSettings
       attr_reader :timeout, :retry_options, :page_descriptor, :page_token,
-                  :bundler, :bundle_descriptor
+                  :bundler, :bundle_descriptor, :kwargs
 
       # @param timeout [Numeric] The client-side timeout for API calls. This
       #   parameter is ignored for retrying calls.
@@ -67,14 +69,18 @@ module Google
       #   performed.
       # @param bundle_descriptor [BundleDescriptor] indicates the structure of
       #   the bundle. If nil, bundling is not performed.
+      # @param kwargs [Hash]
+      #   Additional keyword argments to be passed to the API call.
       def initialize(timeout: 30, retry_options: nil, page_descriptor: nil,
-                     page_token: nil, bundler: nil, bundle_descriptor: nil)
+                     page_token: nil, bundler: nil, bundle_descriptor: nil,
+                     kwargs: {})
         @timeout = timeout
         @retry_options = retry_options
         @page_descriptor = page_descriptor
         @page_token = page_token
         @bundler = bundler
         @bundle_descriptor = bundle_descriptor
+        @kwargs = kwargs
       end
 
       # @return true when it has retry codes.
@@ -98,7 +104,8 @@ module Google
                                   page_descriptor: @page_descriptor,
                                   page_token: @page_token,
                                   bundler: @bundler,
-                                  bundle_descriptor: @bundle_descriptor)
+                                  bundle_descriptor: @bundle_descriptor,
+                                  kwargs: @kwargs)
         end
 
         timeout = if options.timeout == :OPTION_INHERIT
@@ -117,12 +124,16 @@ module Google
                        options.page_token
                      end
 
+        kwargs = @kwargs.dup
+        kwargs.update(options.kwargs) if options.kwargs != :OPTION_INHERIT
+
         CallSettings.new(timeout: timeout,
                          retry_options: retry_options,
                          page_descriptor: @page_descriptor,
                          page_token: page_token,
                          bundler: @bundler,
-                         bundle_descriptor: @bundle_descriptor)
+                         bundle_descriptor: @bundle_descriptor,
+                         kwargs: kwargs)
       end
     end
 
@@ -133,8 +144,10 @@ module Google
     #   @return [RetryOptions, :OPTION_INHERIT]
     # @!attribute [r] page_token
     #   @return [Object, :OPTION_INHERIT, :INITIAL_PAGE]
+    # @!attribute [r] kwargs
+    #  @return [Hash, :OPTION_INHERIT]
     class CallOptions
-      attr_reader :timeout, :retry_options, :page_token
+      attr_reader :timeout, :retry_options, :page_token, :kwargs
 
       # @param timeout [Numeric, :OPTION_INHERIT]
       #   The client-side timeout for API calls.
@@ -144,12 +157,16 @@ module Google
       # @param page_token [Object, :OPTION_INHERIT]
       #   If set and the call is configured for page streaming, page streaming
       #   is starting with this page_token.
+      # @param kwargs [Hash, :OPTION_INHERIT]
+      #   Additional keyword argments to be passed to the API call.
       def initialize(timeout: :OPTION_INHERIT,
                      retry_options: :OPTION_INHERIT,
-                     page_token: :OPTION_INHERIT)
+                     page_token: :OPTION_INHERIT,
+                     kwargs: :OPTION_INHERIT)
         @timeout = timeout
         @retry_options = retry_options
         @page_token = page_token
+        @kwargs = kwargs
       end
     end
 
