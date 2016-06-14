@@ -133,14 +133,12 @@ module Google
       end
 
       # Initiate the streaming with the requests and keywords.
-      # @param a_func [Proc]
+      # @param api_call [Proc]
       #   A proc to update the response object.
       # @param request [Object]
       #   The initial request object.
       # @param settings [CallSettings]
       #   The call settings to enumerate pages.
-      # @param kwargs [Hash]
-      #   Other keyword arguments to be passed to a_func.
       # @return [PagedEnumerable]
       #   returning self for further uses.
       def start(api_call, request, settings)
