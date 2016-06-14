@@ -45,16 +45,16 @@ module Google
     # PagedEnumerable provides the enumerations over the resource data,
     # and also provides the enumerations over the pages themselves.
     #
-    # Example 1: normal iteration over resources.
+    # @example normal iteration over resources.
     #   paged_enumerable.each { |resource| puts resource }
     #
-    # Example 2: per-page iteration.
+    # @example per-page iteration.
     #   paged_enumerable.each_page { |page| puts page }
     #
-    # Example 3: Enumerable over pages.
+    # @example Enumerable over pages.
     #   pages = paged_enumerable.enum_for(:each_page).to_a
     #
-    # Example 4: more exact operations over pages.
+    # @example more exact operations over pages.
     #   while some_condition()
     #     page = paged_enumerable.page
     #     do_something(page)
