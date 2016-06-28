@@ -185,11 +185,13 @@ module Google
     #   methods that are page streaming-enabled.
     # @param kwargs [Hash]
     #   Additional keyword argments to be passed to the API call.
+    # @param errors [Array<Exception>]
+    #   Configures the exceptions to wrap with GaxError.
     # @return [CallSettings, nil] A CallSettings, or nil if the
     #   service is not found in the config.
     def construct_settings(service_name, client_config, config_overrides,
                            retry_names, timeout, bundle_descriptors: {},
-                           page_descriptors: {}, kwargs: {})
+                           page_descriptors: {}, kwargs: {}, errors: [])
       defaults = {}
 
       service_config = client_config.fetch('interfaces', {})[service_name]
@@ -225,7 +227,7 @@ module Google
           bundler: construct_bundling(bundling_config,
                                       bundle_descriptor),
           bundle_descriptor: bundle_descriptor,
-          kwargs: kwargs
+          kwargs: kwargs, errors: errors
         )
       end
 
