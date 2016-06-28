@@ -224,10 +224,10 @@ module Google
                             retry_names)
           ),
           page_descriptor: page_descriptors[snake_name],
-          bundler: construct_bundling(bundling_config,
-                                      bundle_descriptor),
+          bundler: construct_bundling(bundling_config, bundle_descriptor),
           bundle_descriptor: bundle_descriptor,
-          kwargs: kwargs, errors: errors
+          kwargs: kwargs,
+          errors: errors
         )
       end
 
