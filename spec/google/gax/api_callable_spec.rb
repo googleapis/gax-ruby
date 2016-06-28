@@ -117,7 +117,7 @@ describe Google::Gax do
 
   describe 'failures without retry' do
     it 'simply fails' do
-      settings = CallSettings.new
+      settings = CallSettings.new(errors: [GRPC::Cancelled])
       timeout_arg = nil
       call_count = 0
       func = proc do |timeout: nil|
