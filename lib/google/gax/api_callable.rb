@@ -30,7 +30,6 @@
 require 'time'
 
 require 'google/gax/errors'
-require 'google/gax/grpc'
 
 # rubocop:disable Metrics/ModuleLength
 
@@ -217,7 +216,7 @@ module Google
     # does the signature change.
     #
     # @param func [Proc] used to make a bare rpc call
-    # @param settings [CallSettings provides the settings for this call
+    # @param settings [CallSettings] provides the settings for this call
     # @return [Proc] a bound method on a request stub used to make an rpc call
     # @raise [StandardError] if +settings+ has incompatible values,
     #   e.g, if bundling and page_streaming are both configured
@@ -248,7 +247,7 @@ module Google
                      add_timeout_arg(func, this_settings.timeout,
                                      this_settings.kwargs)
                    end
-        api_call = catch_errors(api_call)
+        api_call = catch_errors(api_call, settings.errors)
         api_caller.call(api_call, request, this_settings)
       end
     end
@@ -257,8 +256,8 @@ module Google
     #
     # @param a_func [Proc]
     # @param errors [Array<Exception>] Configures the exceptions to wrap.
-    # @return [Proc] A proc that will wrap certain exceptions with GaxError
-    def catch_errors(a_func, errors: Grpc::API_ERRORS)
+    # @return [Proc] A proc that will wrap certain exceptions with GaxError.
+    def catch_errors(a_func, errors)
       proc do |request|
         begin
           a_func.call(request)

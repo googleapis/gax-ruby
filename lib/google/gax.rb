@@ -53,7 +53,7 @@ module Google
     #   @return [Hash]
     class CallSettings
       attr_reader :timeout, :retry_options, :page_descriptor, :page_token,
-                  :bundler, :bundle_descriptor, :kwargs
+                  :bundler, :bundle_descriptor, :kwargs, :errors
 
       # @param timeout [Numeric] The client-side timeout for API calls. This
       #   parameter is ignored for retrying calls.
@@ -71,9 +71,11 @@ module Google
       #   the bundle. If nil, bundling is not performed.
       # @param kwargs [Hash]
       #   Additional keyword argments to be passed to the API call.
+      # @param errors [Array<Exception>]
+      #   Configures the exceptions to wrap with GaxError.
       def initialize(timeout: 30, retry_options: nil, page_descriptor: nil,
                      page_token: nil, bundler: nil, bundle_descriptor: nil,
-                     kwargs: {})
+                     kwargs: {}, errors: [])
         @timeout = timeout
         @retry_options = retry_options
         @page_descriptor = page_descriptor
@@ -81,6 +83,7 @@ module Google
         @bundler = bundler
         @bundle_descriptor = bundle_descriptor
         @kwargs = kwargs
+        @errors = errors
       end
 
       # @return true when it has retry codes.
@@ -105,7 +108,8 @@ module Google
                                   page_token: @page_token,
                                   bundler: @bundler,
                                   bundle_descriptor: @bundle_descriptor,
-                                  kwargs: @kwargs)
+                                  kwargs: @kwargs,
+                                  errors: @errors)
         end
 
         timeout = if options.timeout == :OPTION_INHERIT
@@ -133,7 +137,8 @@ module Google
                          page_token: page_token,
                          bundler: @bundler,
                          bundle_descriptor: @bundle_descriptor,
-                         kwargs: kwargs)
+                         kwargs: kwargs,
+                         errors: @errors)
       end
     end
 

@@ -91,7 +91,8 @@ describe Google::Gax do
       SERVICE_NAME, A_CONFIG, {}, RETRY_DICT, 30,
       bundle_descriptors: BUNDLE_DESCRIPTORS,
       page_descriptors: PAGE_DESCRIPTORS,
-      kwargs: { 'key' => 'value' }
+      kwargs: { 'key' => 'value' },
+      errors: [StandardError]
     )
     settings = defaults['bundling_method']
     expect(settings.timeout).to be(30)
@@ -105,6 +106,7 @@ describe Google::Gax do
       Google::Gax::BackoffSettings
     )
     expect(settings.kwargs).to match('key' => 'value')
+    expect(settings.errors).to match_array([StandardError])
 
     settings = defaults['page_streaming_method']
     expect(settings.timeout).to be(30)
@@ -117,6 +119,7 @@ describe Google::Gax do
       Google::Gax::BackoffSettings
     )
     expect(settings.kwargs).to match('key' => 'value')
+    expect(settings.errors).to match_array([StandardError])
   end
 
   it 'overrides settings' do
