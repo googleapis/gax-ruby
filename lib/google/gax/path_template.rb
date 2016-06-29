@@ -80,13 +80,13 @@ module Google
       rule 'bound_segments : bound_segment FORWARD_SLASH bound_segments
                            | bound_segment' do |segs, a_seg, _, more_segs|
         segs.value = a_seg.value
-        segs.value.push(*more_segs.value) unless more_segs.nil?
+        segs.value.concat(more_segs.value) unless more_segs.nil?
       end
 
       rule 'unbound_segments : unbound_terminal FORWARD_SLASH unbound_segments
                              | unbound_terminal' do |segs, a_term, _, more_segs|
         segs.value = a_term.value
-        segs.value.push(*more_segs.value) unless more_segs.nil?
+        segs.value.concat(more_segs.value) unless more_segs.nil?
       end
 
       rule 'bound_segment : bound_terminal
@@ -118,7 +118,7 @@ module Google
                      | LEFT_BRACE LITERAL RIGHT_BRACE' do |variable, *args|
         variable.value = [Segment.new(BINDING, args[1].value)]
         if args.size > 3
-          variable.value.push(*args[3].value)
+          variable.value.concat(args[3].value)
         else
           variable.value.push(Segment.new(TERMINAL, '*'))
           @segment_count += 1
@@ -178,7 +178,7 @@ module Google
               msg = "Value for key #{segment.literal} is not provided"
               raise(ArgumentError, msg)
             end
-            out.push(*PathTemplate.new(bindings[literal_sym]).segments)
+            out.concat(PathTemplate.new(bindings[literal_sym]).segments)
             binding = true
           elsif segment.kind == END_BINDING
             binding = false
