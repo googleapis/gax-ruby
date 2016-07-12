@@ -31,6 +31,8 @@ module Google
   module Gax
     MILLIS_PER_SECOND = 1000.0
 
+    # TODO: Add function to compute bundle id.
+
     # rubocop:disable Metrics/ClassLength
 
     # Coordinates the execution of a single bundle.
@@ -98,7 +100,7 @@ module Google
       def run
         return if in_deque.count == 0
         request = @bundling_request
-        request[bundled_field] = @in_deque.flatten
+        request.send("#{@bundling_field}=", @in_deque.flatten)
 
         if @subresponse_field
           run_with_subresponses(request, @subreponse_field, @kwargs)
@@ -130,12 +132,13 @@ module Google
         response = @api_call.call(request, **kwargs)
         in_sizes_sum = 0
         in_deque.each { |elts| in_sizes_sum += elts.count }
-        all_subresponses = response[subresponse_field]
+        all_subresponses = response.send(subresponse_field.to_s)
         if all_subresponses.count != in_sizes_sum
           "cannot demultiplex the bundled response, got
             #{all_subresonses.count} subresponses; want #{in_sizes_sum},
             each bundled request will receive all responses"
         end
+        # TODO: handle each subresponse
         @event_deque.each do |event|
           event.result = response
           event.set
@@ -247,7 +250,7 @@ module Google
                    bundling_request, kwargs: {})
         bundle = bundle_for(api_call, bundle_id, bundle_desc,
                             bundling_request, kwargs)
-        elts = bundling_request[bundle_desc.bundled_field]
+        elts = bundling_request.send(bundle_desc.bundled_field.to_s)
         event = bundle.extend(elts)
 
         count_threshold = @options.element_count_threshold
