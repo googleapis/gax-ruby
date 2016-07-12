@@ -275,19 +275,6 @@ module Google
         # Keep track of the threads that are spawned in order to ensure the
         # api call is made before the main thread dies.
         @threads = {}
-
-        # The class may spawn many threads. This thread will remove any dead
-        # threads from @threads.
-        @threads_monitor = Thread.new do
-          loop do
-            sleep UPDATE_THREADS_RATE
-            @tasks_lock.synchronize do
-              @threads.each do |bundle_id, thread|
-                @threads.delete(bundle_id) unless thread.alive?
-              end
-            end
-          end
-        end
       end
 
       # Schedules bundle_desc of bundling_request as part of
@@ -321,6 +308,19 @@ module Google
         event
       end
 
+      # Helper function for #schedule.
+      #
+      # Given a return the corresponding bundle for a certain bundle id. Create
+      # a new bundle if the bundle does not exist yet.
+      #
+      # @param api_call [Proc] used to make an api call when the task is run.
+      # @param bundle_id [String] the id of this bundle.
+      # @param bundle_desc [BundleDescriptor] describes the structure of the
+      #     bundled call.
+      # @param bundling_request [Object] the request to pass as the arg to
+      #     the api_call.
+      # @param kwargs [Hash] the keyword arguments passed to the api_call.
+      # @return [Task] the bundle containing the +api_call+.
       def bundle_for(api_call, bundle_id, bundle_desc, bundling_request, kwargs)
         @tasks_lock.synchronize do
           return @tasks[bundle_id] if @tasks.key?(bundle_id)
@@ -328,21 +328,43 @@ module Google
                             bundling_request, kwargs,
                             bundle_desc.subresponse_field)
           delay_threshold = @options.delay_threshold
-          run_later(bundle, delay_threshold) if delay_threshold > 0
+          run_later(bundle.bundle_id, delay_threshold) if delay_threshold > 0
           @tasks[bundle_id] = bundle
           return bundle
         end
       end
 
-      def run_later(bundle, delay_threshold)
+      # Helper function for #schedule.
+      #
+      # Creates a new thread that will execute the encapsulated api calls after
+      # the +delay_threshold+ has elapsed. The thread that is
+      # spawned is added to the @threads hash to ensure that the thread will
+      # api call is made before the main thread exits.
+      #
+      # @param bundle_id [String] the id corresponding to the bundle that
+      #     is run.
+      # @param delay_threshold [Numeric] the number of micro-seconds to wait
+      #     before running the bundle.
+      def run_later(bundle_id, delay_threshold)
         @tasks_lock.synchronize do
-          Thread.new do
+          thread = Thread.new do
             sleep(delay_threshold / MILLIS_PER_SECOND)
-            run_now(bundle.bundle_id)
+            run_now(bundle_id)
+            @tasks_lock.synchronize do
+              @threads.delete(bundle_id)
+            end
+          end
+          @tasks_lock.synchronize do
+            @threads[bundle_id] = thread
           end
         end
       end
 
+      # Helper function for #schedule.
+      #
+      # Immediately runs the bundle corresponding to the bundle id.
+      # @param bundle_id [String] the id corresponding to the bundle that
+      #     is run.
       def run_now(bundle_id)
         @tasks_lock.synchronize do
           if @tasks.key?(bundle_id)
@@ -352,6 +374,8 @@ module Google
         end
       end
 
+      # This function should be called before the main thread exits in order to
+      # ensure that all api calls are made.
       def close
         @threads.each do |bundle_id, _|
           @tasks_lock.synchronize do
