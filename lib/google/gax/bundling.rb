@@ -29,34 +29,69 @@
 
 module Google
   module Gax
-    MILLIS_PER_SECOND = 1000.0
+    # Helper function for #compute_bundle_id.
+    # Used to retrieve a nested field signified by name where dots in name
+    # indicate nested objects.
+    #
+    # @param obj [Object] an object.
+    # @param name [String] a name for a field in the object.
+    # @raise [NoMethodError] if the object does not contain the named attribute.
+    # @return [Object] value of named attribute. Can be nil.
+    def str_dotted_access(obj, name)
+      name.split('.').each do |part|
+        obj = obj.send(part)
+      end
+      obj.nil? ? nil : obj.to_s
+    end
 
-    # TODO: Add function to compute bundle id.
+    # Computes a bundle id from the discriminator fields of `obj`.
+    #
+    # +discriminator_fields+ may include '.' as a separator, which is used to
+    # indicate object traversal.  This is meant to allow fields in the
+    # computed bundle_id.
+    # the return is an array computed by going through the discriminator fields
+    # in order and obtaining the str(value) object field (or nested object
+    # field) if any discriminator field cannot be found, ValueError is raised.
+    #
+    # @param obj [Object] an object.
+    # @param discriminator_fields [Array<String>] a list of discriminator
+    #     fields in the order to be to be used in the id.
+    # @raise [NoMethodError] if the object does not contain the named attribute.
+    # @return [Array<Object>] array of objects computed as described above.
+    def compute_bundle_id(obj, discriminator_fields)
+      result = []
+      discriminator_fields.each do |field|
+        result.push(str_dotted_send(obj, field))
+      end
+      result
+    end
+
+    MILLIS_PER_SECOND = 1000.0
 
     # rubocop:disable Metrics/ClassLength
 
     # Coordinates the execution of a single bundle.
     #
     # @attribute [r] bundle_id
-    #   @return [String] The id of this bundle.
+    #   @return [String] the id of this bundle.
     # @attribute [r] bundled_field
-    #   @return [String] The field used to create the bundled request.
+    #   @return [String] the field used to create the bundled request.
     # @attribute [r] subresponse_field
-    #   @return [String] Optional field used to demultiplex responses.
+    #   @return [String] tptional field used to demultiplex responses.
     class Task
       attr_reader :bundle_id, :bundled_field,
                   :subresponse_field
 
       # rubocop:disable Metrics/ParameterLists
 
-      # @param api_call [Proc] Used to make an api call when the task is run.
-      # @param bundle_id [String] The id of this bundle.
-      # @param bundled_field [String] The field used to create the
+      # @param api_call [Proc] used to make an api call when the task is run.
+      # @param bundle_id [String] the id of this bundle.
+      # @param bundled_field [String] the field used to create the
       #     bundled request.
-      # @param bundling_request [Object] The request to pass as the arg to
+      # @param bundling_request [Object] the request to pass as the arg to
       #     the api_call.
-      # @param kwargs [Hash] The keyword arguments passed to the api_call.
-      # @param subresponse_field [String] Optional field used to demultiplex
+      # @param kwargs [Hash] the keyword arguments passed to the api_call.
+      # @param subresponse_field [String] optional field used to demultiplex
       #     responses.
       def initialize(api_call,
                      bundle_id,
@@ -112,6 +147,11 @@ module Google
       # Disable this since the api_call may raise any type of exception.
       # rubocop:disable Lint/RescueException
 
+      # Helper for #run to run the api call with no subresponses.
+      #
+      # @param request [Object] the request to pass as the arg to
+      #     the api_call.
+      # @param kwargs [Hash] the keyword arguments passed to the api_call.
       def run_with_no_subresponse(request, kwargs)
         response = @api_call.call(request, **kwargs)
         @event_deque.each do |event|
@@ -128,6 +168,12 @@ module Google
         @event_deque.clear
       end
 
+      # Helper for #run to run the api call with subresponses.
+      #
+      # @param request [Object] the request to pass as the arg to
+      #     the api_call.
+      # @param subresponse_field subresponse_field.
+      # @param kwargs [Hash] the keyword arguments passed to the api_call.
       def run_with_subresponses(request, subresponse_field, kwargs)
         response = @api_call.call(request, **kwargs)
         in_sizes_sum = 0
@@ -137,8 +183,17 @@ module Google
           "cannot demultiplex the bundled response, got
             #{all_subresonses.count} subresponses; want #{in_sizes_sum},
             each bundled request will receive all responses"
+        else
+          start = 0
+          in_deque.zip(event_deque).each do |i, event|
+            response_copy = response.dup
+            subresponses = all_subresponses[start, start + i]
+            response_copy.send("#{subresponse_field}=", subresponses)
+            start += i
+            event.result = response_copy
+            event.set
+          end
         end
-        # TODO: handle each subresponse
         @event_deque.each do |event|
           event.result = response
           event.set
@@ -155,9 +210,9 @@ module Google
 
       # This adds elements to the tasks.
       #
-      # @param elts [Array<Object>] An array of elements that can be appended
+      # @param elts [Array<Object>] an array of elements that can be appended
       #     to the tasks bundle_field.
-      # @return [Event] An Event that can be used to wait on the response.
+      # @return [Event] an Event that can be used to wait on the response.
       def extend(elts)
         elts = [*elts]
         in_deque.push(elts)
@@ -168,9 +223,9 @@ module Google
 
       # Creates an Event that is set when the bundle with elts is sent.
       #
-      # @param elts [Array<Object>] An array of elements that can be appended
+      # @param elts [Array<Object>] an array of elements that can be appended
       #     to the tasks bundle_field.
-      # @return [Event] An Event that can be used to wait on the response.
+      # @return [Event] an Event that can be used to wait on the response.
       def event_for(elts)
         event = new Event
         event.canceller = canceller_for(elts, event)
@@ -179,13 +234,13 @@ module Google
 
       # Creates a cancellation proc that removes elts.
       #
-      # The proc returns true if all elements were successfully removed from
-      # in_deque and event_deque.
+      # The returned proc returns true if all elements were successfully removed
+      # from in_deque and event_deque.
       #
-      # @param elts [Array<Object>] An array of elements that can be appended
+      # @param elts [Array<Object>] an array of elements that can be appended
       #     to the tasks bundle_field.
-      # @param [Event] An Event that can be used to wait on the response.
-      # @return [Proc] The canceller that when called removes the elts
+      # @param [Event] an Event that can be used to wait on the response.
+      # @return [Proc] the canceller that when called removes the elts
       #     and events.
       def canceller_for(elts, event)
         proc do
@@ -238,14 +293,14 @@ module Google
       # Schedules bundle_desc of bundling_request as part of
       # bundle id.
       #
-      # @param api_call [Proc] Used to make an api call when the task is run.
-      # @param bundle_id [String] The id of this bundle.
-      # @param bundle_desc [BundleDescriptor]  describes the structure of the
+      # @param api_call [Proc] used to make an api call when the task is run.
+      # @param bundle_id [String] the id of this bundle.
+      # @param bundle_desc [BundleDescriptor] describes the structure of the
       #     bundled call.
-      # @param bundling_request [Object] The request to pass as the arg to
+      # @param bundling_request [Object] the request to pass as the arg to
       #     the api_call.
-      # @param kwargs [Hash] The keyword arguments passed to the api_call.
-      # @return [Event] An Event that can be used to wait on the response.
+      # @param kwargs [Hash] the keyword arguments passed to the api_call.
+      # @return [Event] an Event that can be used to wait on the response.
       def schedule(api_call, bundle_id, bundle_desc,
                    bundling_request, kwargs: {})
         bundle = bundle_for(api_call, bundle_id, bundle_desc,
