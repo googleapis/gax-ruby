@@ -211,11 +211,17 @@ describe Google::Gax do
       call_count = 0
 
       time_now = Time.now
-      allow(Time).to receive(:now).exactly(7).times.and_return(
+      # Time.now will be called twice for each API call (one in set_timeout_arg
+      # and the other in retryable). It returns time_now for to_attempt * 2
+      # times (which allows retrying), and then finally returns time_now + 2
+      # to exceed the deadline.
+      allow(Time).to receive(:now).exactly(to_attempt * 2 + 1).times.and_return(
         *([time_now] * to_attempt * 2 + [time_now + 2])
       )
 
-      func = proc do
+      deadline_arg = nil
+      func = proc do |deadline: nil|
+        deadline_arg = deadline
         call_count += 1
         raise CustomException.new('', FAKE_STATUS_CODE_1)
       end
@@ -227,6 +233,7 @@ describe Google::Gax do
       rescue Google::Gax::RetryError => exc
         expect(exc.cause).to be_a(CustomException)
       end
+      expect(deadline_arg).to eq(time_now)
       expect(call_count).to eq(to_attempt)
     end
 
