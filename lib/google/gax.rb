@@ -265,7 +265,7 @@ module Google
                                      :element_count_limit,
                                      :request_byte_threshold,
                                      :request_byte_limit,
-                                     :delay_threshold)
+                                     :delay_threshold_millis)
       # @!attribute element_count_threshold
       #   @return [Numeric] the bundled request will be sent once the
       #     count of outstanding elements in the repeated field
@@ -291,7 +291,7 @@ module Google
       #     pessimistically approximated by summing the bytesizes of
       #     the elements in the repeated field, with a buffer applied
       #     to correspond to the resulting under-approximation.
-      # @!attribute delay_threshold
+      # @!attribute delay_threshold_millis
       #   @return [Numeric] the bundled request will be sent this
       #     amount of time after the first element in the bundle was
       #     added to it.
@@ -299,13 +299,13 @@ module Google
                      element_count_limit: 0,
                      request_byte_threshold: 0,
                      request_byte_limit: 0,
-                     delay_threshold: 0)
+                     delay_threshold_millis: 0)
         super(
           element_count_threshold,
           element_count_limit,
           request_byte_threshold,
           request_byte_limit,
-          delay_threshold)
+          delay_threshold_millis)
       end
     end
   end
