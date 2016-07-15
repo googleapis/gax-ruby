@@ -28,6 +28,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Google
+  # Gax defines Google API extensions
   module Gax
     DEMUX_WARNING = [
       'Warning: cannot demultiplex the bundled response, got ',
@@ -267,8 +268,6 @@ module Google
 
     # Organizes bundling for an api service that requires it.
     class Executor
-      UPDATE_THREADS_RATE = 60
-
       # @param [BundleOptions]configures strategy this instance
       #     uses when executing bundled functions.
       def initialize(options)
