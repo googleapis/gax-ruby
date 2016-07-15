@@ -96,8 +96,7 @@ describe Google::Gax do
     )
     settings = defaults['bundling_method']
     expect(settings.timeout).to be(30)
-    # TODO: uncomment this when bundling is added.
-    # expect(settings.bundler).to be_a(Google::Gax::Executor)
+    expect(settings.bundler).to be_a(Google::Gax::Executor)
     expect(settings.bundle_descriptor).to be_a(Google::Gax::BundleDescriptor)
     expect(settings.page_descriptor).to be_nil
     expect(settings.retry_options).to be_a(Google::Gax::RetryOptions)
