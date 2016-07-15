@@ -511,30 +511,48 @@ describe Google::Gax do
         end
       end
 
+      class MockTimer
+        attr_accessor :asleep
+
+        def initialize
+          @asleep = true
+        end
+
+        def run_after(_)
+          loop do
+            break unless @asleep
+            sleep(1 / Google::Gax::MILLIS_PER_SECOND)
+          end
+          yield
+        end
+      end
+
       it 'api call not invoked until time threshold' do
+        test_timer = MockTimer.new
         an_elt = 'dummy_msg'
         an_id = 'bundle_id'
         api_call = return_request
-        test_thresholds = [3, 10, 30]
-        test_thresholds.each do |delay|
-          options =
-            Google::Gax::BundleOptions.new(delay_threshold_millis: delay)
-          bundler = Google::Gax::Executor.new(options)
-          event = bundler.schedule(
-            api_call,
-            an_id,
-            SIMPLE_DESCRIPTOR,
-            bundled_builder([an_elt])
-          )
-          deadline = Time.now + delay / Google::Gax::MILLIS_PER_SECOND
-          expect(event.canceller).to_not be_nil
-          expect(event.set?).to eq(false)
-          event.wait
-          expect(Time.now >= deadline).to eq(true)
-          expect(event.result).to eq(bundled_builder([an_elt]))
-        end
+        delay = 10
+        options =
+          Google::Gax::BundleOptions.new(delay_threshold_millis: delay)
+        bundler = Google::Gax::Executor.new(options, timer: test_timer)
+        event = bundler.schedule(
+          api_call,
+          an_id,
+          SIMPLE_DESCRIPTOR,
+          bundled_builder([an_elt])
+        )
+        expect(event.canceller).to_not be_nil
+        expect(event.set?).to eq(false)
+
+        test_timer.asleep = false
+
+        expect(event.wait(timeout_millis: 15)).to eq(true)
+        expect(event.set?).to eq(true)
+        expect(event.result).to eq(bundled_builder([an_elt]))
       end
     end
+
     context 'method `close` works' do
       it 'non timed bundles are sent when the executor is closed' do
         an_elt = 'dummy_message'

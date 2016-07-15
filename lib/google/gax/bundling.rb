@@ -270,9 +270,10 @@ module Google
     class Executor
       # @param [BundleOptions]configures strategy this instance
       #     uses when executing bundled functions.
-      def initialize(options)
+      def initialize(options, timer: Timer.new)
         @options = options
         @tasks = {}
+        @timer = timer
 
         # Use a Monitor in order to have the mutex behave like a reentrant lock.
         @tasks_lock = Monitor.new
@@ -350,8 +351,9 @@ module Google
       #     wait before running the bundle.
       def run_later(bundle_id, delay_threshold_millis)
         Thread.new do
-          sleep(delay_threshold_millis / MILLIS_PER_SECOND)
-          run_now(bundle_id)
+          @timer.run_after(delay_threshold_millis / MILLIS_PER_SECOND) do
+            run_now(bundle_id)
+          end
         end
       end
 
@@ -438,6 +440,14 @@ module Google
         else
           loop { return @is_set if @is_set }
         end
+      end
+    end
+
+    # This class will be used to run the run later tasks for the bundle.
+    class Timer
+      def run_after(delay_threshold)
+        sleep delay_threshold
+        yield
       end
     end
 
