@@ -29,6 +29,12 @@
 
 module Google
   module Gax
+    DEMUX_WARNING = [
+      'Warning: cannot demultiplex the bundled response, got ',
+      '%d subresponses; want %d, each bundled request will ',
+      'receive all responses'
+    ].join
+
     # Helper function for #compute_bundle_id.
     # Used to retrieve a nested field signified by name where dots in name
     # indicate nested objects.
@@ -61,12 +67,10 @@ module Google
     def compute_bundle_id(obj, discriminator_fields)
       result = []
       discriminator_fields.each do |field|
-        result.push(str_dotted_send(obj, field))
+        result.push(str_dotted_access(obj, field))
       end
       result
     end
-
-    MILLIS_PER_SECOND = 1000.0
 
     # rubocop:disable Metrics/ClassLength
 
@@ -133,12 +137,12 @@ module Google
       #
       # The task's func will be called with the bundling requests function.
       def run
-        return if in_deque.count == 0
+        return if @in_deque.count == 0
         request = @bundling_request
-        request.send("#{@bundling_field}=", @in_deque.flatten)
-
-        if @subresponse_field
-          run_with_subresponses(request, @subreponse_field, @kwargs)
+        request.send(@bundled_field).clear
+        request.send(@bundled_field).concat(@in_deque.flatten)
+        if !@subresponse_field.nil?
+          run_with_subresponses(request, @kwargs)
         else
           run_with_no_subresponse(request, @kwargs)
         end
@@ -174,29 +178,29 @@ module Google
       #     the api_call.
       # @param subresponse_field subresponse_field.
       # @param kwargs [Hash] the keyword arguments passed to the api_call.
-      def run_with_subresponses(request, subresponse_field, kwargs)
+      def run_with_subresponses(request, kwargs)
         response = @api_call.call(request, **kwargs)
         in_sizes_sum = 0
-        in_deque.each { |elts| in_sizes_sum += elts.count }
-        all_subresponses = response.send(subresponse_field.to_s)
+        @in_deque.each { |elts| in_sizes_sum += elts.count }
+        all_subresponses = response.send(@subresponse_field.to_s)
         if all_subresponses.count != in_sizes_sum
-          "cannot demultiplex the bundled response, got
-            #{all_subresonses.count} subresponses; want #{in_sizes_sum},
-            each bundled request will receive all responses"
+          # TODO: Implement a logging class to handle this.
+          # warn DEMUX_WARNING
+          @event_deque.each do |event|
+            event.result = response
+            event.set
+          end
         else
           start = 0
-          in_deque.zip(event_deque).each do |i, event|
+          @in_deque.zip(@event_deque).each do |i, event|
             response_copy = response.dup
-            subresponses = all_subresponses[start, start + i]
-            response_copy.send("#{subresponse_field}=", subresponses)
-            start += i
+            subresponses = all_subresponses[start, i.count]
+            response_copy.send(@subresponse_field).clear
+            response_copy.send(@subresponse_field).concat(subresponses)
+            start += i.count
             event.result = response_copy
             event.set
           end
-        end
-        @event_deque.each do |event|
-          event.result = response
-          event.set
         end
       rescue Exception => err
         @event_deque.each do |event|
@@ -215,9 +219,9 @@ module Google
       # @return [Event] an Event that can be used to wait on the response.
       def extend(elts)
         elts = [*elts]
-        in_deque.push(elts)
+        @in_deque.push(elts)
         event = event_for(elts)
-        event_deque.append(event)
+        @event_deque.push(event)
         event
       end
 
@@ -227,7 +231,7 @@ module Google
       #     to the tasks bundle_field.
       # @return [Event] an Event that can be used to wait on the response.
       def event_for(elts)
-        event = new Event
+        event = Event.new
         event.canceller = canceller_for(elts, event)
         event
       end
@@ -235,7 +239,7 @@ module Google
       # Creates a cancellation proc that removes elts.
       #
       # The returned proc returns true if all elements were successfully removed
-      # from in_deque and event_deque.
+      # from @in_deque and  @event_deque.
       #
       # @param elts [Array<Object>] an array of elements that can be appended
       #     to the tasks bundle_field.
@@ -244,19 +248,21 @@ module Google
       #     and events.
       def canceller_for(elts, event)
         proc do
-          event_index = event_deque.find_index(event)
-          in_index = in_deque.find_inbdex(elts)
-          if event_deque.delete_at(event_index).nil? ||
-             in_deque.delete_at(in_index).nil?
-            return false
+          event_index = @event_deque.find_index(event) || -1
+          in_index = @in_deque.find_index(elts) || -1
+          @event_deque.delete_at(event_index) unless event_index == -1
+          @in_deque.delete_at(in_index) unless in_index == -1
+          if event_index == -1 || in_index == -1
+            false
+          else
+            true
           end
-          return true
         end
       end
 
-      private_class_method :run_with_no_subresponse,
-                           :run_with_subresponses,
-                           :event_for, :cancellor_for
+      # private_class_method :run_with_no_subresponse,
+      #                      :run_with_subresponses,
+      #                      :event_for, :cancellor_for
     end
 
     # Organizes bundling for an api service that requires it.
@@ -271,10 +277,6 @@ module Google
 
         # Use a Monitor in order to have the mutex behave like a reentrant lock.
         @tasks_lock = Monitor.new
-
-        # Keep track of the threads that are spawned in order to ensure the
-        # api call is made before the main thread dies.
-        @threads = {}
       end
 
       # Schedules bundle_desc of bundling_request as part of
@@ -301,7 +303,7 @@ module Google
         end
 
         size_threshold = @options.request_byte_threshold
-        if size_threshold > 0 && bundle.request_bytesize >= size.threshold
+        if size_threshold > 0 && bundle.request_bytesize >= size_threshold
           run_now(bundle.bundle_id)
         end
 
@@ -326,7 +328,7 @@ module Google
           return @tasks[bundle_id] if @tasks.key?(bundle_id)
           bundle = Task.new(api_call, bundle_id, bundle_desc.bundled_field,
                             bundling_request, kwargs,
-                            bundle_desc.subresponse_field)
+                            subresponse_field: bundle_desc.subresponse_field)
           delay_threshold = @options.delay_threshold
           run_later(bundle.bundle_id, delay_threshold) if delay_threshold > 0
           @tasks[bundle_id] = bundle
@@ -346,17 +348,9 @@ module Google
       # @param delay_threshold [Numeric] the number of micro-seconds to wait
       #     before running the bundle.
       def run_later(bundle_id, delay_threshold)
-        @tasks_lock.synchronize do
-          thread = Thread.new do
-            sleep(delay_threshold / MILLIS_PER_SECOND)
-            run_now(bundle_id)
-            @tasks_lock.synchronize do
-              @threads.delete(bundle_id)
-            end
-          end
-          @tasks_lock.synchronize do
-            @threads[bundle_id] = thread
-          end
+        Thread.new do
+          sleep(delay_threshold / MILLIS_PER_SECOND)
+          run_now(bundle_id)
         end
       end
 
@@ -377,58 +371,75 @@ module Google
       # This function should be called before the main thread exits in order to
       # ensure that all api calls are made.
       def close
-        @threads.each do |bundle_id, _|
-          @tasks_lock.synchronize do
+        @tasks_lock.synchronize do
+          @tasks.each do |bundle_id, _|
             run_now(bundle_id)
           end
         end
       end
 
-      private_class_method :bundle_for, :run_later, :run_now
-    end
-  end
-
-  # Container for a thread adding the ability to cancel, check if set, and
-  # get the result of the thread.
-  class Event
-    attr_accessor :canceller, :result
-
-    def initialize
-      @canceller = nil
-      @result = nil
-      @set = False
-      @mutex = Mutex.new
+      # private_class_method :bundle_for, :run_later, :run_now
     end
 
-    # Checks to see if the event has been set. A set Event signals that there is
-    # data in @result.
-    # @return [Boolean] Whether the event has been set.
-    def set?
-      @set
-    end
+    # Container for a thread adding the ability to cancel, check if set, and
+    # get the result of the thread.
+    class Event
+      attr_accessor :canceller
+      attr_reader :result
 
-    # Signifies that the event has been set and that there is data in @result.
-    def set
-      @mutex.synchronize do
-        @set = True
-      end
-    end
-
-    # Resets the Event to not being set and clears the @result.
-    def clear
-      @mutex.synchronize do
+      def initialize
+        @canceller = nil
         @result = nil
-        @set = False
+        @is_set = false
+        @mutex = Mutex.new
+      end
+
+      def result=(obj)
+        @mutex.synchronize do
+          @result = obj
+        end
+      end
+
+      # Checks to see if the event has been set. A set Event signals that
+      # there is data in @result.
+      # @return [Boolean] Whether the event has been set.
+      def set?
+        @is_set
+      end
+
+      # Signifies that the event has been set and that there is data in @result.
+      def set
+        @mutex.synchronize do
+          @is_set = true
+        end
+      end
+
+      # Resets the Event to not being set and clears the @result.
+      def clear
+        @mutex.synchronize do
+          @result = nil
+          @is_set = false
+        end
+      end
+
+      # Invokes the cancellation function provided.
+      def cancel
+        @mutex.synchronize do
+          canceller.nil? ? false : canceller.call
+        end
+      end
+
+      def wait(timeout_millis: nil)
+        return @is_set if @is_set
+        if !timeout_millis.nil?
+          deadline = Time.now + (timeout_millis / MILLIS_PER_SECOND)
+          loop { return @is_set if @is_set || (Time.now > deadline) }
+        else
+          loop { return @is_set if @is_set }
+        end
       end
     end
 
-    # Invokes the cancellation function provided.
-    def cancel
-      @mutex.synchronize do
-        cancelled = canceller.call unless canceller.nil?
-        @thread.kill if cancelled
-        cancelled
-      end
-    end
+    module_function :compute_bundle_id, :str_dotted_access
   end
 end
