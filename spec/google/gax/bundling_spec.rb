@@ -532,7 +532,7 @@ describe Google::Gax do
         an_elt = 'dummy_msg'
         an_id = 'bundle_id'
         api_call = return_request
-        delay = 10
+        delay = 10_000
         options =
           Google::Gax::BundleOptions.new(delay_threshold_millis: delay)
         bundler = Google::Gax::Executor.new(options, timer: test_timer)
@@ -547,8 +547,9 @@ describe Google::Gax do
 
         test_timer.asleep = false
 
-        expect(event.wait(timeout_millis: 15)).to eq(true)
-        expect(event.set?).to eq(true)
+        # Wait until the event is set because the timer flag will need time
+        # to propogate through to the thread.
+        expect(event.wait(timeout_millis: 100)).to eq(true)
         expect(event.result).to eq(bundled_builder([an_elt]))
       end
     end
