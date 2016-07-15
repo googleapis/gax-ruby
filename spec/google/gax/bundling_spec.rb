@@ -512,41 +512,27 @@ describe Google::Gax do
       end
 
       it 'api call not invoked until time threshold' do
-        asleep = true
-
-        # This needs to be any instance because the instance of Kernal inside
-        # the thread will not be the main thread's instance of kernal
-        allow_any_instance_of(Kernel).to receive(:sleep) do |_|
-          loop do
-            break unless asleep
-          end
-        end
         an_elt = 'dummy_msg'
         an_id = 'bundle_id'
         api_call = return_request
-        delay_threshold_millis = 3000
-        options =
-          Google::Gax::BundleOptions.new(
-            delay_threshold_millis: delay_threshold_millis
+        test_thresholds = [3, 10, 30]
+        test_thresholds.each do |delay|
+          options =
+            Google::Gax::BundleOptions.new(delay_threshold_millis: delay)
+          bundler = Google::Gax::Executor.new(options)
+          event = bundler.schedule(
+            api_call,
+            an_id,
+            SIMPLE_DESCRIPTOR,
+            bundled_builder([an_elt])
           )
-        bundler = Google::Gax::Executor.new(options)
-        event = bundler.schedule(
-          api_call,
-          an_id,
-          SIMPLE_DESCRIPTOR,
-          bundled_builder([an_elt])
-        )
-        expect(event.canceller).to_not be_nil
-        expect(event.set?).to eq(false)
-        asleep = false
-        # Since it is running asynchronously, we shall wait for event to be set.
-        # TODO: Find a way to not rely on event.wait
-        event.wait
-        expect(event.canceller).to_not be_nil
-        expect(event.set?).to eq(true)
-        expect(event.result).to eq(bundled_builder([an_elt]))
-
-        allow_any_instance_of(Kernel).to receive(:sleep).and_call_original
+          deadline = Time.now + delay / Google::Gax::MILLIS_PER_SECOND
+          expect(event.canceller).to_not be_nil
+          expect(event.set?).to eq(false)
+          event.wait
+          expect(Time.now >= deadline).to eq(true)
+          expect(event.result).to eq(bundled_builder([an_elt]))
+        end
       end
     end
     context 'method `close` works' do
