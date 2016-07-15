@@ -177,23 +177,6 @@ describe Google::Gax do
     end
   end
 
-  class MockSleep
-    def initialize
-      @asleep = false
-    end
-
-    def sleep
-      @asleep = true
-      loop do
-        return unless @asleep
-      end
-    end
-
-    def wake
-      @asleep = false
-    end
-  end
-
   describe Google::Gax::Task do
     test_message = 'a simple msg'.freeze
     context 'increase in element count' do
@@ -530,7 +513,7 @@ describe Google::Gax do
 
       it 'api call not invoked until time threshold' do
         asleep = true
-        allow_any_instance_of(Object).to receive(:sleep) do |_|
+        allow_any_instance_of(Kernel).to receive(:sleep) do |_|
           loop do
             break unless asleep
           end
@@ -538,9 +521,11 @@ describe Google::Gax do
         an_elt = 'dummy_msg'
         an_id = 'bundle_id'
         api_call = return_request
-        delay_threshold = 3000
+        delay_threshold_millis = 3000
         options =
-          Google::Gax::BundleOptions.new(delay_threshold: delay_threshold)
+          Google::Gax::BundleOptions.new(
+            delay_threshold_millis: delay_threshold_millis
+          )
         bundler = Google::Gax::Executor.new(options)
         event = bundler.schedule(
           api_call,
@@ -551,8 +536,7 @@ describe Google::Gax do
         expect(event.canceller).to_not be_nil
         expect(event.set?).to eq(false)
         asleep = false
-        # Since it is running asynchronously, event needs to wait for the event
-        # to be set.
+        # Since it is running asynchronously, we shall wait for event to be set.
         # TODO: Find a way to not rely on event.wait
         event.wait
         expect(event.canceller).to_not be_nil
@@ -601,9 +585,11 @@ describe Google::Gax do
         an_elt = 'dummy_msg'
         an_id = 'bundle_id'
         api_call = return_request
-        delay_threshold = 100_000 # arbitrary, very high.
+        delay_threshold_millis = 100_000 # arbitrary, very high.
         options =
-          Google::Gax::BundleOptions.new(delay_threshold: delay_threshold)
+          Google::Gax::BundleOptions.new(
+            delay_threshold_millis: delay_threshold_millis
+          )
         bundler = Google::Gax::Executor.new(options)
         event = bundler.schedule(
           api_call,

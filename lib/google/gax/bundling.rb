@@ -329,8 +329,10 @@ module Google
           bundle = Task.new(api_call, bundle_id, bundle_desc.bundled_field,
                             bundling_request, kwargs,
                             subresponse_field: bundle_desc.subresponse_field)
-          delay_threshold = @options.delay_threshold
-          run_later(bundle.bundle_id, delay_threshold) if delay_threshold > 0
+          delay_threshold_millis = @options.delay_threshold_millis
+          if delay_threshold_millis > 0
+            run_later(bundle.bundle_id, delay_threshold_millis)
+          end
           @tasks[bundle_id] = bundle
           return bundle
         end
@@ -339,17 +341,17 @@ module Google
       # Helper function for #schedule.
       #
       # Creates a new thread that will execute the encapsulated api calls after
-      # the +delay_threshold+ has elapsed. The thread that is
+      # the +delay_threshold_millis+ has elapsed. The thread that is
       # spawned is added to the @threads hash to ensure that the thread will
       # api call is made before the main thread exits.
       #
       # @param bundle_id [String] the id corresponding to the bundle that
       #     is run.
-      # @param delay_threshold [Numeric] the number of micro-seconds to wait
-      #     before running the bundle.
-      def run_later(bundle_id, delay_threshold)
+      # @param delay_threshold_millis [Numeric] the number of micro-seconds to
+      #     wait before running the bundle.
+      def run_later(bundle_id, delay_threshold_millis)
         Thread.new do
-          sleep(delay_threshold / MILLIS_PER_SECOND)
+          sleep(delay_threshold_millis / MILLIS_PER_SECOND)
           run_now(bundle_id)
         end
       end
