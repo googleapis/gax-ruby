@@ -513,6 +513,9 @@ describe Google::Gax do
 
       it 'api call not invoked until time threshold' do
         asleep = true
+
+        # This needs to be any instance because the instance of Kernal inside
+        # the thread will not be the main thread's instance of kernal
         allow_any_instance_of(Kernel).to receive(:sleep) do |_|
           loop do
             break unless asleep
@@ -542,6 +545,8 @@ describe Google::Gax do
         expect(event.canceller).to_not be_nil
         expect(event.set?).to eq(true)
         expect(event.result).to eq(bundled_builder([an_elt]))
+
+        allow_any_instance_of(Kernel).to receive(:sleep).and_call_original
       end
     end
     context 'method `close` works' do
