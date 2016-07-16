@@ -30,6 +30,7 @@
 require 'time'
 
 require 'google/gax/errors'
+require 'google/gax/bundling'
 
 # rubocop:disable Metrics/ModuleLength
 
@@ -285,9 +286,11 @@ module Google
     def bundleable(desc)
       proc do |api_call, request, settings|
         return api_call(request) unless settings.bundler
-        the_id = bundling.compute_bundle_id(request,
-                                            desc.request_discriminator_fields)
-        return bundler.schedule(api_call, the_id, desc, request)
+        the_id = Google::Gax.compute_bundle_id(
+          request,
+          desc.request_discriminator_fields
+        )
+        settings.bundler.schedule(api_call, the_id, desc, request)
       end
     end
 
