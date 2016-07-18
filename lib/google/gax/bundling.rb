@@ -280,7 +280,7 @@ module Google
       #     the api_call.
       # @return [Event] an Event that can be used to wait on the response.
       #
-      # TODO: Implement byte and element count limits
+      # TODO: Implement byte and element count limits.
       def schedule(api_call, bundle_id, bundle_desc,
                    bundling_request)
         bundle = bundle_for(api_call, bundle_id, bundle_desc,
