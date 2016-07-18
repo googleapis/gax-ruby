@@ -43,10 +43,11 @@ module Google
     # @param obj [Object] an object.
     # @param name [String] a name for a field in the object.
     # @raise [NoMethodError] if the object does not contain the named attribute.
-    # @return [Object] value of named attribute. Can be nil.
+    # @return [String, nil] value of named attribute. Can be nil.
     def str_dotted_access(obj, name)
       name.split('.').each do |part|
-        obj = obj.send(part)
+        obj = obj[part]
+        break if obj.nil?
       end
       obj.nil? ? nil : obj.to_s
     end
@@ -77,17 +78,15 @@ module Google
 
     # Coordinates the execution of a single bundle.
     #
-    # @attribute [r] bundle_id
+    # @!attribute [r] bundle_id
     #   @return [String] the id of this bundle.
-    # @attribute [r] bundled_field
+    # @!attribute [r] bundled_field
     #   @return [String] the field used to create the bundled request.
-    # @attribute [r] subresponse_field
+    # @!attribute [r] subresponse_field
     #   @return [String] tptional field used to demultiplex responses.
     class Task
       attr_reader :bundle_id, :bundled_field,
                   :subresponse_field
-
-      # rubocop:disable Metrics/ParameterLists
 
       # @param api_call [Proc] used to make an api call when the task is run.
       # @param bundle_id [String] the id of this bundle.
@@ -95,20 +94,17 @@ module Google
       #     bundled request.
       # @param bundling_request [Object] the request to pass as the arg to
       #     the api_call.
-      # @param kwargs [Hash] the keyword arguments passed to the api_call.
       # @param subresponse_field [String] optional field used to demultiplex
       #     responses.
       def initialize(api_call,
                      bundle_id,
                      bundled_field,
                      bundling_request,
-                     kwargs,
                      subresponse_field: nil)
         @api_call = api_call
         @bundle_id = bundle_id
         @bundled_field = bundled_field
         @bundling_request = bundling_request
-        @kwargs = kwargs
         @subresponse_field = subresponse_field
         @in_deque = []
         @event_deque = []
@@ -117,21 +113,17 @@ module Google
       # The number of bundled elements in the repeated field.
       # @return [Numeric]
       def element_count
-        sum = 0
-        @in_deque.each { |elts| sum += elts.count }
-        sum
+        @in_deque.reduce(0) { |a, e| a + e.count }
       end
 
       # The size of the request in bytes of the bundled field elements.
       # @return [Numeric]
       def request_bytesize
-        sum = 0
-        @in_deque.each do |elts|
-          elts.each do |e|
-            sum += e.to_s.bytesize
+        @in_deque.reduce(0) do |sum, elts|
+          sum + elts.reduce(0) do |inner_sum, elt|
+            inner_sum + elt.to_s.bytesize
           end
         end
-        sum
       end
 
       # Call the task's api_call.
@@ -140,30 +132,26 @@ module Google
       def run
         return if @in_deque.count == 0
         request = @bundling_request
-        request.send(@bundled_field).clear
-        request.send(@bundled_field).concat(@in_deque.flatten)
+        request[@bundled_field].clear
+        request[@bundled_field].concat(@in_deque.flatten)
         if !@subresponse_field.nil?
-          run_with_subresponses(request, @kwargs)
+          run_with_subresponses(request)
         else
-          run_with_no_subresponse(request, @kwargs)
+          run_with_no_subresponse(request)
         end
       end
-
-      # Disable this since the api_call may raise any type of exception.
-      # rubocop:disable Lint/RescueException
 
       # Helper for #run to run the api call with no subresponses.
       #
       # @param request [Object] the request to pass as the arg to
       #     the api_call.
-      # @param kwargs [Hash] the keyword arguments passed to the api_call.
-      def run_with_no_subresponse(request, kwargs)
-        response = @api_call.call(request, **kwargs)
+      def run_with_no_subresponse(request)
+        response = @api_call.call(request)
         @event_deque.each do |event|
           event.result = response
           event.set
         end
-      rescue Exception => err
+      rescue GaxError => err
         @event_deque.each do |event|
           event.result = err
           event.set
@@ -178,12 +166,11 @@ module Google
       # @param request [Object] the request to pass as the arg to
       #     the api_call.
       # @param subresponse_field subresponse_field.
-      # @param kwargs [Hash] the keyword arguments passed to the api_call.
-      def run_with_subresponses(request, kwargs)
-        response = @api_call.call(request, **kwargs)
+      def run_with_subresponses(request)
+        response = @api_call.call(request)
         in_sizes_sum = 0
         @in_deque.each { |elts| in_sizes_sum += elts.count }
-        all_subresponses = response.send(@subresponse_field.to_s)
+        all_subresponses = response[@subresponse_field.to_s]
         if all_subresponses.count != in_sizes_sum
           # TODO: Implement a logging class to handle this.
           # warn DEMUX_WARNING
@@ -196,14 +183,14 @@ module Google
           @in_deque.zip(@event_deque).each do |i, event|
             response_copy = response.dup
             subresponses = all_subresponses[start, i.count]
-            response_copy.send(@subresponse_field).clear
-            response_copy.send(@subresponse_field).concat(subresponses)
+            response_copy[@subresponse_field].clear
+            response_copy[@subresponse_field].concat(subresponses)
             start += i.count
             event.result = response_copy
             event.set
           end
         end
-      rescue Exception => err
+      rescue GaxError => err
         @event_deque.each do |event|
           event.result = err
           event.set
@@ -261,15 +248,18 @@ module Google
         end
       end
 
-      # private_class_method :run_with_no_subresponse,
-      #                      :run_with_subresponses,
-      #                      :event_for, :cancellor_for
+      private :run_with_no_subresponse,
+              :run_with_subresponses,
+              :event_for,
+              :canceller_for
     end
 
     # Organizes bundling for an api service that requires it.
     class Executor
-      # @param [BundleOptions]configures strategy this instance
+      # @param options [BundleOptions]configures strategy this instance
       #     uses when executing bundled functions.
+      # @param timer [Timer] the timer is used to handle the functionality of
+      #     timing threads.
       def initialize(options, timer: Timer.new)
         @options = options
         @tasks = {}
@@ -288,13 +278,14 @@ module Google
       #     bundled call.
       # @param bundling_request [Object] the request to pass as the arg to
       #     the api_call.
-      # @param kwargs [Hash] the keyword arguments passed to the api_call.
       # @return [Event] an Event that can be used to wait on the response.
+      #
+      # TODO: Implement byte and element count limits
       def schedule(api_call, bundle_id, bundle_desc,
-                   bundling_request, kwargs: {})
+                   bundling_request)
         bundle = bundle_for(api_call, bundle_id, bundle_desc,
-                            bundling_request, kwargs)
-        elts = bundling_request.send(bundle_desc.bundled_field.to_s)
+                            bundling_request)
+        elts = bundling_request[bundle_desc.bundled_field.to_s]
         event = bundle.extend(elts)
 
         count_threshold = @options.element_count_threshold
@@ -321,13 +312,12 @@ module Google
       #     bundled call.
       # @param bundling_request [Object] the request to pass as the arg to
       #     the api_call.
-      # @param kwargs [Hash] the keyword arguments passed to the api_call.
       # @return [Task] the bundle containing the +api_call+.
-      def bundle_for(api_call, bundle_id, bundle_desc, bundling_request, kwargs)
+      def bundle_for(api_call, bundle_id, bundle_desc, bundling_request)
         @tasks_lock.synchronize do
           return @tasks[bundle_id] if @tasks.key?(bundle_id)
           bundle = Task.new(api_call, bundle_id, bundle_desc.bundled_field,
-                            bundling_request, kwargs,
+                            bundling_request,
                             subresponse_field: bundle_desc.subresponse_field)
           delay_threshold_millis = @options.delay_threshold_millis
           if delay_threshold_millis > 0
@@ -381,7 +371,7 @@ module Google
         end
       end
 
-      # private_class_method :bundle_for, :run_later, :run_now
+      private :bundle_for, :run_later, :run_now
     end
 
     # Container for a thread adding the ability to cancel, check if set, and
@@ -395,6 +385,7 @@ module Google
         @result = nil
         @is_set = false
         @mutex = Mutex.new
+        @resource = ConditionVariable.new
       end
 
       def result=(obj)
@@ -414,6 +405,7 @@ module Google
       def set
         @mutex.synchronize do
           @is_set = true
+          @resource.broadcast
         end
       end
 
@@ -433,17 +425,16 @@ module Google
       end
 
       def wait(timeout_millis: nil)
-        return @is_set if @is_set
-        if !timeout_millis.nil?
-          deadline = Time.now + (timeout_millis / MILLIS_PER_SECOND)
-          loop { return @is_set if @is_set || (Time.now > deadline) }
-        else
-          loop { return @is_set if @is_set }
+        @mutex.synchronize do
+          return @is_set if @is_set
+          t = timeout_millis.nil? ? nil : timeout_millis / MILLIS_PER_SECOND
+          @resource.wait(@mutex, t)
+          @is_set
         end
       end
     end
 
-    # This class will be used to run the run later tasks for the bundle.
+    # This class will be used to run the #run_later tasks for the bundle.
     class Timer
       def run_after(delay_threshold)
         sleep delay_threshold
@@ -452,5 +443,6 @@ module Google
     end
 
     module_function :compute_bundle_id, :str_dotted_access
+    private_constant :DEMUX_WARNING
   end
 end

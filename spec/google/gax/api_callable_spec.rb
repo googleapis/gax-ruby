@@ -179,22 +179,15 @@ describe Google::Gax do
       )
 
       func = proc do |request, _|
-        request.elements.count
+        request['elements'].count
       end
 
       callable = Google::Gax.create_api_call(func, settings)
 
-      class FakeBundlingRequest
-        attr_accessor :elements
-        def initialize(elements)
-          @elements = elements
-        end
-      end
-
-      first = callable.call(FakeBundlingRequest.new([0] * 5))
+      first = callable.call('elements' => [0] * 5)
       expect(first).to be_an_instance_of Google::Gax::Event
       expect(first.result).to be_nil
-      second = callable.call(FakeBundlingRequest.new([0] * 3))
+      second = callable.call('elements' => [0] * 3)
       expect(second.result).to be 8
     end
   end

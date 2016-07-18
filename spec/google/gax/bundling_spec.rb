@@ -108,34 +108,32 @@ describe Google::Gax do
           )
         expect(actual).to eq(%w(dummy_value dummy_value dummy_value))
       end
-    end
 
-    context 'should raise for ' do
-      it 'should raise for a single missing field value' do
-        expect do
+      it 'should return false for a single missing field value' do
+        expect(
           Google::Gax.compute_bundle_id(
             simple_builder('dummy_value'),
             ['field3']
           )
-        end.to raise_error(NoMethodError)
+        ).to eq([nil])
       end
 
-      it 'should raise for a composite value' do
-        expect do
+      it 'should return false for a composite value' do
+        expect(
           Google::Gax.compute_bundle_id(
             simple_builder('dummy_value'),
             %w(field1 field3)
           )
-        end.to raise_error(NoMethodError)
+        ).to eq(['dummy_value', nil])
       end
 
-      it 'should raise for a simple dotted value' do
-        expect do
+      it 'should return false for a simple dotted value' do
+        expect(
           Google::Gax.compute_bundle_id(
             outer_builder('dotted this'),
             ['inner.field3']
           )
-        end.to raise_error(NoMethodError)
+        ).to eq([nil])
       end
     end
   end
@@ -144,13 +142,6 @@ describe Google::Gax do
   def return_request
     proc do |req|
       req
-    end
-  end
-
-  # A dummy api call that simply returns its keyword arguments.
-  def return_kwargs
-    proc do |_, **kwargs|
-      kwargs
     end
   end
 
@@ -164,16 +155,10 @@ describe Google::Gax do
     )
   end
 
-  class TestException < StandardError
-    def initialize(msg)
-      super(msg)
-    end
-  end
-
   # A dummy api call that raises an exception
   def raise_exc
     proc do |_|
-      raise TestException, 'Raised in a test'
+      raise Google::Gax::GaxError, 'Raised in a test'
     end
   end
 
@@ -262,7 +247,7 @@ describe Google::Gax do
         test_task.run
         expect(test_task.element_count).to eq(0)
         expect(test_task.request_bytesize).to eq(0)
-        expect(event.result).to be_a(TestException)
+        expect(event.result).to be_a(Google::Gax::GaxError)
       end
     end
 
@@ -397,8 +382,8 @@ describe Google::Gax do
         previous_event = nil
         events.each do |event|
           expect(event).to_not eq(previous_event)
-          expect(event.set).to eq(true)
-          expect(event.result).to be_a(TestException)
+          expect(event.set?).to eq(true)
+          expect(event.result).to be_a(Google::Gax::GaxError)
           previous_event = event
         end
       end
@@ -431,23 +416,6 @@ describe Google::Gax do
           )
           previous_event = event
         end
-      end
-    end
-
-    context 'method `schedule`' do
-      it 'passes kwargs correctly' do
-        an_elt = 'dummy_msg'
-        options = Google::Gax::BundleOptions.new(element_count_threshold: 1)
-        bundle_id = 'an_id'
-        bundler = Google::Gax::Executor.new(options)
-        event = bundler.schedule(
-          return_kwargs,
-          bundle_id,
-          SIMPLE_DESCRIPTOR,
-          bundled_builder([an_elt]),
-          kwargs: { an_option: 'a_value' }
-        )
-        expect(event.result[:an_option]).to eq('a_value')
       end
     end
 
@@ -549,7 +517,7 @@ describe Google::Gax do
 
         # Wait until the event is set because the timer flag will need time
         # to propogate through to the thread.
-        expect(event.wait(timeout_millis: 100)).to eq(true)
+        event.wait
         expect(event.result).to eq(bundled_builder([an_elt]))
       end
     end
