@@ -373,8 +373,7 @@ module Google
     # @return [Proc] the original proc updated to the timeout arg
     def add_timeout_arg(a_func, timeout, kwargs)
       proc do |request|
-        kwargs[:timeout] = timeout
-        a_func.call(request, **kwargs)
+        a_func.call(request, deadline: Time.now + timeout, **kwargs)
       end
     end
 

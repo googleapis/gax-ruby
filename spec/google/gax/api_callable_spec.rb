@@ -48,19 +48,19 @@ describe Google::Gax do
   describe 'create_api_call' do
     it 'calls api call' do
       settings = CallSettings.new
-      timeout_arg = nil
-      func = proc do |timeout: nil|
-        timeout_arg = timeout
+      deadline_arg = nil
+      func = proc do |deadline: nil|
+        deadline_arg = deadline
         42
       end
       my_callable = Google::Gax.create_api_call(func, settings)
       expect(my_callable.call(nil)).to eq(42)
-      expect(timeout_arg).to_not be_nil
+      expect(deadline_arg).to be_a(Time)
 
-      new_timeout = timeout_arg + 20
-      options = Google::Gax::CallOptions.new(timeout: new_timeout)
+      new_deadline = Time.now + 20
+      options = Google::Gax::CallOptions.new(timeout: 20)
       expect(my_callable.call(nil, options)).to eq(42)
-      expect(timeout_arg).to eq(new_timeout)
+      expect(deadline_arg).to be_within(0.9).of(new_deadline)
     end
   end
 
@@ -71,9 +71,9 @@ describe Google::Gax do
     page_descriptor = Google::Gax::PageDescriptor.new('page_token',
                                                       'next_page_token', 'nums')
     settings = CallSettings.new(page_descriptor: page_descriptor)
-    timeout_arg = nil
-    func = proc do |request, timeout: nil|
-      timeout_arg = timeout
+    deadline_arg = nil
+    func = proc do |request, deadline: nil|
+      deadline_arg = deadline
       page_token = request['page_token']
       if page_token > 0 && page_token < page_size * pages_to_stream
         { 'nums' => (page_token...(page_token + page_size)),
@@ -90,7 +90,7 @@ describe Google::Gax do
       expect(my_callable.call('page_token' => 0).to_a).to match_array(
         (0...(page_size * pages_to_stream))
       )
-      expect(timeout_arg).to_not be_nil
+      expect(deadline_arg).to be_a(Time)
     end
 
     it 'offers interface for pages' do
@@ -118,10 +118,10 @@ describe Google::Gax do
   describe 'failures without retry' do
     it 'simply fails' do
       settings = CallSettings.new(errors: [GRPC::Cancelled])
-      timeout_arg = nil
+      deadline_arg = nil
       call_count = 0
-      func = proc do |timeout: nil|
-        timeout_arg = timeout
+      func = proc do |deadline: nil|
+        deadline_arg = deadline
         call_count += 1
         raise GRPC::Cancelled, ''
       end
@@ -132,22 +132,22 @@ describe Google::Gax do
       rescue Google::Gax::GaxError => exc
         expect(exc.cause).to be_a(GRPC::Cancelled)
       end
-      expect(timeout_arg).to_not be_nil
+      expect(deadline_arg).to be_a(Time)
       expect(call_count).to eq(1)
     end
 
     it 'does not wrap unknown errors' do
       settings = CallSettings.new
-      timeout_arg = nil
+      deadline_arg = nil
       call_count = 0
-      func = proc do |timeout: nil|
-        timeout_arg = timeout
+      func = proc do |deadline: nil|
+        deadline_arg = deadline
         call_count += 1
         raise CustomException.new('', FAKE_STATUS_CODE_1)
       end
       my_callable = Google::Gax.create_api_call(func, settings)
       expect { my_callable.call }.to raise_error(CustomException)
-      expect(timeout_arg).to_not be_nil
+      expect(deadline_arg).to be_a(Time)
       expect(call_count).to eq(1)
     end
   end
@@ -166,9 +166,9 @@ describe Google::Gax do
 
       to_attempt = 3
 
-      timeout_arg = nil
-      func = proc do |timeout: nil|
-        timeout_arg = timeout
+      deadline_arg = nil
+      func = proc do |deadline: nil|
+        deadline_arg = deadline
         to_attempt -= 1
         raise CustomException.new('', FAKE_STATUS_CODE_1) if to_attempt > 0
         1729
@@ -176,7 +176,7 @@ describe Google::Gax do
       my_callable = Google::Gax.create_api_call(func, settings)
       expect(my_callable.call).to eq(1729)
       expect(to_attempt).to eq(0)
-      expect(timeout_arg).to_not be_nil
+      expect(deadline_arg).to be_a(Time)
     end
 
     it 'doesn\'t retry if no codes' do
@@ -211,11 +211,17 @@ describe Google::Gax do
       call_count = 0
 
       time_now = Time.now
-      allow(Time).to receive(:now).exactly(4).times.and_return(
-        *([time_now] * to_attempt + [time_now + 2])
+      # Time.now will be called twice for each API call (one in set_timeout_arg
+      # and the other in retryable). It returns time_now for to_attempt * 2
+      # times (which allows retrying), and then finally returns time_now + 2
+      # to exceed the deadline.
+      allow(Time).to receive(:now).exactly(to_attempt * 2 + 1).times.and_return(
+        *([time_now] * to_attempt * 2 + [time_now + 2])
       )
 
-      func = proc do
+      deadline_arg = nil
+      func = proc do |deadline: nil|
+        deadline_arg = deadline
         call_count += 1
         raise CustomException.new('', FAKE_STATUS_CODE_1)
       end
@@ -227,6 +233,7 @@ describe Google::Gax do
       rescue Google::Gax::RetryError => exc
         expect(exc.cause).to be_a(CustomException)
       end
+      expect(deadline_arg).to eq(time_now)
       expect(call_count).to eq(to_attempt)
     end
 
@@ -252,10 +259,10 @@ describe Google::Gax do
       start_time = time_now
       incr_time = proc { |secs| time_now += secs }
       call_count = 0
-      func = proc do |_, timeout: nil|
+      func = proc do |_, deadline: nil|
         call_count += 1
-        incr_time.call(timeout)
-        raise CustomException.new(timeout.to_s, FAKE_STATUS_CODE_1)
+        incr_time.call(deadline - time_now)
+        raise CustomException.new(deadline.to_s, FAKE_STATUS_CODE_1)
       end
 
       allow(Time).to receive(:now) { time_now }
