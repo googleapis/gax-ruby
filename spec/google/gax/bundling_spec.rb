@@ -277,6 +277,12 @@ describe Google::Gax do
       Google::Gax::BundleDescriptor.new(
         'field1', [], subresponse_field: 'field1'
       )
+    bundler = nil
+
+    after(:each) do
+      bundler.close if bundler.instance_of? Google::Gax::Executor
+    end
+
     context 'grouped by bundle id' do
       it 'should group the api_calls by bundle_id' do
         an_elt = 'dummy_message'
@@ -338,8 +344,7 @@ describe Google::Gax do
           events.push(event)
         end
         previous_event = nil
-        events.each_index do |i|
-          current_event = events[i]
+        events.each_with_index do |current_event, i|
           index = i + 1
           expect(current_event).to_not eq(previous_event)
           expect(current_event.set?).to eq(true)
@@ -547,8 +552,7 @@ describe Google::Gax do
         bundler.close
 
         previous_event = nil
-        events.each_index do |i|
-          current_event = events[i]
+        events.each_with_index do |current_event, i|
           index = i + 1
           expect(current_event).to_not eq(previous_event)
           expect(current_event.set?).to eq(true)

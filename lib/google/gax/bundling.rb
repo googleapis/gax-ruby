@@ -355,8 +355,8 @@ module Google
       def run_now(bundle_id)
         @tasks_lock.synchronize do
           if @tasks.key?(bundle_id)
-            @task = @tasks.delete(bundle_id)
-            @task.run
+            task = @tasks.delete(bundle_id)
+            task.run
           end
         end
       end
