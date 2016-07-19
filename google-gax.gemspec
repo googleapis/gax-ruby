@@ -22,7 +22,7 @@ Gem::Specification.new do |s|
   s.required_ruby_version = '>= 2.0.0'
 
   s.add_dependency 'googleauth', '~> 0.5.1'
-  s.add_dependency 'grpc', '~> 0.14.1'
+  s.add_dependency 'grpc', '~> 0.15.0'
   s.add_dependency 'rly', '~> 0.2.3'
 
   s.add_development_dependency 'codecov', '~> 0.1'
