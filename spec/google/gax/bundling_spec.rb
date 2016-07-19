@@ -594,19 +594,8 @@ describe Google::Gax do
       it 'can be set' do
         event = Google::Gax::Event.new
         expect(event.set?).to eq(false)
-        event.set
-        expect(event.set?).to eq(true)
-      end
-
-      it 'can be cleared' do
-        event = Google::Gax::Event.new
-        event.set
         event.result = Object.new
         expect(event.set?).to eq(true)
-        expect(event.result).to_not be_nil
-        event.clear
-        expect(event.set?).to eq(false)
-        expect(event.result).to be_nil
       end
 
       it 'returns false when #cancel is called with no canceller' do
@@ -625,7 +614,7 @@ describe Google::Gax do
 
       it 'wait does not block if event is set' do
         event = Google::Gax::Event.new
-        event.set
+        event.result = Object.new
         expect(event.wait).to eq(true)
       end
 

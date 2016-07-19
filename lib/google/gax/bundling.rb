@@ -42,7 +42,6 @@ module Google
     #
     # @param obj [Object] an object.
     # @param name [String] a name for a field in the object.
-    # @raise [NoMethodError] if the object does not contain the named attribute.
     # @return [String, nil] value of named attribute. Can be nil.
     def str_dotted_access(obj, name)
       name.split('.').each do |part|
@@ -64,7 +63,6 @@ module Google
     # @param obj [Object] an object.
     # @param discriminator_fields [Array<String>] a list of discriminator
     #     fields in the order to be to be used in the id.
-    # @raise [NoMethodError] if the object does not contain the named attribute.
     # @return [Array<Object>] array of objects computed as described above.
     def compute_bundle_id(obj, discriminator_fields)
       result = []
@@ -106,20 +104,20 @@ module Google
         @bundled_field = bundled_field
         @bundling_request = bundling_request
         @subresponse_field = subresponse_field
-        @in_deque = []
-        @event_deque = []
+        @inputs = []
+        @events = []
       end
 
       # The number of bundled elements in the repeated field.
       # @return [Numeric]
       def element_count
-        @in_deque.reduce(0) { |a, e| a + e.count }
+        @inputs.reduce(0) { |a, e| a + e.count }
       end
 
       # The size of the request in bytes of the bundled field elements.
       # @return [Numeric]
       def request_bytesize
-        @in_deque.reduce(0) do |sum, elts|
+        @inputs.reduce(0) do |sum, elts|
           sum + elts.reduce(0) do |inner_sum, elt|
             inner_sum + elt.to_s.bytesize
           end
@@ -130,10 +128,10 @@ module Google
       #
       # The task's func will be called with the bundling requests function.
       def run
-        return if @in_deque.count == 0
+        return if @inputs.count == 0
         request = @bundling_request
         request[@bundled_field].clear
-        request[@bundled_field].concat(@in_deque.flatten)
+        request[@bundled_field].concat(@inputs.flatten)
         if !@subresponse_field.nil?
           run_with_subresponses(request)
         else
@@ -147,18 +145,16 @@ module Google
       #     the api_call.
       def run_with_no_subresponse(request)
         response = @api_call.call(request)
-        @event_deque.each do |event|
+        @events.each do |event|
           event.result = response
-          event.set
         end
       rescue GaxError => err
-        @event_deque.each do |event|
+        @events.each do |event|
           event.result = err
-          event.set
         end
       ensure
-        @in_deque.clear
-        @event_deque.clear
+        @inputs.clear
+        @events.clear
       end
 
       # Helper for #run to run the api call with subresponses.
@@ -169,35 +165,32 @@ module Google
       def run_with_subresponses(request)
         response = @api_call.call(request)
         in_sizes_sum = 0
-        @in_deque.each { |elts| in_sizes_sum += elts.count }
+        @inputs.each { |elts| in_sizes_sum += elts.count }
         all_subresponses = response[@subresponse_field.to_s]
         if all_subresponses.count != in_sizes_sum
           # TODO: Implement a logging class to handle this.
           # warn DEMUX_WARNING
-          @event_deque.each do |event|
+          @events.each do |event|
             event.result = response
-            event.set
           end
         else
           start = 0
-          @in_deque.zip(@event_deque).each do |i, event|
+          @inputs.zip(@events).each do |i, event|
             response_copy = response.dup
             subresponses = all_subresponses[start, i.count]
             response_copy[@subresponse_field].clear
             response_copy[@subresponse_field].concat(subresponses)
             start += i.count
             event.result = response_copy
-            event.set
           end
         end
       rescue GaxError => err
-        @event_deque.each do |event|
+        @events.each do |event|
           event.result = err
-          event.set
         end
       ensure
-        @in_deque.clear
-        @event_deque.clear
+        @inputs.clear
+        @events.clear
       end
 
       # This adds elements to the tasks.
@@ -207,9 +200,9 @@ module Google
       # @return [Event] an Event that can be used to wait on the response.
       def extend(elts)
         elts = [*elts]
-        @in_deque.push(elts)
+        @inputs.push(elts)
         event = event_for(elts)
-        @event_deque.push(event)
+        @events.push(event)
         event
       end
 
@@ -227,7 +220,7 @@ module Google
       # Creates a cancellation proc that removes elts.
       #
       # The returned proc returns true if all elements were successfully removed
-      # from @in_deque and  @event_deque.
+      # from @inputs and  @events.
       #
       # @param elts [Array<Object>] an array of elements that can be appended
       #     to the tasks bundle_field.
@@ -236,10 +229,10 @@ module Google
       #     and events.
       def canceller_for(elts, event)
         proc do
-          event_index = @event_deque.find_index(event) || -1
-          in_index = @in_deque.find_index(elts) || -1
-          @event_deque.delete_at(event_index) unless event_index == -1
-          @in_deque.delete_at(in_index) unless in_index == -1
+          event_index = @events.find_index(event) || -1
+          in_index = @inputs.find_index(elts) || -1
+          @events.delete_at(event_index) unless event_index == -1
+          @inputs.delete_at(in_index) unless in_index == -1
           if event_index == -1 || in_index == -1
             false
           else
@@ -388,9 +381,16 @@ module Google
         @resource = ConditionVariable.new
       end
 
+      # Setter for the result that is synchronized and broadcasts when set.
+      #
+      # @param obj [Object] an object.
+      # @return [Object] return the passed in param to maintain closure.
       def result=(obj)
         @mutex.synchronize do
           @result = obj
+          @is_set = true
+          @resource.broadcast
+          @result
         end
       end
 
@@ -401,29 +401,26 @@ module Google
         @is_set
       end
 
-      # Signifies that the event has been set and that there is data in @result.
-      def set
-        @mutex.synchronize do
-          @is_set = true
-          @resource.broadcast
-        end
-      end
-
-      # Resets the Event to not being set and clears the @result.
-      def clear
-        @mutex.synchronize do
-          @result = nil
-          @is_set = false
-        end
-      end
-
       # Invokes the cancellation function provided.
+      # The returned cancellation function returns true if all elements
+      # was removed successfully from the inputs, and false if it was not.
       def cancel
         @mutex.synchronize do
-          canceller.nil? ? false : canceller.call
+          cancelled = canceller.nil? ? false : canceller.call
+          # Broadcast if the event was successfully cancelled. If not,
+          # the result should end up getting set by the sent api request.
+          # When the result is set, the resource is going to broadcast.
+          @resource.broadcast if cancelled
+          cancelled
         end
       end
 
+      # This is used to wait for a bundle request is complete and the event
+      # result is set.
+      #
+      # @param timeout_millis [Numeric] The number of milliseconds to wait
+      #     before ceasing to wait. If nil, this function will wait
+      #     indefinitely.
       def wait(timeout_millis: nil)
         @mutex.synchronize do
           return @is_set if @is_set
