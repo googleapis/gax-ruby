@@ -289,6 +289,8 @@ module Google
           run_now(bundle.bundle_id)
         end
 
+        # TODO: Implement byte and element count limits.
+
         event
       end
 
