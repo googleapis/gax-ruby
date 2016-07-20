@@ -152,6 +152,46 @@ describe Google::Gax do
     end
   end
 
+  describe 'bundleable' do
+    it 'bundling page streaming error' do
+      settings = CallSettings.new(
+        page_descriptor: Object.new,
+        bundle_descriptor: Object.new,
+        bundler: Object.new
+      )
+      expect do
+        Google::Gax.create_api_call(proc {}, settings)
+      end.to raise_error(RuntimeError)
+    end
+
+    it 'bundles the API call' do
+      BundleOptions = Google::Gax::BundleOptions
+      BundleDescriptor = Google::Gax::BundleDescriptor
+
+      bundler = Google::Gax::Executor.new(
+        BundleOptions.new(element_count_threshold: 8)
+      )
+      fake_descriptor = BundleDescriptor.new('elements', [])
+      settings = CallSettings.new(
+        bundler: bundler,
+        bundle_descriptor: fake_descriptor,
+        timeout: 0
+      )
+
+      func = proc do |request, _|
+        request['elements'].count
+      end
+
+      callable = Google::Gax.create_api_call(func, settings)
+
+      first = callable.call('elements' => [0] * 5)
+      expect(first).to be_an_instance_of Google::Gax::Event
+      expect(first.result).to be_nil
+      second = callable.call('elements' => [0] * 3)
+      expect(second.result).to be 8
+    end
+  end
+
   describe 'retryable' do
     RetryOptions = Google::Gax::RetryOptions
     BackoffSettings = Google::Gax::BackoffSettings
