@@ -96,7 +96,7 @@ describe Google::Gax do
     )
     settings = defaults['bundling_method']
     expect(settings.timeout).to be(30)
-    expect(settings.bundler).to be_a(Google::Gax::Executor)
+    expect(settings.bundler).to be_nil
     expect(settings.bundle_descriptor).to be_a(Google::Gax::BundleDescriptor)
     expect(settings.page_descriptor).to be_nil
     expect(settings.retry_options).to be_a(Google::Gax::RetryOptions)
@@ -191,7 +191,7 @@ describe Google::Gax do
     expect(settings.retry_options.retry_codes).to match_array(
       [RETRY_DICT['code_a']]
     )
-    expect(settings.bundler).to be_a(Google::Gax::Executor)
+    expect(settings.bundler).to be_nil
     expect(settings.bundle_descriptor).to be_a(Google::Gax::BundleDescriptor)
 
     # page_streaming_method is unaffected because it's not specified in
