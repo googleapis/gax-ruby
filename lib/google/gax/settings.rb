@@ -45,7 +45,9 @@ module Google
         bundle_config.each_pair do |key, value|
           options[key.intern] = value
         end
-        Executor.new(options)
+        # Bundling is currently not supported.
+        # Executor.new(options)
+        nil
       end
     end
 
