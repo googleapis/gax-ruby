@@ -49,7 +49,7 @@ describe Google::Gax do
     it 'calls api call' do
       settings = CallSettings.new
       deadline_arg = nil
-      func = proc do |deadline: nil|
+      func = proc do |deadline: nil, **_kwargs|
         deadline_arg = deadline
         42
       end
@@ -72,7 +72,7 @@ describe Google::Gax do
                                                       'next_page_token', 'nums')
     settings = CallSettings.new(page_descriptor: page_descriptor)
     deadline_arg = nil
-    func = proc do |request, deadline: nil|
+    func = proc do |request, deadline: nil, **_kwargs|
       deadline_arg = deadline
       page_token = request['page_token']
       if page_token > 0 && page_token < page_size * pages_to_stream
@@ -120,7 +120,7 @@ describe Google::Gax do
       settings = CallSettings.new(errors: [GRPC::Cancelled])
       deadline_arg = nil
       call_count = 0
-      func = proc do |deadline: nil|
+      func = proc do |deadline: nil, **_kwargs|
         deadline_arg = deadline
         call_count += 1
         raise GRPC::Cancelled, ''
@@ -140,7 +140,7 @@ describe Google::Gax do
       settings = CallSettings.new
       deadline_arg = nil
       call_count = 0
-      func = proc do |deadline: nil|
+      func = proc do |deadline: nil, **_kwargs|
         deadline_arg = deadline
         call_count += 1
         raise CustomException.new('', FAKE_STATUS_CODE_1)
@@ -207,7 +207,7 @@ describe Google::Gax do
       to_attempt = 3
 
       deadline_arg = nil
-      func = proc do |deadline: nil|
+      func = proc do |deadline: nil, **_kwargs|
         deadline_arg = deadline
         to_attempt -= 1
         raise CustomException.new('', FAKE_STATUS_CODE_1) if to_attempt > 0
@@ -260,7 +260,7 @@ describe Google::Gax do
       )
 
       deadline_arg = nil
-      func = proc do |deadline: nil|
+      func = proc do |deadline: nil, **_kwargs|
         deadline_arg = deadline
         call_count += 1
         raise CustomException.new('', FAKE_STATUS_CODE_1)
@@ -299,7 +299,7 @@ describe Google::Gax do
       start_time = time_now
       incr_time = proc { |secs| time_now += secs }
       call_count = 0
-      func = proc do |_, deadline: nil|
+      func = proc do |_, deadline: nil, **_kwargs|
         call_count += 1
         incr_time.call(deadline - time_now)
         raise CustomException.new(deadline.to_s, FAKE_STATUS_CODE_1)
