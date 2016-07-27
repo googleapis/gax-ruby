@@ -35,3 +35,6 @@ Style/Documentation:
 Style/StructInheritance:
   Exclude:
     - 'lib/google/gax.rb'
+
+Style/NumericPredicate:
+  Enabled: false
