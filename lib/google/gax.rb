@@ -35,6 +35,7 @@ require 'google/gax/settings'
 require 'google/gax/version'
 
 module Google
+  # Gax defines Google API extensions
   module Gax
     # rubocop:disable Metrics/ParameterLists
 
@@ -141,6 +142,8 @@ module Google
                          errors: @errors)
       end
     end
+
+    private_constant :CallSettings
 
     # Encapsulates the overridable settings for a particular API call
     # @!attribute [r] timeout
