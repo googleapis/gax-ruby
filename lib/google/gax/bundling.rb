@@ -27,14 +27,19 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# rubocop:disable Style/Documentation
+# Without this, somehow rubocop raises an warning for documentaion for
+# module Gax, however it's documented in lib/google/gax.rb.
+
 module Google
-  # Gax defines Google API extensions
   module Gax
     DEMUX_WARNING = [
       'Warning: cannot demultiplex the bundled response, got ',
       '%d subresponses; want %d, each bundled request will ',
       'receive all responses'
     ].join
+
+    # rubocop:enable Style/Documentation
 
     # Helper function for #compute_bundle_id.
     # Used to retrieve a nested field signified by name where dots in name

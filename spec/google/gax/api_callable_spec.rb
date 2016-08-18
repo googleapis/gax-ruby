@@ -42,9 +42,16 @@ end
 FAKE_STATUS_CODE_1 = :FAKE_STATUS_CODE_1
 FAKE_STATUS_CODE_2 = :FAKE_STATUS_CODE_2
 
-describe Google::Gax do
-  CallSettings = Google::Gax::CallSettings
+# Google::Gax::CallSettings is private, only accessible in the module context.
+# For testing purpose, this makes a toplevel ::CallSettings point to the same
+# class.
+module Google
+  module Gax
+    ::CallSettings = CallSettings
+  end
+end
 
+describe Google::Gax do
   describe 'create_api_call' do
     it 'calls api call' do
       settings = CallSettings.new
