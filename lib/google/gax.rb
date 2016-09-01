@@ -29,7 +29,6 @@
 
 require 'google/gax/api_callable'
 require 'google/gax/errors'
-require 'google/gax/grpc'
 require 'google/gax/path_template'
 require 'google/gax/settings'
 require 'google/gax/version'
