@@ -124,20 +124,20 @@ describe Google::Gax do
 
   describe 'failures without retry' do
     it 'simply fails' do
-      settings = CallSettings.new(errors: [GRPC::Cancelled])
+      settings = CallSettings.new(errors: [CustomException])
       deadline_arg = nil
       call_count = 0
       func = proc do |deadline: nil, **_kwargs|
         deadline_arg = deadline
         call_count += 1
-        raise GRPC::Cancelled, ''
+        raise CustomException.new('', FAKE_STATUS_CODE_1)
       end
       my_callable = Google::Gax.create_api_call(func, settings)
       begin
         my_callable.call
         expect(true).to be false # should not reach to this line.
       rescue Google::Gax::GaxError => exc
-        expect(exc.cause).to be_a(GRPC::Cancelled)
+        expect(exc.cause).to be_a(CustomException)
       end
       expect(deadline_arg).to be_a(Time)
       expect(call_count).to eq(1)
