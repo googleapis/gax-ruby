@@ -40,15 +40,14 @@ module Google
     # @return An Executor that configures bundling, or nil if this
     #   method should not bundle.
     def construct_bundling(bundle_config, bundle_descriptor)
-      if bundle_config && bundle_descriptor
-        options = BundleOptions.new
-        bundle_config.each_pair do |key, value|
-          options[key.intern] = value
-        end
-        # Bundling is currently not supported.
-        # Executor.new(options)
-        nil
+      return unless bundle_config && bundle_descriptor
+      options = BundleOptions.new
+      bundle_config.each_pair do |key, value|
+        options[key.intern] = value
       end
+      # Bundling is currently not supported.
+      # Executor.new(options)
+      nil
     end
 
     # Helper for #construct_settings
