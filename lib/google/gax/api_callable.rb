@@ -36,8 +36,6 @@ require 'google/gax/bundling'
 
 module Google
   module Gax
-    MILLIS_PER_SECOND = 1000.0
-
     # A class to provide the Enumerable interface for page-streaming method.
     # PagedEnumerable assumes that the API call returns a message for a page
     # which holds a list of resources and the token to the next page.
@@ -341,7 +339,6 @@ module Google
         result = nil
         now = Time.now
         deadline = now + total_timeout
-
         loop do
           begin
             result = add_timeout_arg(a_func, timeout, kwargs).call(request)
