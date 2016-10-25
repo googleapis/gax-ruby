@@ -44,6 +44,7 @@ module Google
     #   op.reload!
     #   op.done?
     #   results = op.results
+    #   raise results if op.error?
     #
     # @attribute [r] grpc_op
     #   @return [Google::Longrunning::Operation] The wrapped grpc
@@ -60,17 +61,23 @@ module Google
       #   The client that handles the grpc operations.
       def initialize(grpc_op, client: nil)
         @grpc_op = grpc_op
-        @client = client.nil? ? Google::Longrunning::OperationsApi.new : client
+        @client = client ? client : Google::Longrunning::OperationsApi.new
+        @callbacks = []
       end
 
       # If the operation is done, returns the result, otherwise returns nil.
+      # If a Class is provided, an instance of that class will try to be
+      # unpacked from the response. If the response is not of the type provided
+      # nil will be returned.
       #
-      # @return [nil | Google::Rpc::Status | Object]
+      # @param [Class] The class type to be unpacked from the response.
+      # @return [nil | Google::Rpc::Status | Object | Google::Protobuf::Any ]
       #   The result of the operation
-      def results
+      def results(responseType: nil)
         return nil unless done?
-        return @grpc_op.error if @grpc_op.result == :error
-        @grpc_op.response.value if @grpc_op.result == :response
+        return @grpc_op.error if error?
+        return @grpc_op.response.unpack(responseType) if responseType
+        @grpc_op.response
       end
 
       # Checks if the operation is done. This does not send a new api call,
@@ -79,6 +86,14 @@ module Google
       # @return [Boolean] Whether the operation is done.
       def done?
         @grpc_op.done
+      end
+
+      # Checks if the operation is done and the result is an error.
+      # If the operation is not finished then this will return false.
+      #
+      # @return [Boolean] Whether an error has been returned.
+      def error?
+        done? ? @grpc_op.result == :error : false
       end
 
       # Reloads the operation object.
@@ -91,6 +106,10 @@ module Google
           )
         )
         @grpc_op = @client.get_operation @grpc_op.name, options: options
+        if done?
+          callbacks.each { |proc| proc.call(results) }
+          callbacks.clear
+        end
         self
       end
       alias refresh! reload!
@@ -110,7 +129,7 @@ module Google
       #   If a block is given, runs the block using the results
       #   of the operation.
       def wait_until_done!(backoff_settings: nil)
-        backoff_settings = BackoffSettings.new if backoff_settings.nil?
+        backoff_settings = BackoffSettings.new unless backoff_settings
 
         delay = backoff_settings.initial_retry_delay_millis || 100
         max_delay = backoff_settings.max_retry_delay_millis || 60_000
@@ -119,16 +138,26 @@ module Google
         now = Time.now
         deadline = now + total_timeout
         until done?
+          sleep(rand(delay) / MILLIS_PER_SECOND)
           if now >= deadline
             raise RetryError, 'Retry total timeout exceeded with exception'
           end
-          sleep(rand(delay) / MILLIS_PER_SECOND)
           delay = [delay * delay_multiplier, max_delay].min
           reload! backoff_settings
         end
         yield(results) if block_given?
       end
-      alias wait_until_done! on_done!
+
+      # Registers a callback to be run when a refreshed operation is marked
+      # as done. If the operation has completed prior to a call to this function
+      # the callback will be called instead of registered.
+      def on_done
+        if done?
+          yield(results)
+        else
+          callbacks.push(proc { |results| yield(results) })
+        end
+      end
     end
   end
 end

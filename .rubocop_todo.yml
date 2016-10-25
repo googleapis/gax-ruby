@@ -27,6 +27,9 @@ Metrics/MethodLength:
 Metrics/PerceivedComplexity:
   Max: 11
 
+Metrics/BlockLength:
+  Max: 26
+
 # Offense count: 2
 Style/Documentation:
   Exclude:
@@ -38,7 +41,7 @@ Style/Documentation:
 # Offense count: 5
 Style/StructInheritance:
   Exclude:
-    - 'lib/google/settings.rb'
+    - 'lib/google/gax/settings.rb'
 
 Style/NumericPredicate:
   Enabled: false

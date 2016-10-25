@@ -30,6 +30,7 @@
 module Google
   module Gax
     # rubocop:disable Metrics/ParameterLists
+
     # Encapsulates the call settings for an ApiCallable
     # @!attribute [r] timeout
     #   @return [Numeric]
@@ -390,8 +391,6 @@ module Google
     def upper_camel_to_lower_underscore(string)
       string.scan(/[[:upper:]][^[:upper:]]*/).map(&:downcase).join('_')
     end
-
-    # rubocop:disable Metrics/ParameterLists
 
     # Constructs a dictionary mapping method names to CallSettings.
     #
