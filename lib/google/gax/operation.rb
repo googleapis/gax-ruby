@@ -117,7 +117,7 @@ module Google
         )
         @grpc_op = @client.get_operation @grpc_op.name, options: options
         if done?
-          @callbacks.each { |proc| proc.call(results) }
+          @callbacks.each { |proc| proc.call(self) }
           @callbacks.clear
         end
         self
@@ -155,11 +155,11 @@ module Google
       # Registers a callback to be run when a refreshed operation is marked
       # as done. If the operation has completed prior to a call to this function
       # the callback will be called instead of registered.
-      def on_done
+      def on_done(&block)
         if done?
-          yield(results)
+          yield(self)
         else
-          @callbacks.push(proc { |results| yield(results) })
+          @callbacks.push(block)
         end
       end
     end

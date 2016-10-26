@@ -162,8 +162,8 @@ describe Google::Gax::Operation do
     it 'should yield the registered callback after the operation completes' do
       op = create_op(GrpcOp.new(done: false), client: DONE_ON_GET_CLIENT)
       called = false
-      op.on_done do |results|
-        expect(results).to eq(ANY)
+      op.on_done do |operation|
+        expect(operation.results).to eq(ANY)
         called = true
       end
       expect(called).to eq(false)
@@ -178,8 +178,8 @@ describe Google::Gax::Operation do
       expected_order = [1, 2, 3]
       called_order = []
       expected_order.each do |i|
-        op.on_done do |results|
-          expect(results).to eq(ANY)
+        op.on_done do |operation|
+          expect(operation.results).to eq(ANY)
           called_order.push(i)
         end
       end
@@ -225,7 +225,6 @@ describe Google::Gax::Operation do
       op = create_op(GrpcOp.new(done: false), client: mock_client)
       begin
         op.wait_until_done!(backoff_settings: backoff_settings)
-        expect(true).to be false # should not reach to this line.
       rescue Google::Gax::RetryError => exc
         expect(exc).to be_a(Google::Gax::RetryError)
       end
@@ -240,8 +239,8 @@ describe Google::Gax::Operation do
     it 'should yield immediately when the operation is already finished' do
       op = create_op(GrpcOp.new(done: true, response: ANY))
       called = false
-      op.on_done do |results|
-        expect(results).to eq(ANY)
+      op.on_done do |operation|
+        expect(operation.results).to eq(ANY)
         called = true
       end
       expect(called).to eq(true)
