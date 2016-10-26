@@ -27,10 +27,13 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+require 'time'
+
 # This must be loaded separate from google/gax to avoid circular dependency.
 require 'google/gax/constants'
 require 'google/gax/settings'
 require 'google/longrunning/operations_api'
+require 'google/protobuf/well_known_types'
 
 module Google
   module Gax
@@ -73,10 +76,10 @@ module Google
       # @param [Class] The class type to be unpacked from the response.
       # @return [nil | Google::Rpc::Status | Object | Google::Protobuf::Any ]
       #   The result of the operation
-      def results(responseType: nil)
+      def results(response_type: nil)
         return nil unless done?
         return @grpc_op.error if error?
-        return @grpc_op.response.unpack(responseType) if responseType
+        return @grpc_op.response.unpack(response_type) if response_type
         @grpc_op.response
       end
 
@@ -96,28 +99,30 @@ module Google
         done? ? @grpc_op.result == :error : false
       end
 
-      # Reloads the operation object.
-      # @return [Google::Gax::Longrunning]
-      #   Since this method changes internal state, it returns itself.
-      def reload!(backoff_settings: nil)
-        options = CallSettings.new(
-          retry_options: RetryOptions.new(
-            backoff_settings: backoff_settings
-          )
-        )
-        @grpc_op = @client.get_operation @grpc_op.name, options: options
-        if done?
-          callbacks.each { |proc| proc.call(results) }
-          callbacks.clear
-        end
-        self
-      end
-      alias refresh! reload!
-
       # Cancels the operation.
       def cancel
         @client.cancel_operation @grpc_op.name
       end
+
+      # Reloads the operation object.
+      #
+      # @param backoff_settings [Google::Gax::BackoffSettings]
+      #   The backoff settings used to manipulate how this method retries
+      #   checking if the operation is done.
+      # @return [Google::Gax::Longrunning]
+      #   Since this method changes internal state, it returns itself.
+      def reload!(backoff_settings: nil)
+        options = CallOptions.new(
+          retry_options: RetryOptions.new(nil, backoff_settings)
+        )
+        @grpc_op = @client.get_operation @grpc_op.name, options: options
+        if done?
+          @callbacks.each { |proc| proc.call(results) }
+          @callbacks.clear
+        end
+        self
+      end
+      alias refresh! reload!
 
       # Blocking method to wait until the operation has completed or the
       # maximum timeout has been reached.
@@ -135,15 +140,14 @@ module Google
         max_delay = backoff_settings.max_retry_delay_millis || 60_000
         delay_multiplier = backoff_settings.retry_delay_multiplier || 1.3
         total_timeout = backoff_settings.total_timeout_millis || 60_000
-        now = Time.now
-        deadline = now + total_timeout
+        deadline = Time.now + total_timeout
         until done?
           sleep(rand(delay) / MILLIS_PER_SECOND)
-          if now >= deadline
+          if Time.now >= deadline
             raise RetryError, 'Retry total timeout exceeded with exception'
           end
           delay = [delay * delay_multiplier, max_delay].min
-          reload! backoff_settings
+          reload!(backoff_settings: backoff_settings)
         end
         yield(results) if block_given?
       end
@@ -155,7 +159,7 @@ module Google
         if done?
           yield(results)
         else
-          callbacks.push(proc { |results| yield(results) })
+          @callbacks.push(proc { |results| yield(results) })
         end
       end
     end
