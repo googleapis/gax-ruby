@@ -116,7 +116,7 @@ module Google
       # The number of bundled elements in the repeated field.
       # @return [Numeric]
       def element_count
-        @inputs.reduce(0) { |a, e| a + e.count }
+        @inputs.reduce(0) { |acc, elem| acc + elem.count }
       end
 
       # The size of the request in bytes of the bundled field elements.

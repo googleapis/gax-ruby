@@ -58,7 +58,7 @@ module Google
     #   @return [Google::Gax::CallOptions] The call options used when reloading
     #     the operation.
     class Operation
-      attr_reader :grpc_op, :client
+      attr_reader :grpc_op
 
       attr_accessor :call_options
 
@@ -76,11 +76,15 @@ module Google
       end
 
       # If the operation is done, returns the result, otherwise returns nil.
-      # If a Class is provided, an instance of that class will try to be
-      # unpacked from the response. If the response is not of the type provided
-      # nil will be returned.
+      # If the operation response is an error, the error will be returned.
+      # If a type is provided, the response will be unpacked using the type
+      # provided; returning nil if the response is not of the type provided.
+      # If the type is not of provided, the response will be unpacked using
+      # the response's type_url if the type_url is found in the
+      # Google::Protobuf::DescriptorPool.generated_pool.
+      # If the type cannot be found the raw response is retuned.
       #
-      # @param [Class] The class type to be unpacked from the response.
+      # @param type [Class]] The class type to be unpacked from the response.
       #
       # @return [nil | Google::Rpc::Status | Object | Google::Protobuf::Any ]
       #   The result of the operation
@@ -99,6 +103,18 @@ module Google
         @grpc_op.response
       end
 
+      # Returns the metadata of an operation. If a type is provided,
+      # the metadata will be unpacked using the type provided; returning nil
+      # if the metadata is not of the type provided.
+      # If the type is not of provided, the metadata will be unpacked using
+      # the metadata's type_url if the type_url is found in the
+      # Google::Protobuf::DescriptorPool.generated_pool.
+      # If the type cannot be found the raw metadata is retuned.
+      #
+      # @param type [Class]] The class type to be unpacked from the response.
+      #
+      # @return [nil | Object | Google::Protobuf::Any ]
+      #   The result of the operation
       def metadata(type: nil)
         return nil if @grpc_op.metadata.nil?
         return @grpc_op.metadata.unpack(type) if type
@@ -131,7 +147,7 @@ module Google
 
       # Cancels the operation.
       def cancel
-        @client.cancel_operation @grpc_op.name
+        @client.cancel_operation(@grpc_op.name)
       end
 
       # Reloads the operation object.
@@ -211,7 +227,7 @@ module Google
       #   Google::Protobuf::DescriptorPool.generated_pool.
       def unpack(any)
         response_type =
-          Google::Protobuf::DescriptorPool .generated_pool.lookup(any.type_name)
+          Google::Protobuf::DescriptorPool.generated_pool.lookup(any.type_name)
         return any.unpack(response_type.msgclass) if response_type
         raise 'The type_name of the Google::Protobuf::Any was not found in \
               the Google::Protobuf::DescriptorPool.generated_pool. Unable to \
