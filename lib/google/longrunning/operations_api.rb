@@ -26,6 +26,7 @@ require "json"
 require "pathname"
 
 require "google/gax"
+require "google/longrunning/operations_pb"
 
 module Google
   module Longrunning
@@ -196,9 +197,9 @@ module Google
       def get_operation \
           name,
           options: nil
-        req = Google::Longrunning::GetOperationRequest.new(
+        req = Google::Longrunning::GetOperationRequest.new({
           name: name
-        )
+        }.delete_if { |_, v| v.nil? })
         @get_operation.call(req, options)
       end
 
@@ -254,11 +255,11 @@ module Google
           filter,
           page_size: nil,
           options: nil
-        req = Google::Longrunning::ListOperationsRequest.new(
+        req = Google::Longrunning::ListOperationsRequest.new({
           name: name,
-          filter: filter
-        )
-        req.page_size = page_size unless page_size.nil?
+          filter: filter,
+          page_size: page_size
+        }.delete_if { |_, v| v.nil? })
         @list_operations.call(req, options)
       end
 
@@ -291,9 +292,9 @@ module Google
       def cancel_operation \
           name,
           options: nil
-        req = Google::Longrunning::CancelOperationRequest.new(
+        req = Google::Longrunning::CancelOperationRequest.new({
           name: name
-        )
+        }.delete_if { |_, v| v.nil? })
         @cancel_operation.call(req, options)
       end
 
@@ -320,9 +321,9 @@ module Google
       def delete_operation \
           name,
           options: nil
-        req = Google::Longrunning::DeleteOperationRequest.new(
+        req = Google::Longrunning::DeleteOperationRequest.new({
           name: name
-        )
+        }.delete_if { |_, v| v.nil? })
         @delete_operation.call(req, options)
       end
     end
