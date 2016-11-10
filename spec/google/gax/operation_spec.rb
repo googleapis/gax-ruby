@@ -27,8 +27,11 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+require 'time'
+
 require 'google/gax/operation'
 require 'google/gax/settings'
+require 'google/gax/constants'
 require 'google/protobuf/any_pb'
 require 'google/protobuf/well_known_types'
 require 'google/rpc/status_pb'
@@ -36,6 +39,8 @@ require 'google/longrunning/operations_pb'
 
 GrpcOp = Google::Longrunning::Operation
 GaxOp = Google::Gax::Operation
+
+MILLIS_PER_SECOND = Google::Gax::MILLIS_PER_SECOND
 
 class MockLroClient
   def initialize(get_method: nil, cancel_method: nil)
@@ -52,8 +57,12 @@ class MockLroClient
   end
 end
 
-def create_op(operation, client: nil)
-  GaxOp.new(operation, client: client ? client : DONE_ON_GET_CLIENT)
+def create_op(operation, client: nil, call_options: nil)
+  GaxOp.new(
+    operation,
+    client || DONE_ON_GET_CLIENT,
+    call_options: call_options
+  )
 end
 
 describe Google::Gax::Operation do
@@ -78,14 +87,57 @@ describe Google::Gax::Operation do
       expect(op.results).to eq(error)
     end
 
-    it 'should unpack the response.' do
+    it 'should unpack the response automatically if response in global \
+    Google::Protobuf::DescriptorPool.generated_pool' do
       op = create_op(GrpcOp.new(done: true, response: ANY))
-      expect(op.results(response_type: Google::Rpc::Status)).to eq(TO_PACK)
+      expect(op.results).to eq(TO_PACK)
     end
 
-    it 'should return an Any proto if no type was specified.' do
+    it 'should unpack the response if the type is specified' do
       op = create_op(GrpcOp.new(done: true, response: ANY))
-      expect(op.results).to eq(ANY)
+      expect(op.results(type: Google::Rpc::Status)).to eq(TO_PACK)
+    end
+
+    it 'should return the raw response if the response type is not in the \
+    Google::Protobuf::DescriptorPool.generated_pool.' do
+      response = Google::Protobuf::Any.new
+      response.type_url = 'type.googleapis.com/not.loaded.proto.type'
+      response.value = '{}'
+
+      op = create_op(GrpcOp.new(done: true, response: response))
+
+      warn_call_count = 0
+      expected_warn_call_count = 1
+      allow(op).to receive(:warn) { warn_call_count += 1 }
+      expect(op.results).to eq(response)
+      expect(warn_call_count).to eq(expected_warn_call_count)
+    end
+  end
+
+  context 'method `metadata`' do
+    it 'should unpack the metadata automatically if response in global \
+    Google::Protobuf::DescriptorPool.generated_pool' do
+      op = create_op(GrpcOp.new(done: true, metadata: ANY))
+      expect(op.metadata).to eq(TO_PACK)
+    end
+
+    it 'should unpack the metadata if the type is specified' do
+      op = create_op(GrpcOp.new(done: true, metadata: ANY))
+      expect(op.metadata(type: Google::Rpc::Status)).to eq(TO_PACK)
+    end
+
+    it 'should return the raw metadata if the response type is not in the \
+    Google::Protobuf::DescriptorPool.generated_pool.' do
+      metadata = Google::Protobuf::Any.new
+      metadata.type_url = 'type.googleapis.com/not.loaded.proto.type'
+      metadata.value = '{}'
+
+      op = create_op(GrpcOp.new(done: true, metadata: metadata))
+      warn_call_count = 0
+      expected_warn_call_count = 1
+      allow(op).to receive(:warn) { warn_call_count += 1 }
+      expect(op.metadata).to eq(metadata)
+      expect(warn_call_count).to eq(expected_warn_call_count)
     end
   end
 
@@ -141,21 +193,27 @@ describe Google::Gax::Operation do
       expect(called).to eq(true)
     end
 
-    it 'should pass in a CallSettings object to the client' do
+    it 'should use call_options attribute when reloading' do
       backoff_settings = Google::Gax::BackoffSettings.new(1, 2, 3, 4, 5, 6, 7)
+      call_options = Google::Gax::CallOptions.new(
+        retry_options: Google::Gax::RetryOptions.new(nil, backoff_settings)
+      )
       called = false
       get_method = proc do |_, options|
         called = true
         expect(options).to be_a(Google::Gax::CallOptions)
-        expect(options.retry_options.backoff_settings).to eq(backoff_settings)
+        expect(options).to eq(call_options)
         GrpcOp.new(done: true, response: ANY)
       end
       mock_client = MockLroClient.new(get_method: get_method)
+
       op = create_op(
-        GrpcOp.new(done: false, name: 'name'), client: mock_client
+        GrpcOp.new(done: false, name: 'name'),
+        client: mock_client,
+        call_options: call_options
       )
       expect(called).to eq(false)
-      op.reload!(backoff_settings: backoff_settings)
+      op.reload!
       expect(called).to eq(true)
     end
 
@@ -163,7 +221,7 @@ describe Google::Gax::Operation do
       op = create_op(GrpcOp.new(done: false), client: DONE_ON_GET_CLIENT)
       called = false
       op.on_done do |operation|
-        expect(operation.results).to eq(ANY)
+        expect(operation.results).to eq(TO_PACK)
         called = true
       end
       expect(called).to eq(false)
@@ -179,7 +237,7 @@ describe Google::Gax::Operation do
       called_order = []
       expected_order.each do |i|
         op.on_done do |operation|
-          expect(operation.results).to eq(ANY)
+          expect(operation.results).to eq(TO_PACK)
           called_order.push(i)
         end
       end
@@ -201,6 +259,9 @@ describe Google::Gax::Operation do
       end
       mock_client = MockLroClient.new(get_method: get_method)
       op = create_op(GrpcOp.new(done: false), client: mock_client)
+      time_now = Time.now
+      allow(Time).to receive(:now) { time_now }
+      expect(op).to receive(:sleep).exactly(3).times { |secs| time_now += secs }
       op.wait_until_done!
       expect(to_call).to eq(0)
     end
@@ -214,15 +275,25 @@ describe Google::Gax::Operation do
       end
       mock_client = MockLroClient.new(get_method: get_method)
       op = create_op(GrpcOp.new(done: false), client: mock_client)
+
+      time_now = Time.now
+      allow(Time).to receive(:now) { time_now }
+      expect(op).to receive(:sleep).exactly(3).times { |secs| time_now += secs }
+
       op.wait_until_done!
       expect(to_call).to eq(0)
     end
 
     it 'times out' do
-      backoff_settings = BackoffSettings.new(0, 0, 0, 0, 0, 0, 1)
+      backoff_settings = BackoffSettings.new(1, 1, 10, 0, 0, 0, 100)
       get_method = proc { GrpcOp.new(done: false) }
       mock_client = MockLroClient.new(get_method: get_method)
       op = create_op(GrpcOp.new(done: false), client: mock_client)
+
+      time_now = Time.now
+      allow(Time).to receive(:now) { time_now }
+      allow(op).to receive(:sleep) { |secs| time_now += secs }
+
       begin
         op.wait_until_done!(backoff_settings: backoff_settings)
       rescue Google::Gax::RetryError => exc
@@ -230,17 +301,54 @@ describe Google::Gax::Operation do
       end
     end
 
-    # TODO: Test exponential backoff.
     it 'retries with exponential backoff' do
+      call_count = 0
+      get_method = proc do
+        call_count += 1
+        GrpcOp.new(done: false, response: ANY)
+      end
+      mock_client = MockLroClient.new(get_method: get_method)
+      op = create_op(GrpcOp.new(done: false), client: mock_client)
+
+      time_now = Time.now
+      start_time = time_now
+      allow(Time).to receive(:now) { time_now }
+      allow(op).to receive(:sleep) { |secs| time_now += secs }
+
+      initial_delay = 10 * MILLIS_PER_SECOND
+      delay_multiplier = 1.5
+      max_delay = 5 * 60 * MILLIS_PER_SECOND
+      total_timeout = 60 * 60 * MILLIS_PER_SECOND
+      backoff = BackoffSettings.new(
+        initial_delay,
+        delay_multiplier,
+        max_delay,
+        0,
+        0,
+        0,
+        total_timeout
+      )
+      begin
+        op.wait_until_done!(backoff_settings: backoff)
+      rescue Google::Gax::RetryError => exc
+        expect(exc).to be_a(Google::Gax::RetryError)
+      end
+      expect(time_now - start_time).to be >= (total_timeout / MILLIS_PER_SECOND)
+
+      calls_lower_bound = total_timeout / max_delay
+      calls_upper_bound = total_timeout / initial_delay
+      expect(call_count).to be > calls_lower_bound
+      expect(call_count).to be < calls_upper_bound
     end
   end
 
   context 'method `on_done`' do
     it 'should yield immediately when the operation is already finished' do
-      op = create_op(GrpcOp.new(done: true, response: ANY))
+      op = create_op(GrpcOp.new(done: true, response: ANY, metadata: ANY))
       called = false
       op.on_done do |operation|
-        expect(operation.results).to eq(ANY)
+        expect(operation.results).to eq(TO_PACK)
+        expect(operation.metadata).to eq(TO_PACK)
         called = true
       end
       expect(called).to eq(true)

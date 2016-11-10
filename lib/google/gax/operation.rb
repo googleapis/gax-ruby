@@ -29,10 +29,9 @@
 
 require 'time'
 
-# This must be loaded separate from google/gax to avoid circular dependency.
+# These must be loaded separate from google/gax to avoid circular dependency.
 require 'google/gax/constants'
 require 'google/gax/settings'
-require 'google/longrunning/operations_api'
 require 'google/protobuf/well_known_types'
 
 module Google
@@ -55,16 +54,24 @@ module Google
     # @attribute [r] client
     #   @return [Google::Longrunning::OperationsApi] The client that handles the
     #     grpc operations.
+    # @attribute [rw] call_options
+    #   @return [Google::Gax::CallOptions] The call options used when reloading
+    #     the operation.
     class Operation
       attr_reader :grpc_op, :client
+
+      attr_accessor :call_options
 
       # @param grpc_op [Google::Longrunning::Operation]
       #   The inital longrunning operation.
       # @param client [Google::Longrunning::OperationsApi]
       #   The client that handles the grpc operations.
-      def initialize(grpc_op, client: nil)
+      # @param call_options [Google::Gax::CallOptions]
+      #   The call options that are used when reloading the operation.
+      def initialize(grpc_op, client, call_options: nil)
         @grpc_op = grpc_op
-        @client = client ? client : Google::Longrunning::OperationsApi.new
+        @client = client
+        @call_options = call_options
         @callbacks = []
       end
 
@@ -74,13 +81,36 @@ module Google
       # nil will be returned.
       #
       # @param [Class] The class type to be unpacked from the response.
+      #
       # @return [nil | Google::Rpc::Status | Object | Google::Protobuf::Any ]
       #   The result of the operation
-      def results(response_type: nil)
+      def results(type: nil)
         return nil unless done?
         return @grpc_op.error if error?
-        return @grpc_op.response.unpack(response_type) if response_type
+        return @grpc_op.response.unpack(type) if type
+        begin
+          return unpack(@grpc_op.response)
+        rescue RuntimeError => e
+          warn e.message + ' The raw response was returned. To get the \
+               unpacked response object, either specify the type, \
+               or require the protofile containing the type: ' +
+               @grpc_op.response.type_name + '.'
+        end
         @grpc_op.response
+      end
+
+      def metadata(type: nil)
+        return nil if @grpc_op.metadata.nil?
+        return @grpc_op.metadata.unpack(type) if type
+        begin
+          return unpack(@grpc_op.metadata)
+        rescue RuntimeError => e
+          warn e.message + ' The raw metadata was returned. To get the \
+               unpacked metadata object, either specify the type, \
+               or require the protofile containing the type: ' +
+               @grpc_op.metadata.type_name + '.'
+        end
+        @grpc_op.metadata
       end
 
       # Checks if the operation is done. This does not send a new api call,
@@ -106,16 +136,10 @@ module Google
 
       # Reloads the operation object.
       #
-      # @param backoff_settings [Google::Gax::BackoffSettings]
-      #   The backoff settings used to manipulate how this method retries
-      #   checking if the operation is done.
-      # @return [Google::Gax::Longrunning]
+      # @return [Google::Gax::Operation]
       #   Since this method changes internal state, it returns itself.
-      def reload!(backoff_settings: nil)
-        options = CallOptions.new(
-          retry_options: RetryOptions.new(nil, backoff_settings)
-        )
-        @grpc_op = @client.get_operation @grpc_op.name, options: options
+      def reload!
+        @grpc_op = @client.get_operation(@grpc_op.name, options: @call_options)
         if done?
           @callbacks.each { |proc| proc.call(self) }
           @callbacks.clear
@@ -134,22 +158,33 @@ module Google
       #   If a block is given, runs the block using the results
       #   of the operation.
       def wait_until_done!(backoff_settings: nil)
-        backoff_settings = BackoffSettings.new unless backoff_settings
+        unless backoff_settings
+          backoff_settings = BackoffSettings.new(
+            10 * MILLIS_PER_SECOND,
+            1.3,
+            5 * 60 * MILLIS_PER_SECOND,
+            0,
+            0,
+            0,
+            60 * 60 * MILLIS_PER_SECOND
+          )
+        end
 
-        delay = backoff_settings.initial_retry_delay_millis || 100
-        max_delay = backoff_settings.max_retry_delay_millis || 60_000
-        delay_multiplier = backoff_settings.retry_delay_multiplier || 1.3
-        total_timeout = backoff_settings.total_timeout_millis || 60_000
+        delay = backoff_settings.initial_retry_delay_millis / MILLIS_PER_SECOND
+        max_delay = backoff_settings.max_retry_delay_millis / MILLIS_PER_SECOND
+        delay_multiplier = backoff_settings.retry_delay_multiplier
+        total_timeout =
+          backoff_settings.total_timeout_millis / MILLIS_PER_SECOND
         deadline = Time.now + total_timeout
         until done?
-          sleep(rand(delay) / MILLIS_PER_SECOND)
+          sleep(delay)
           if Time.now >= deadline
             raise RetryError, 'Retry total timeout exceeded with exception'
           end
           delay = [delay * delay_multiplier, max_delay].min
-          reload!(backoff_settings: backoff_settings)
+          reload!
         end
-        yield(results) if block_given?
+        yield(self) if block_given?
       end
 
       # Registers a callback to be run when a refreshed operation is marked
@@ -162,6 +197,28 @@ module Google
           @callbacks.push(block)
         end
       end
+
+      # Unpacks an google.protobuf.any message using the type_name stored
+      # in the any type if the type can be found in the
+      # Google::Protobuf::DescriptorPool.generated_pool.
+      #
+      # @param any [Google::Protobuf::Any] The message to be unpacked.
+      #
+      # @return [Object] The unpacked message.
+      #
+      # @raise [RuntimeError] A RuntimeError will be raised if the message type
+      #   of the value of the any message was not found in the
+      #   Google::Protobuf::DescriptorPool.generated_pool.
+      def unpack(any)
+        response_type =
+          Google::Protobuf::DescriptorPool .generated_pool.lookup(any.type_name)
+        return any.unpack(response_type.msgclass) if response_type
+        raise 'The type_name of the Google::Protobuf::Any was not found in \
+              the Google::Protobuf::DescriptorPool.generated_pool. Unable to \
+              unpack. This often means that the proto containing the type: ' +
+              any.type_name + ' has not been required.'
+      end
+      private :unpack
     end
   end
 end
