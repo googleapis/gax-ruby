@@ -63,8 +63,9 @@ module Google
         raise 'path template has no segments' if segments.nil?
         segments.each do |s|
           next unless s.kind == TERMINAL && s.literal == '**'
-          raise 'path template cannot contain more than' \
-                'one path wildcard' if has_path_wildcard
+          if has_path_wildcard
+            raise 'path template cannot contain more than one path wildcard'
+          end
           has_path_wildcard = true
         end
         segments
