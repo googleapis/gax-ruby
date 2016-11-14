@@ -36,24 +36,65 @@ require 'google/protobuf/well_known_types'
 
 module Google
   module Gax
-    # A class used to wrap Google::Longrunning::Operation objects.
+    # A class used to wrap Google::Longrunning::Operation objects. This class
+    # provides helper methods to check the status of an Operation
     #
-    # @example General usage example
+    # @example Checking Operation status
     #   require 'google/gax/operation'
+    #   require 'google/longrunning/operations_api'
     #
-    #   op = Google::Gax::Operation.new api.methodThatReturnsOperation(name)
-    #   op.done?
+    #   operationsClient = Google::Longrunning::OperationsApi.new
+    #   op = Google::Gax::Operation.new(
+    #     api.methodThatReturnsOperation(),
+    #     operations_client
+    #   )
+    #
+    #   op.done? # => false
+    #   op.reload! # => operation completed
+    #
+    #   if op.done?
+    #     results = op.results
+    #     handle_error(results) if op.error?
+    #     # Handle results.
+    #   end
+    #
+    # @example Working with callbacks
+    #   require 'google/gax/operation'
+    #   require 'google/longrunning/operations_api'
+    #
+    #   operationsClient = Google::Longrunning::OperationsApi.new
+    #   op = Google::Gax::Operation.new(
+    #     api.method_that_returns_operation,
+    #     operations_client
+    #   )
+    #
+    #   # Register a callback to be run when an operation is done.
+    #   op.on_done do |operation|
+    #     raise operation.results.message if operation.error?
+    #     results = operation.results
+    #     # Handle results.
+    #
+    #     metadata = operation.metadata
+    #     # Handle metadata.
+    #   end
+    #
+    #   # Reload the operation running callbacks if operation completed.
     #   op.reload!
-    #   op.done?
-    #   results = op.results
-    #   raise results if op.error?
+    #
+    #   # Or block until the operation completes, passing a block to be called
+    #   # on completion.
+    #   op.wait_until_done do |operation|
+    #     raise operation.results.message if operation.error?
+    #     results = operation.results
+    #     # Handle results.
+    #
+    #     metadata = operation.metadata
+    #     # Handle metadata.
+    #   end
     #
     # @attribute [r] grpc_op
     #   @return [Google::Longrunning::Operation] The wrapped grpc
     #     operation object.
-    # @attribute [r] client
-    #   @return [Google::Longrunning::OperationsApi] The client that handles the
-    #     grpc operations.
     # @attribute [rw] call_options
     #   @return [Google::Gax::CallOptions] The call options used when reloading
     #     the operation.
@@ -84,7 +125,7 @@ module Google
       # Google::Protobuf::DescriptorPool.generated_pool.
       # If the type cannot be found the raw response is retuned.
       #
-      # @param type [Class]] The class type to be unpacked from the response.
+      # @param type [Class] The class type to be unpacked from the response.
       #
       # @return [nil | Google::Rpc::Status | Object | Google::Protobuf::Any ]
       #   The result of the operation
@@ -111,7 +152,7 @@ module Google
       # Google::Protobuf::DescriptorPool.generated_pool.
       # If the type cannot be found the raw metadata is retuned.
       #
-      # @param type [Class]] The class type to be unpacked from the response.
+      # @param type [Class] The class type to be unpacked from the response.
       #
       # @return [nil | Object | Google::Protobuf::Any ]
       #   The result of the operation
@@ -165,14 +206,13 @@ module Google
       alias refresh! reload!
 
       # Blocking method to wait until the operation has completed or the
-      # maximum timeout has been reached.
+      # maximum timeout has been reached. Upon completion, registered callbacks
+      # will be called, then - if a block is given - the block will be called.
       #
       # @param backoff_settings [Google::Gax::BackoffSettings]
       #   The backoff settings used to manipulate how this method retries
       #   checking if the operation is done.
-      # @yield [Google::Rpc::Status | Object]
-      #   If a block is given, runs the block using the results
-      #   of the operation.
+      # @yield operation [Google::Gax::Operation] Yields the finished Operation.
       def wait_until_done!(backoff_settings: nil)
         unless backoff_settings
           backoff_settings = BackoffSettings.new(
@@ -206,6 +246,8 @@ module Google
       # Registers a callback to be run when a refreshed operation is marked
       # as done. If the operation has completed prior to a call to this function
       # the callback will be called instead of registered.
+      #
+      # @yield operation [Google::Gax::Operation] Yields the finished Operation.
       def on_done(&block)
         if done?
           yield(self)
