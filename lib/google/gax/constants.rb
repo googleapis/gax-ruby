@@ -27,15 +27,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require 'google/gax/api_callable'
-require 'google/gax/constants'
-require 'google/gax/errors'
-require 'google/gax/path_template'
-require 'google/gax/settings'
-require 'google/gax/version'
-
 module Google
-  # Gax defines Google API extensions
   module Gax
+    MILLIS_PER_SECOND = 1000.0
   end
 end

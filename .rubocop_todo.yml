@@ -41,7 +41,7 @@ Style/Documentation:
 # Offense count: 5
 Style/StructInheritance:
   Exclude:
-    - 'lib/google/gax.rb'
+    - 'lib/google/gax/settings.rb'
 
 Style/NumericPredicate:
   Enabled: false
