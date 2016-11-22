@@ -57,24 +57,30 @@ class MockLroClient
   end
 end
 
+RESULT_ANY = Google::Protobuf::Any.new
+RESULT = Google::Rpc::Status.new(code: 1, message: 'Result')
+RESULT_ANY.pack(RESULT)
+
+METADATA_ANY = Google::Protobuf::Any.new
+METADATA = Google::Rpc::Status.new(code: 2, message: 'Metadata')
+METADATA_ANY.pack(METADATA)
+
+DONE_GET_METHOD = proc do
+  GrpcOp.new(done: true, response: RESULT_ANY, metadata: METADATA_ANY)
+end
+DONE_ON_GET_CLIENT = MockLroClient.new(get_method: DONE_GET_METHOD)
+
 def create_op(operation, client: nil, call_options: nil)
   GaxOp.new(
     operation,
     client || DONE_ON_GET_CLIENT,
+    Google::Rpc::Status,
+    Google::Rpc::Status,
     call_options: call_options
   )
 end
 
 describe Google::Gax::Operation do
-  ANY = Google::Protobuf::Any.new
-  TO_PACK = Google::Rpc::Status.new
-  ANY.pack(TO_PACK)
-
-  DONE_GET_METHOD = proc do
-    GrpcOp.new(done: true, response: ANY)
-  end
-  DONE_ON_GET_CLIENT = MockLroClient.new(get_method: DONE_GET_METHOD)
-
   context 'method `results`' do
     it 'should return nil on unfinished operation.' do
       op = create_op(GrpcOp.new(done: false))
@@ -87,57 +93,16 @@ describe Google::Gax::Operation do
       expect(op.results).to eq(error)
     end
 
-    it 'should unpack the response automatically if response in global \
-    Google::Protobuf::DescriptorPool.generated_pool' do
-      op = create_op(GrpcOp.new(done: true, response: ANY))
-      expect(op.results).to eq(TO_PACK)
-    end
-
-    it 'should unpack the response if the type is specified' do
-      op = create_op(GrpcOp.new(done: true, response: ANY))
-      expect(op.results(type: Google::Rpc::Status)).to eq(TO_PACK)
-    end
-
-    it 'should return the raw response if the response type is not in the \
-    Google::Protobuf::DescriptorPool.generated_pool.' do
-      response = Google::Protobuf::Any.new
-      response.type_url = 'type.googleapis.com/not.loaded.proto.type'
-      response.value = '{}'
-
-      op = create_op(GrpcOp.new(done: true, response: response))
-
-      warn_call_count = 0
-      expected_warn_call_count = 1
-      allow(op).to receive(:warn) { warn_call_count += 1 }
-      expect(op.results).to eq(response)
-      expect(warn_call_count).to eq(expected_warn_call_count)
+    it 'should unpack the response' do
+      op = create_op(GrpcOp.new(done: true, response: RESULT_ANY))
+      expect(op.results).to eq(RESULT)
     end
   end
 
   context 'method `metadata`' do
-    it 'should unpack the metadata automatically if response in global \
-    Google::Protobuf::DescriptorPool.generated_pool' do
-      op = create_op(GrpcOp.new(done: true, metadata: ANY))
-      expect(op.metadata).to eq(TO_PACK)
-    end
-
-    it 'should unpack the metadata if the type is specified' do
-      op = create_op(GrpcOp.new(done: true, metadata: ANY))
-      expect(op.metadata(type: Google::Rpc::Status)).to eq(TO_PACK)
-    end
-
-    it 'should return the raw metadata if the response type is not in the \
-    Google::Protobuf::DescriptorPool.generated_pool.' do
-      metadata = Google::Protobuf::Any.new
-      metadata.type_url = 'type.googleapis.com/not.loaded.proto.type'
-      metadata.value = '{}'
-
-      op = create_op(GrpcOp.new(done: true, metadata: metadata))
-      warn_call_count = 0
-      expected_warn_call_count = 1
-      allow(op).to receive(:warn) { warn_call_count += 1 }
-      expect(op.metadata).to eq(metadata)
-      expect(warn_call_count).to eq(expected_warn_call_count)
+    it 'should unpack the metadata' do
+      op = create_op(GrpcOp.new(done: true, metadata: METADATA_ANY))
+      expect(op.metadata).to eq(METADATA)
     end
   end
 
@@ -153,14 +118,14 @@ describe Google::Gax::Operation do
       expect(create_op(GrpcOp.new(done: false)).error?).to eq(false)
     end
 
-    it 'should return false on unfinished operation.' do
+    it 'should return true on error.' do
       error = Google::Rpc::Status.new
       op = create_op(GrpcOp.new(done: true, error: error))
       expect(op.error?).to eq(true)
     end
 
-    it 'should return false on unfinished operation.' do
-      op = create_op(GrpcOp.new(done: true, response: ANY))
+    it 'should return true on finished operation.' do
+      op = create_op(GrpcOp.new(done: true, response: RESULT_ANY))
       expect(op.error?).to eq(false)
     end
   end
@@ -184,7 +149,7 @@ describe Google::Gax::Operation do
       called = false
       get_method = proc do
         called = true
-        GrpcOp.new(done: true, response: ANY)
+        GrpcOp.new(done: true, response: RESULT_ANY)
       end
       mock_client = MockLroClient.new(get_method: get_method)
       op = create_op(GrpcOp.new(done: false), client: mock_client)
@@ -203,7 +168,7 @@ describe Google::Gax::Operation do
         called = true
         expect(options).to be_a(Google::Gax::CallOptions)
         expect(options).to eq(call_options)
-        GrpcOp.new(done: true, response: ANY)
+        GrpcOp.new(done: true, response: RESULT_ANY)
       end
       mock_client = MockLroClient.new(get_method: get_method)
 
@@ -221,7 +186,8 @@ describe Google::Gax::Operation do
       op = create_op(GrpcOp.new(done: false), client: DONE_ON_GET_CLIENT)
       called = false
       op.on_done do |operation|
-        expect(operation.results).to eq(TO_PACK)
+        expect(operation.results).to eq(RESULT)
+        expect(operation.metadata).to eq(METADATA)
         called = true
       end
       expect(called).to eq(false)
@@ -237,7 +203,8 @@ describe Google::Gax::Operation do
       called_order = []
       expected_order.each do |i|
         op.on_done do |operation|
-          expect(operation.results).to eq(TO_PACK)
+          expect(operation.results).to eq(RESULT)
+          expect(operation.metadata).to eq(METADATA)
           called_order.push(i)
         end
       end
@@ -255,7 +222,7 @@ describe Google::Gax::Operation do
       get_method = proc do
         to_call -= 1
         done = to_call == 0
-        GrpcOp.new(done: done, response: ANY)
+        GrpcOp.new(done: done, response: RESULT_ANY)
       end
       mock_client = MockLroClient.new(get_method: get_method)
       op = create_op(GrpcOp.new(done: false), client: mock_client)
@@ -271,7 +238,7 @@ describe Google::Gax::Operation do
       get_method = proc do
         to_call -= 1
         done = to_call == 0
-        GrpcOp.new(done: done, response: ANY)
+        GrpcOp.new(done: done, response: RESULT_ANY)
       end
       mock_client = MockLroClient.new(get_method: get_method)
       op = create_op(GrpcOp.new(done: false), client: mock_client)
@@ -305,7 +272,7 @@ describe Google::Gax::Operation do
       call_count = 0
       get_method = proc do
         call_count += 1
-        GrpcOp.new(done: false, response: ANY)
+        GrpcOp.new(done: false, response: RESULT_ANY)
       end
       mock_client = MockLroClient.new(get_method: get_method)
       op = create_op(GrpcOp.new(done: false), client: mock_client)
@@ -344,11 +311,13 @@ describe Google::Gax::Operation do
 
   context 'method `on_done`' do
     it 'should yield immediately when the operation is already finished' do
-      op = create_op(GrpcOp.new(done: true, response: ANY, metadata: ANY))
+      op = create_op(
+        GrpcOp.new(done: true, response: RESULT_ANY, metadata: METADATA_ANY)
+      )
       called = false
       op.on_done do |operation|
-        expect(operation.results).to eq(TO_PACK)
-        expect(operation.metadata).to eq(TO_PACK)
+        expect(operation.results).to eq(RESULT)
+        expect(operation.metadata).to eq(METADATA)
         called = true
       end
       expect(called).to eq(true)
