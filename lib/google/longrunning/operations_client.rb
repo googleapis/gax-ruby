@@ -42,7 +42,7 @@ module Google
     #
     # @!attribute [r] operations_stub
     #   @return [Google::Longrunning::Operations::Stub]
-    class OperationsApi
+    class OperationsClient
       attr_reader :operations_stub
 
       # The default address of the service.
@@ -68,28 +68,6 @@ module Google
       # this service.
       ALL_SCOPES = [
       ].freeze
-
-      OPERATION_PATH_PATH_TEMPLATE = Google::Gax::PathTemplate.new(
-        "operations/{operation_path=**}"
-      )
-
-      private_constant :OPERATION_PATH_PATH_TEMPLATE
-
-      # Returns a fully-qualified operation_path resource name string.
-      # @param operation_path [String]
-      # @return [String]
-      def self.operation_path_path operation_path
-        OPERATION_PATH_PATH_TEMPLATE.render(
-          :"operation_path" => operation_path
-        )
-      end
-
-      # Parses the operation_path from a operation_path resource.
-      # @param operation_path_name [String]
-      # @return [String]
-      def self.match_operation_path_from_operation_path_name operation_path_name
-        OPERATION_PATH_PATH_TEMPLATE.match(operation_path_name)["operation_path"]
-      end
 
       # @param service_path [String]
       #   The domain name of the API remote host.
@@ -186,13 +164,13 @@ module Google
       # @return [Google::Longrunning::Operation]
       # @raise [Google::Gax::GaxError] if the RPC is aborted.
       # @example
-      #   require "google/longrunning/operations_api"
+      #   require "google/longrunning/operations_client"
       #
-      #   OperationsApi = Google::Longrunning::OperationsApi
+      #   OperationsClient = Google::Longrunning::OperationsClient
       #
-      #   operations_api = OperationsApi.new
-      #   formatted_name = OperationsApi.operation_path_path("[OPERATION_PATH]")
-      #   response = operations_api.get_operation(formatted_name)
+      #   operations_client = OperationsClient.new
+      #   name = ''
+      #   response = operations_client.get_operation(name)
 
       def get_operation \
           name,
@@ -229,21 +207,21 @@ module Google
       #   object.
       # @raise [Google::Gax::GaxError] if the RPC is aborted.
       # @example
-      #   require "google/longrunning/operations_api"
+      #   require "google/longrunning/operations_client"
       #
-      #   OperationsApi = Google::Longrunning::OperationsApi
+      #   OperationsClient = Google::Longrunning::OperationsClient
       #
-      #   operations_api = OperationsApi.new
+      #   operations_client = OperationsClient.new
       #   name = ''
       #   filter = ''
       #
       #   # Iterate over all results.
-      #   operations_api.list_operations(name, filter).each do |element|
+      #   operations_client.list_operations(name, filter).each do |element|
       #     # Process element.
       #   end
       #
       #   # Or iterate over results one page at a time.
-      #   operations_api.list_operations(name, filter).each_page do |page|
+      #   operations_client.list_operations(name, filter).each_page do |page|
       #     # Process each page at a time.
       #     page.each do |element|
       #       # Process element.
@@ -281,13 +259,13 @@ module Google
       #   retries, etc.
       # @raise [Google::Gax::GaxError] if the RPC is aborted.
       # @example
-      #   require "google/longrunning/operations_api"
+      #   require "google/longrunning/operations_client"
       #
-      #   OperationsApi = Google::Longrunning::OperationsApi
+      #   OperationsClient = Google::Longrunning::OperationsClient
       #
-      #   operations_api = OperationsApi.new
-      #   formatted_name = OperationsApi.operation_path_path("[OPERATION_PATH]")
-      #   operations_api.cancel_operation(formatted_name)
+      #   operations_client = OperationsClient.new
+      #   name = ''
+      #   operations_client.cancel_operation(name)
 
       def cancel_operation \
           name,
@@ -296,6 +274,7 @@ module Google
           name: name
         }.delete_if { |_, v| v.nil? })
         @cancel_operation.call(req, options)
+        nil
       end
 
       # Deletes a long-running operation. This method indicates that the client is
@@ -310,13 +289,13 @@ module Google
       #   retries, etc.
       # @raise [Google::Gax::GaxError] if the RPC is aborted.
       # @example
-      #   require "google/longrunning/operations_api"
+      #   require "google/longrunning/operations_client"
       #
-      #   OperationsApi = Google::Longrunning::OperationsApi
+      #   OperationsClient = Google::Longrunning::OperationsClient
       #
-      #   operations_api = OperationsApi.new
-      #   formatted_name = OperationsApi.operation_path_path("[OPERATION_PATH]")
-      #   operations_api.delete_operation(formatted_name)
+      #   operations_client = OperationsClient.new
+      #   name = ''
+      #   operations_client.delete_operation(name)
 
       def delete_operation \
           name,
@@ -325,6 +304,7 @@ module Google
           name: name
         }.delete_if { |_, v| v.nil? })
         @delete_operation.call(req, options)
+        nil
       end
     end
   end
