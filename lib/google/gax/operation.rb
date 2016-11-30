@@ -148,7 +148,7 @@ module Google
       # If the type cannot be found the raw metadata is retuned.
       #
       # @return [Object, nil]
-      #   The result of the operation. Can be nil.
+      #   The metadata of the operation. Can be nil.
       def metadata
         return nil if @grpc_op.metadata.nil?
         @grpc_op.metadata.unpack(@metadata_type)
