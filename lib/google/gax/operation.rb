@@ -46,7 +46,9 @@ module Google
     #   operationsClient = Google::Longrunning::OperationsApi.new
     #   op = Google::Gax::Operation.new(
     #     api.methodThatReturnsOperation(),
-    #     operations_client
+    #     operations_client,
+    #     Google::Example::ResultType,
+    #     Google::Example::MetadataType
     #   )
     #
     #   op.done? # => false
@@ -65,17 +67,16 @@ module Google
     #   operationsClient = Google::Longrunning::OperationsApi.new
     #   op = Google::Gax::Operation.new(
     #     api.method_that_returns_operation,
-    #     operations_client
+    #     operations_client,
+    #     Google::Example::ResultType,
+    #     Google::Example::MetadataType
     #   )
     #
     #   # Register a callback to be run when an operation is done.
     #   op.on_done do |operation|
     #     raise operation.results.message if operation.error?
-    #     results = operation.results
-    #     # Handle results.
-    #
-    #     metadata = operation.metadata
-    #     # Handle metadata.
+    #     # process(operation.results)
+    #     # process(operation.metadata)
     #   end
     #
     #   # Reload the operation running callbacks if operation completed.
@@ -85,11 +86,8 @@ module Google
     #   # on completion.
     #   op.wait_until_done do |operation|
     #     raise operation.results.message if operation.error?
-    #     results = operation.results
-    #     # Handle results.
-    #
-    #     metadata = operation.metadata
-    #     # Handle metadata.
+    #     # process(operation.results)
+    #     # process(operation.rmetadata)
     #   end
     #
     # @attribute [r] grpc_op
@@ -107,12 +105,19 @@ module Google
       #   The inital longrunning operation.
       # @param client [Google::Longrunning::OperationsApi]
       #   The client that handles the grpc operations.
+      # @param result_type [Class] The class type to be unpacked from the
+      #   result.
+      # @param metadata_type [Class] The class type to be unpacked from the
+      #   metadata.
       # @param call_options [Google::Gax::CallOptions]
       #   The call options that are used when reloading the operation.
-      def initialize(grpc_op, client, call_options: nil)
+      def initialize(grpc_op, client, result_type, metadata_type,
+                     call_options: nil)
         @grpc_op = grpc_op
         @client = client
         @call_options = call_options
+        @result_type = result_type
+        @metadata_type = metadata_type
         @callbacks = []
       end
 
@@ -125,23 +130,13 @@ module Google
       # Google::Protobuf::DescriptorPool.generated_pool.
       # If the type cannot be found the raw response is retuned.
       #
-      # @param type [Class] The class type to be unpacked from the response.
-      #
-      # @return [nil | Google::Rpc::Status | Object | Google::Protobuf::Any ]
-      #   The result of the operation
-      def results(type: nil)
+      # @return [Object, Google::Rpc::Status, nil]
+      #   The result of the operation. If it is an error a Google::Rpc::Status
+      #   will be returned.
+      def results
         return nil unless done?
         return @grpc_op.error if error?
-        return @grpc_op.response.unpack(type) if type
-        begin
-          return unpack(@grpc_op.response)
-        rescue RuntimeError => e
-          warn e.message + ' The raw response was returned. To get the \
-               unpacked response object, either specify the type, \
-               or require the protofile containing the type: ' +
-               @grpc_op.response.type_name + '.'
-        end
-        @grpc_op.response
+        @grpc_op.response.unpack(@result_type)
       end
 
       # Returns the metadata of an operation. If a type is provided,
@@ -152,22 +147,11 @@ module Google
       # Google::Protobuf::DescriptorPool.generated_pool.
       # If the type cannot be found the raw metadata is retuned.
       #
-      # @param type [Class] The class type to be unpacked from the response.
-      #
-      # @return [nil | Object | Google::Protobuf::Any ]
-      #   The result of the operation
-      def metadata(type: nil)
+      # @return [Object, nil]
+      #   The metadata of the operation. Can be nil.
+      def metadata
         return nil if @grpc_op.metadata.nil?
-        return @grpc_op.metadata.unpack(type) if type
-        begin
-          return unpack(@grpc_op.metadata)
-        rescue RuntimeError => e
-          warn e.message + ' The raw metadata was returned. To get the \
-               unpacked metadata object, either specify the type, \
-               or require the protofile containing the type: ' +
-               @grpc_op.metadata.type_name + '.'
-        end
-        @grpc_op.metadata
+        @grpc_op.metadata.unpack(@metadata_type)
       end
 
       # Checks if the operation is done. This does not send a new api call,
@@ -255,28 +239,6 @@ module Google
           @callbacks.push(block)
         end
       end
-
-      # Unpacks an google.protobuf.any message using the type_name stored
-      # in the any type if the type can be found in the
-      # Google::Protobuf::DescriptorPool.generated_pool.
-      #
-      # @param any [Google::Protobuf::Any] The message to be unpacked.
-      #
-      # @return [Object] The unpacked message.
-      #
-      # @raise [RuntimeError] A RuntimeError will be raised if the message type
-      #   of the value of the any message was not found in the
-      #   Google::Protobuf::DescriptorPool.generated_pool.
-      def unpack(any)
-        response_type =
-          Google::Protobuf::DescriptorPool.generated_pool.lookup(any.type_name)
-        return any.unpack(response_type.msgclass) if response_type
-        raise 'The type_name of the Google::Protobuf::Any was not found in \
-              the Google::Protobuf::DescriptorPool.generated_pool. Unable to \
-              unpack. This often means that the proto containing the type: ' +
-              any.type_name + ' has not been required.'
-      end
-      private :unpack
     end
   end
 end
