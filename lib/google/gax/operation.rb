@@ -41,9 +41,9 @@ module Google
     #
     # @example Checking Operation status
     #   require 'google/gax/operation'
-    #   require 'google/longrunning/operations_api'
+    #   require 'google/longrunning/operations_client'
     #
-    #   operationsClient = Google::Longrunning::OperationsApi.new
+    #   operations_client = Google::Longrunning::OperationsClient.new
     #   op = Google::Gax::Operation.new(
     #     api.methodThatReturnsOperation(),
     #     operations_client,
@@ -62,9 +62,9 @@ module Google
     #
     # @example Working with callbacks
     #   require 'google/gax/operation'
-    #   require 'google/longrunning/operations_api'
+    #   require 'google/longrunning/operations_client'
     #
-    #   operationsClient = Google::Longrunning::OperationsApi.new
+    #   operations_client = Google::Longrunning::OperationsClient.new
     #   op = Google::Gax::Operation.new(
     #     api.method_that_returns_operation,
     #     operations_client,
@@ -103,7 +103,7 @@ module Google
 
       # @param grpc_op [Google::Longrunning::Operation]
       #   The inital longrunning operation.
-      # @param client [Google::Longrunning::OperationsApi]
+      # @param client [Google::Longrunning::OperationsClient]
       #   The client that handles the grpc operations.
       # @param result_type [Class] The class type to be unpacked from the
       #   result.
