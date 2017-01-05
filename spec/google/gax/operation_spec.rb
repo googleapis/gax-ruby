@@ -58,8 +58,8 @@ end
 
 # TODO: This is from google/protobuf/well_known_types.rb.
 # Using google/protobuf in gax-ruby is currently causing a dependency
-# conflict. When this conflict can be sorted out, remove this function
-# and use Google::Protobuf::Any#pack.
+# conflict with grpc. When grpc depends on google-protobuf v3.1.0
+# remove this function and use Google::Protobuf::Any#pack.
 def pack(any_pb, msg, type_url_prefix = 'type.googleapis.com/')
   if type_url_prefix.empty? || type_url_prefix[-1] != '/'
     any_pb.type_url = "#{type_url_prefix}/#{msg.class.descriptor.name}"

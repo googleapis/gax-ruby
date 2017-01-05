@@ -241,8 +241,8 @@ module Google
 
       # TODO: This is from google/protobuf/well_known_types.rb.
       # Using google/protobuf in gax-ruby is currently causing a dependency
-      # conflict. When this conflict can be sorted out, remove this function
-      # and use Google::Protobuf::Any#unpack.
+      # conflict with grpc. When grpc depends on google-protobuf v3.1.0
+      # remove this function and use Google::Protobuf::Any#unpack.
       def unpack(any_pb, klass)
         type_name = any_pb.type_url.split('/')[-1]
         return klass.decode(any_pb.value) if type_name == klass.descriptor.name
