@@ -28,6 +28,8 @@ Metrics/PerceivedComplexity:
   Max: 11
 
 Metrics/BlockLength:
+  Exclude:
+    - "**/*_spec.rb"
   Max: 26
 
 # Offense count: 2
