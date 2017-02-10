@@ -43,9 +43,10 @@ GaxOp = Google::Gax::Operation
 MILLIS_PER_SECOND = Google::Gax::MILLIS_PER_SECOND
 
 class MockLroClient
-  def initialize(get_method: nil, cancel_method: nil)
+  def initialize(get_method: nil, cancel_method: nil, delete_method: nil)
     @get_method = get_method
     @cancel_method = cancel_method
+    @delete_method = delete_method
   end
 
   def get_operation(grpc_method, options: nil)
@@ -54,6 +55,10 @@ class MockLroClient
 
   def cancel_operation(name)
     @cancel_method.call(name)
+  end
+
+  def delete_operation(name)
+    @delete_method.call(name)
   end
 end
 
@@ -140,6 +145,20 @@ describe Google::Gax::Operation do
       end
       mock_client = MockLroClient.new(cancel_method: cancel_method)
       create_op(GrpcOp.new(name: op_name), client: mock_client).cancel
+      expect(called).to eq(true)
+    end
+  end
+
+  context 'method `delete`' do
+    it 'should call the clients delete_operation' do
+      op_name = 'test_name'
+      called = false
+      delete_method = proc do |name|
+        expect(name).to eq(op_name)
+        called = true
+      end
+      mock_client = MockLroClient.new(delete_method: delete_method)
+      create_op(GrpcOp.new(name: op_name), client: mock_client).delete
       expect(called).to eq(true)
     end
   end

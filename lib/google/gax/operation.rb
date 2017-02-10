@@ -175,6 +175,11 @@ module Google
         @client.cancel_operation(@grpc_op.name)
       end
 
+      # Deletes the operation.
+      def delete
+        @client.delete_operation(@grpc_op.name)
+      end
+
       # Reloads the operation object.
       #
       # @return [Google::Gax::Operation]
