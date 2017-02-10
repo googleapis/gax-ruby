@@ -135,7 +135,7 @@ module Google
       #   will be returned.
       def results
         return nil unless done?
-        return @grpc_op.error if error?
+        return error if error?
         @grpc_op.response.unpack(@result_type)
       end
 
@@ -168,6 +168,15 @@ module Google
       # @return [Boolean] Whether an error has been returned.
       def error?
         done? ? @grpc_op.result == :error : false
+      end
+
+      # If the operation response is an error, the error will be returned,
+      # otherwise returns nil.
+      #
+      # @return [Google::Rpc::Status, nil]
+      #   The error object.
+      def error
+        @grpc_op.error if error?
       end
 
       # Cancels the operation.
