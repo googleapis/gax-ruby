@@ -121,22 +121,16 @@ module Google
         @callbacks = []
       end
 
-      # If the operation is done, returns the result, otherwise returns nil.
+      # If the operation is done, returns the response.
       # If the operation response is an error, the error will be returned.
-      # If a type is provided, the response will be unpacked using the type
-      # provided; returning nil if the response is not of the type provided.
-      # If the type is not of provided, the response will be unpacked using
-      # the response's type_url if the type_url is found in the
-      # Google::Protobuf::DescriptorPool.generated_pool.
-      # If the type cannot be found the raw response is retuned.
+      # Otherwise returns nil.
       #
       # @return [Object, Google::Rpc::Status, nil]
       #   The result of the operation. If it is an error a Google::Rpc::Status
       #   will be returned.
       def results
-        return nil unless done?
         return error if error?
-        @grpc_op.response.unpack(@result_type)
+        return response if response?
       end
 
       # Returns the metadata of an operation. If a type is provided,
@@ -160,6 +154,22 @@ module Google
       # @return [Boolean] Whether the operation is done.
       def done?
         @grpc_op.done
+      end
+
+      # Checks if the operation is done and the result is a response.
+      # If the operation is not finished then this will return false.
+      #
+      # @return [Boolean] Whether a response has been returned.
+      def response?
+        done? ? @grpc_op.result == :response : false
+      end
+
+      # If the operation is done, returns the response, otherwise returns nil.
+      #
+      # @return [Object, nil]
+      #   The response of the operation.
+      def response
+        @grpc_op.response.unpack(@result_type) if response?
       end
 
       # Checks if the operation is done and the result is an error.

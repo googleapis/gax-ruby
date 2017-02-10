@@ -153,6 +153,41 @@ describe Google::Gax::Operation do
     end
   end
 
+  context 'method `response?`' do
+    it 'should return false on unfinished operation.' do
+      expect(create_op(GrpcOp.new(done: false)).response?).to eq(false)
+    end
+
+    it 'should return false on error operation.' do
+      error = Google::Rpc::Status.new
+      op = create_op(GrpcOp.new(done: true, error: error))
+      expect(op.response?).to eq(false)
+    end
+
+    it 'should return true on finished operation.' do
+      op = create_op(GrpcOp.new(done: true, response: RESULT_ANY))
+      expect(op.response?).to eq(true)
+    end
+  end
+
+  context 'method `response`' do
+    it 'should return nil on unfinished operation.' do
+      op = create_op(GrpcOp.new(done: false))
+      expect(op.response).to eq(nil)
+    end
+
+    it 'should return nil on error operation.' do
+      error = Google::Rpc::Status.new
+      op = create_op(GrpcOp.new(done: true, error: error))
+      expect(op.response).to eq(nil)
+    end
+
+    it 'should result on finished operation.' do
+      op = create_op(GrpcOp.new(done: true, response: RESULT_ANY))
+      expect(op.response).to eq(RESULT)
+    end
+  end
+
   context 'method `cancel`' do
     it 'should call the clients cancel_operation' do
       op_name = 'test_name'
