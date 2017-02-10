@@ -104,6 +104,13 @@ describe Google::Gax::Operation do
     end
   end
 
+  context 'method `name`' do
+    it 'should return the operation name' do
+      op = create_op(GrpcOp.new(done: true, name: '1234567890'))
+      expect(op.name).to eq('1234567890')
+    end
+  end
+
   context 'method `metadata`' do
     it 'should unpack the metadata' do
       op = create_op(GrpcOp.new(done: true, metadata: METADATA_ANY))

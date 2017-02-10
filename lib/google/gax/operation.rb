@@ -133,6 +133,17 @@ module Google
         return response if response?
       end
 
+      # Returns the server-assigned name of the operation, which is only unique
+      # within the same service that originally returns it. If you use the
+      # default HTTP mapping, the name should have the format of
+      # operations/some/unique/name.
+      #
+      # @return [String]
+      #   The name of the operation.
+      def name
+        @grpc_op.name
+      end
+
       # Returns the metadata of an operation. If a type is provided,
       # the metadata will be unpacked using the type provided; returning nil
       # if the metadata is not of the type provided.
