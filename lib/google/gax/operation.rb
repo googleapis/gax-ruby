@@ -32,6 +32,7 @@ require 'time'
 # These must be loaded separate from google/gax to avoid circular dependency.
 require 'google/gax/constants'
 require 'google/gax/settings'
+require 'google/protobuf/well_known_types'
 
 module Google
   module Gax
@@ -135,7 +136,7 @@ module Google
       def results
         return nil unless done?
         return @grpc_op.error if error?
-        unpack(@grpc_op.response, @result_type)
+        @grpc_op.response.unpack(@result_type)
       end
 
       # Returns the metadata of an operation. If a type is provided,
@@ -150,7 +151,7 @@ module Google
       #   The metadata of the operation. Can be nil.
       def metadata
         return nil if @grpc_op.metadata.nil?
-        unpack(@grpc_op.metadata, @metadata_type)
+        @grpc_op.metadata.unpack(@metadata_type)
       end
 
       # Checks if the operation is done. This does not send a new api call,
@@ -238,16 +239,6 @@ module Google
           @callbacks.push(block)
         end
       end
-
-      # TODO: This is from google/protobuf/well_known_types.rb.
-      # Using google/protobuf in gax-ruby is currently causing a dependency
-      # conflict with grpc. When grpc depends on google-protobuf v3.1.0
-      # remove this function and use Google::Protobuf::Any#unpack.
-      def unpack(any_pb, klass)
-        type_name = any_pb.type_url.split('/')[-1]
-        return klass.decode(any_pb.value) if type_name == klass.descriptor.name
-      end
-      private :unpack
     end
   end
 end
