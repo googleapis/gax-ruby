@@ -405,14 +405,16 @@ module Google
     #           "non_idempotent": []
     #         },
     #         "retry_params": {
-    #           "default": {
-    #             "initial_retry_delay_millis": 100,
-    #             "retry_delay_multiplier": 1.2,
-    #             "max_retry_delay_millis": 1000,
-    #             "initial_rpc_timeout_millis": 2000,
-    #             "rpc_timeout_multiplier": 1.5,
-    #             "max_rpc_timeout_millis": 30000,
-    #             "total_timeout_millis": 45000
+    #           "retry_params_def": {
+    #             "default": {
+    #               "initial_retry_delay_millis": 100,
+    #               "retry_delay_multiplier": 1.2,
+    #               "max_retry_delay_millis": 1000,
+    #               "initial_rpc_timeout_millis": 2000,
+    #               "rpc_timeout_multiplier": 1.5,
+    #               "max_rpc_timeout_millis": 30000,
+    #               "total_timeout_millis": 45000
+    #             }
     #           }
     #         },
     #         "methods": {
@@ -483,16 +485,21 @@ module Google
         end
         bundle_descriptor = bundle_descriptors[snake_name]
 
+        overrides_retry_params = nil
+        if overrides['retry_params']
+          overrides_retry_params = overrides['retry_params']['retry_params_def']
+        end
+
         defaults[snake_name] = CallSettings.new(
           timeout: timeout,
           retry_options: merge_retry_options(
             construct_retry(method_config,
                             service_config['retry_codes'],
-                            service_config['retry_params'],
+                            service_config['retry_params']['retry_params_def'],
                             retry_names),
             construct_retry(overriding_method,
                             overrides['retry_codes'],
-                            overrides['retry_params'],
+                            overrides_retry_params,
                             retry_names)
           ),
           page_descriptor: page_descriptors[snake_name],
