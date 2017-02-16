@@ -24,7 +24,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'googleauth', '~> 0.5.1'
   s.add_dependency 'grpc', '~> 1.0'
   s.add_dependency 'googleapis-common-protos', '~> 1.3.1'
-  s.add_dependency 'google-protobuf', '~> 3.2.0'
+  s.add_dependency 'google-protobuf', '~> 3.2'
   s.add_dependency 'rly', '~> 0.2.3'
 
   s.add_development_dependency 'codecov', '~> 0.1'
