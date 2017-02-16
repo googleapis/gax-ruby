@@ -400,9 +400,11 @@ module Google
     #   {
     #     "interfaces": {
     #       "google.fake.v1.ServiceName": {
-    #         "retry_codes": {
-    #           "idempotent": ["UNAVAILABLE", "DEADLINE_EXCEEDED"],
-    #           "non_idempotent": []
+    #         "retry_codes_def": {
+    #           "retry_codes": {
+    #             "idempotent": ["UNAVAILABLE", "DEADLINE_EXCEEDED"],
+    #             "non_idempotent": []
+    #           }
     #         },
     #         "retry_params": {
     #           "default": {
@@ -471,6 +473,15 @@ module Google
 
       overrides = config_overrides.fetch('interfaces', {})[service_name] || {}
 
+      service_config_retry_codes =
+        service_config['retry_codes_def']['retry_codes']
+      service_config_retry_params = service_config['retry_params']
+
+      if !overrides.empty? && overrides['retry_codes_def']
+        overrides_retry_codes = overrides['retry_codes_def']['retry_codes']
+      end
+      overrides_retry_params = overrides['retry_params']
+
       service_config['methods'].each_pair do |method_name, method_config|
         snake_name = upper_camel_to_lower_underscore(method_name)
 
@@ -487,12 +498,12 @@ module Google
           timeout: timeout,
           retry_options: merge_retry_options(
             construct_retry(method_config,
-                            service_config['retry_codes'],
-                            service_config['retry_params'],
+                            service_config_retry_codes,
+                            service_config_retry_params,
                             retry_names),
             construct_retry(overriding_method,
-                            overrides['retry_codes'],
-                            overrides['retry_params'],
+                            overrides_retry_codes,
+                            overrides_retry_params,
                             retry_names)
           ),
           page_descriptor: page_descriptors[snake_name],
