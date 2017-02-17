@@ -32,8 +32,6 @@ require 'time'
 require 'google/gax/errors'
 require 'google/gax/bundling'
 
-# rubocop:disable Metrics/ModuleLength
-
 module Google
   module Gax
     # A class to provide the Enumerable interface for page-streaming method.
@@ -311,8 +309,6 @@ module Google
                                        resource_field)
       enumerable.method(:start)
     end
-
-    # rubocop:disable Metrics/MethodLength
 
     # Creates a proc equivalent to a_func, but that retries on certain
     # exceptions.

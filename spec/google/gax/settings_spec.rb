@@ -36,8 +36,10 @@ A_CONFIG = {
   'interfaces' => {
     SERVICE_NAME => {
       'retry_codes' => {
-        'foo_retry' => %w(code_a code_b),
-        'bar_retry' => %w(code_c)
+        'retry_codes_def' => {
+          'foo_retry' => %w(code_a code_b),
+          'bar_retry' => %w(code_c)
+        }
       },
       'retry_params' => {
         'default' => {
@@ -156,8 +158,10 @@ describe Google::Gax do
       'interfaces' => {
         SERVICE_NAME => {
           'retry_codes' => {
-            'bar_retry' => [],
-            'baz_retry' => ['code_a']
+            'retry_codes_def' => {
+              'bar_retry' => [],
+              'baz_retry' => ['code_a']
+            }
           },
           'retry_params' => {
             'default' => {
