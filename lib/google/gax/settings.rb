@@ -474,11 +474,11 @@ module Google
       overrides = config_overrides.fetch('interfaces', {})[service_name] || {}
 
       service_config_retry_codes =
-        service_config['retry_codes_def']['retry_codes']
+        service_config['retry_codes']['retry_codes_def']
       service_config_retry_params = service_config['retry_params']
 
-      if !overrides.empty? && overrides['retry_codes_def']
-        overrides_retry_codes = overrides['retry_codes_def']['retry_codes']
+      if !overrides.empty? && overrides['retry_codes']
+        overrides_retry_codes = overrides['retry_codes']['retry_codes_def']
       end
       overrides_retry_params = overrides['retry_params']
 

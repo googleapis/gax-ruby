@@ -35,8 +35,8 @@ SERVICE_NAME = 'test.interface.v1.api'.freeze
 A_CONFIG = {
   'interfaces' => {
     SERVICE_NAME => {
-      'retry_codes_def' => {
-        'retry_codes' => {
+      'retry_codes' => {
+        'retry_codes_def' => {
           'foo_retry' => %w(code_a code_b),
           'bar_retry' => %w(code_c)
         }
@@ -157,8 +157,8 @@ describe Google::Gax do
     override = {
       'interfaces' => {
         SERVICE_NAME => {
-          'retry_codes_def' => {
-            'retry_codes' => {
+          'retry_codes' => {
+            'retry_codes_def' => {
               'bar_retry' => [],
               'baz_retry' => ['code_a']
             }
