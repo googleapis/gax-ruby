@@ -43,9 +43,10 @@ GaxOp = Google::Gax::Operation
 MILLIS_PER_SECOND = Google::Gax::MILLIS_PER_SECOND
 
 class MockLroClient
-  def initialize(get_method: nil, cancel_method: nil)
+  def initialize(get_method: nil, cancel_method: nil, delete_method: nil)
     @get_method = get_method
     @cancel_method = cancel_method
+    @delete_method = delete_method
   end
 
   def get_operation(grpc_method, options: nil)
@@ -54,6 +55,10 @@ class MockLroClient
 
   def cancel_operation(name)
     @cancel_method.call(name)
+  end
+
+  def delete_operation(name)
+    @delete_method.call(name)
   end
 end
 
@@ -99,6 +104,13 @@ describe Google::Gax::Operation do
     end
   end
 
+  context 'method `name`' do
+    it 'should return the operation name' do
+      op = create_op(GrpcOp.new(done: true, name: '1234567890'))
+      expect(op.name).to eq('1234567890')
+    end
+  end
+
   context 'method `metadata`' do
     it 'should unpack the metadata' do
       op = create_op(GrpcOp.new(done: true, metadata: METADATA_ANY))
@@ -124,9 +136,62 @@ describe Google::Gax::Operation do
       expect(op.error?).to eq(true)
     end
 
-    it 'should return true on finished operation.' do
+    it 'should return false on finished operation.' do
       op = create_op(GrpcOp.new(done: true, response: RESULT_ANY))
       expect(op.error?).to eq(false)
+    end
+  end
+
+  context 'method `error`' do
+    it 'should return nil on unfinished operation.' do
+      op = create_op(GrpcOp.new(done: false))
+      expect(op.error).to eq(nil)
+    end
+
+    it 'should return error on error operation.' do
+      error = Google::Rpc::Status.new
+      op = create_op(GrpcOp.new(done: true, error: error))
+      expect(op.error).to eq(error)
+    end
+
+    it 'should return nil on finished operation.' do
+      op = create_op(GrpcOp.new(done: true, response: RESULT_ANY))
+      expect(op.error).to eq(nil)
+    end
+  end
+
+  context 'method `response?`' do
+    it 'should return false on unfinished operation.' do
+      expect(create_op(GrpcOp.new(done: false)).response?).to eq(false)
+    end
+
+    it 'should return false on error operation.' do
+      error = Google::Rpc::Status.new
+      op = create_op(GrpcOp.new(done: true, error: error))
+      expect(op.response?).to eq(false)
+    end
+
+    it 'should return true on finished operation.' do
+      op = create_op(GrpcOp.new(done: true, response: RESULT_ANY))
+      expect(op.response?).to eq(true)
+    end
+  end
+
+  context 'method `response`' do
+    it 'should return nil on unfinished operation.' do
+      op = create_op(GrpcOp.new(done: false))
+      expect(op.response).to eq(nil)
+    end
+
+    it 'should return nil on error operation.' do
+      error = Google::Rpc::Status.new
+      op = create_op(GrpcOp.new(done: true, error: error))
+      expect(op.response).to eq(nil)
+    end
+
+    it 'should result on finished operation.' do
+      op = create_op(GrpcOp.new(done: true, response: RESULT_ANY))
+      expect(op.response).to eq(RESULT)
     end
   end
 
@@ -140,6 +205,20 @@ describe Google::Gax::Operation do
       end
       mock_client = MockLroClient.new(cancel_method: cancel_method)
       create_op(GrpcOp.new(name: op_name), client: mock_client).cancel
+      expect(called).to eq(true)
+    end
+  end
+
+  context 'method `delete`' do
+    it 'should call the clients delete_operation' do
+      op_name = 'test_name'
+      called = false
+      delete_method = proc do |name|
+        expect(name).to eq(op_name)
+        called = true
+      end
+      mock_client = MockLroClient.new(delete_method: delete_method)
+      create_op(GrpcOp.new(name: op_name), client: mock_client).delete
       expect(called).to eq(true)
     end
   end
