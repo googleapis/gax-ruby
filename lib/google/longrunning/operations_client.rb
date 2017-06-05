@@ -191,11 +191,9 @@ module Google
       # @return [Google::Longrunning::Operation]
       # @raise [Google::Gax::GaxError] if the RPC is aborted.
       # @example
-      #   require "google/longrunning/operations_client"
+      #   require "google/longrunning"
       #
-      #   OperationsClient = Google::Longrunning::OperationsClient
-      #
-      #   operations_client = OperationsClient.new
+      #   operations_client = Google::Longrunning::OperationsClient.new
       #   name = ''
       #   response = operations_client.get_operation(name)
 
@@ -234,11 +232,9 @@ module Google
       #   object.
       # @raise [Google::Gax::GaxError] if the RPC is aborted.
       # @example
-      #   require "google/longrunning/operations_client"
+      #   require "google/longrunning"
       #
-      #   OperationsClient = Google::Longrunning::OperationsClient
-      #
-      #   operations_client = OperationsClient.new
+      #   operations_client = Google::Longrunning::OperationsClient.new
       #   name = ''
       #   filter = ''
       #
@@ -286,11 +282,9 @@ module Google
       #   retries, etc.
       # @raise [Google::Gax::GaxError] if the RPC is aborted.
       # @example
-      #   require "google/longrunning/operations_client"
+      #   require "google/longrunning"
       #
-      #   OperationsClient = Google::Longrunning::OperationsClient
-      #
-      #   operations_client = OperationsClient.new
+      #   operations_client = Google::Longrunning::OperationsClient.new
       #   name = ''
       #   operations_client.cancel_operation(name)
 
@@ -316,11 +310,9 @@ module Google
       #   retries, etc.
       # @raise [Google::Gax::GaxError] if the RPC is aborted.
       # @example
-      #   require "google/longrunning/operations_client"
+      #   require "google/longrunning"
       #
-      #   OperationsClient = Google::Longrunning::OperationsClient
-      #
-      #   operations_client = OperationsClient.new
+      #   operations_client = Google::Longrunning::OperationsClient.new
       #   name = ''
       #   operations_client.delete_operation(name)
 
