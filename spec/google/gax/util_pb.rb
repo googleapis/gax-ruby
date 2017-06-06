@@ -1,4 +1,4 @@
-# Copyright 2016, Google Inc.
+# Copyright 2017, Google Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,16 +27,28 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require 'google/gax/api_callable'
-require 'google/gax/constants'
-require 'google/gax/errors'
-require 'google/gax/path_template'
-require 'google/gax/settings'
-require 'google/gax/util'
-require 'google/gax/version'
+require "google/protobuf"
 
-module Google
-  # Gax defines Google API extensions
-  module Gax
+Google::Protobuf::DescriptorPool.generated_pool.build do
+  add_message "CreateUserRequest" do
+    optional :name, :string, 1
+    optional :user, :message, 2, "User"
+  end
+  add_message "User" do
+    optional :name, :string, 1
+    repeated :posts, :message, 2, "Post"
+    optional :type, :enum, 3, "User.UserType"
+  end
+  add_enum "User.UserType" do
+    value :UNSPECIFIED, 0
+    value :ADMINISTRATOR, 1
+  end
+  add_message "Post" do
+    optional :text, :string, 1
   end
 end
+
+CreateUserRequest = Google::Protobuf::DescriptorPool.generated_pool.lookup("CreateUserRequest").msgclass
+User = Google::Protobuf::DescriptorPool.generated_pool.lookup("User").msgclass
+User::UserType = Google::Protobuf::DescriptorPool.generated_pool.lookup("User.UserType").enummodule
+Post = Google::Protobuf::DescriptorPool.generated_pool.lookup("Post").msgclass

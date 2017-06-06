@@ -9,6 +9,7 @@
 AllCops:
   Exclude:
     - 'lib/google/longrunning/**/*'
+    - 'spec/google/gax/util_pb.rb'
 
 # Offense count: 1
 Metrics/AbcSize:
