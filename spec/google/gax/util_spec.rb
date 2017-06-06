@@ -28,7 +28,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 require 'google/gax'
-require 'spec/google/gax/util_pb'
+require 'spec/fixtures/fixture_pb'
 
 describe Google::Gax do
   describe '#to_proto' do
@@ -39,8 +39,8 @@ describe Google::Gax do
 
     it 'creates a protobuf message from a simple hash' do
       hash = { name: USER_NAME, type: USER_TYPE }
-      user = Google::Gax.to_proto(hash, User)
-      expect(user).to be_an_instance_of(User)
+      user = Google::Gax.to_proto(hash, Google::Protobuf::User)
+      expect(user).to be_an_instance_of(Google::Protobuf::User)
       expect(user.name).to eq(USER_NAME)
       expect(user.type).to eq(USER_TYPE)
     end
@@ -48,12 +48,12 @@ describe Google::Gax do
     it 'creates a protobuf message from a hash with a nested message' do
       request_hash = {
         name: REQUEST_NAME,
-        user: User.new(name: USER_NAME, type: USER_TYPE)
+        user: Google::Protobuf::User.new(name: USER_NAME, type: USER_TYPE)
       }
-      request = Google::Gax.to_proto(request_hash, CreateUserRequest)
-      expect(request).to be_an_instance_of(CreateUserRequest)
+      request = Google::Gax.to_proto(request_hash, Google::Protobuf::Request)
+      expect(request).to be_an_instance_of(Google::Protobuf::Request)
       expect(request.name).to eq(REQUEST_NAME)
-      expect(request.user).to be_an_instance_of(User)
+      expect(request.user).to be_an_instance_of(Google::Protobuf::User)
       expect(request.user.name).to eq(USER_NAME)
       expect(request.user.type).to eq(USER_TYPE)
     end
@@ -63,10 +63,10 @@ describe Google::Gax do
         name: REQUEST_NAME,
         user: { name: USER_NAME, type: USER_TYPE }
       }
-      request = Google::Gax.to_proto(request_hash, CreateUserRequest)
-      expect(request).to be_an_instance_of(CreateUserRequest)
+      request = Google::Gax.to_proto(request_hash, Google::Protobuf::Request)
+      expect(request).to be_an_instance_of(Google::Protobuf::Request)
       expect(request.name).to eq(REQUEST_NAME)
-      expect(request.user).to be_an_instance_of(User)
+      expect(request.user).to be_an_instance_of(Google::Protobuf::User)
       expect(request.user.name).to eq(USER_NAME)
       expect(request.user.type).to eq(USER_TYPE)
     end
@@ -77,16 +77,16 @@ describe Google::Gax do
         type: USER_TYPE,
         posts: [
           { text: POST_TEXT },
-          Post.new(text: POST_TEXT)
+          Google::Protobuf::Post.new(text: POST_TEXT)
         ]
       }
-      user = Google::Gax.to_proto(user_hash, User)
-      expect(user).to be_an_instance_of(User)
+      user = Google::Gax.to_proto(user_hash, Google::Protobuf::User)
+      expect(user).to be_an_instance_of(Google::Protobuf::User)
       expect(user.name).to eq(USER_NAME)
       expect(user.type).to eq(USER_TYPE)
       expect(user.posts).to be_a(Google::Protobuf::RepeatedField)
       user.posts.each do |post|
-        expect(post).to be_an_instance_of(Post)
+        expect(post).to be_an_instance_of(Google::Protobuf::Post)
         expect(post.text).to eq(POST_TEXT)
       end
     end
@@ -97,7 +97,7 @@ describe Google::Gax do
         fake_key: 'fake data'
       }
       expect do
-        Google::Gax.to_proto(user_hash, User)
+        Google::Gax.to_proto(user_hash, Google::Protobuf::User)
       end.to raise_error(ArgumentError)
     end
   end
