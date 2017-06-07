@@ -40,14 +40,16 @@ A_CONFIG = {
         'bar_retry' => %w(code_c)
       },
       'retry_params' => {
-        'default' => {
-          'initial_retry_delay_millis' => 100,
-          'retry_delay_multiplier' => 1.2,
-          'max_retry_delay_millis' => 1000,
-          'initial_rpc_timeout_millis' => 300,
-          'rpc_timeout_multiplier' => 1.3,
-          'max_rpc_timeout_millis' => 3000,
-          'total_timeout_millis' => 30_000
+        'retry_params_def' => {
+          'default' => {
+            'initial_retry_delay_millis' => 100,
+            'retry_delay_multiplier' => 1.2,
+            'max_retry_delay_millis' => 1000,
+            'initial_rpc_timeout_millis' => 300,
+            'rpc_timeout_multiplier' => 1.3,
+            'max_rpc_timeout_millis' => 3000,
+            'total_timeout_millis' => 30_000
+          }
         }
       },
       'methods' => {
@@ -160,14 +162,16 @@ describe Google::Gax do
             'baz_retry' => ['code_a']
           },
           'retry_params' => {
-            'default' => {
-              'initial_retry_delay_millis' => 1000,
-              'retry_delay_multiplier' => 1.2,
-              'max_retry_delay_millis' => 10_000,
-              'initial_rpc_timeout_millis' => 3000,
-              'rpc_timeout_multiplier' => 1.3,
-              'max_rpc_timeout_millis' => 30_000,
-              'total_timeout_millis' => 300_000
+            'retry_params_def' => {
+              'default' => {
+                'initial_retry_delay_millis' => 1000,
+                'retry_delay_multiplier' => 1.2,
+                'max_retry_delay_millis' => 10_000,
+                'initial_rpc_timeout_millis' => 3000,
+                'rpc_timeout_multiplier' => 1.3,
+                'max_rpc_timeout_millis' => 30_000,
+                'total_timeout_millis' => 300_000
+              }
             }
           },
           'methods' => {
