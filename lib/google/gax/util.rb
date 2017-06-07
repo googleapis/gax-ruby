@@ -28,6 +28,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Google
+  # Gax defines Google API extensions
   module Gax
     # Creates an instance of a protobuf message from a hash that may include
     # nested hashes. `google/protobuf` allows for the instantiation of protobuf
