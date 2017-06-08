@@ -32,6 +32,7 @@ require 'google/gax/constants'
 require 'google/gax/errors'
 require 'google/gax/path_template'
 require 'google/gax/settings'
+require 'google/gax/util'
 require 'google/gax/version'
 
 module Google

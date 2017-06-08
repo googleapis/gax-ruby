@@ -9,6 +9,7 @@
 AllCops:
   Exclude:
     - 'lib/google/longrunning/**/*'
+    - 'spec/fixtures/**/*'
 
 # Offense count: 1
 Metrics/AbcSize:
