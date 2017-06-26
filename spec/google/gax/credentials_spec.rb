@@ -76,17 +76,17 @@ describe Google::Gax::Credentials, :private do
   end
 
   it 'can be subclassed to pass in other env paths' do
-    TEST_PATH_ENV_VAR = "TEST_PATH"
-    TEST_PATH_ENV_VAL = "/unknown/path/to/file.txt"
-    TEST_JSON_ENV_VAR = "TEST_JSON_VARS"
+    TEST_PATH_ENV_VAR = 'TEST_PATH'.freeze
+    TEST_PATH_ENV_VAL = '/unknown/path/to/file.txt'.freeze
+    TEST_JSON_ENV_VAR = 'TEST_JSON_VARS'.freeze
 
     ENV[TEST_PATH_ENV_VAR] = TEST_PATH_ENV_VAL
     ENV[TEST_JSON_ENV_VAR] = JSON.generate(default_keyfile_hash)
 
     class TestCredentials < Google::Gax::Credentials
-      SCOPE = 'http://example.com/scope'
-      PATH_ENV_VARS = [TEST_PATH_ENV_VAR]
-      JSON_ENV_VARS = [TEST_JSON_ENV_VAR]
+      SCOPE = 'http://example.com/scope'.freeze
+      PATH_ENV_VARS = [TEST_PATH_ENV_VAR].freeze
+      JSON_ENV_VARS = [TEST_JSON_ENV_VAR].freeze
     end
 
     allow(::File).to receive(:file?).with(TEST_PATH_ENV_VAL) { false }

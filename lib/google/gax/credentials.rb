@@ -111,9 +111,8 @@ module Google
 
       # Verify that the keyfile argument is provided.
       def verify_keyfile_provided!(keyfile)
-        if keyfile.nil?
-          raise 'The keyfile passed to Google::Gax::Credentials.new was nil.'
-        end
+        return unless keyfile.nil?
+        raise 'The keyfile passed to Google::Gax::Credentials.new was nil.'
       end
 
       # Verify that the keyfile argument is a file.
