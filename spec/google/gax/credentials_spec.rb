@@ -74,4 +74,35 @@ describe Google::Gax::Credentials, :private do
 
     Google::Gax::Credentials.new default_keyfile_hash, scope: 'http://example.com/scope'
   end
+
+  it 'can be subclassed to pass in other env paths' do
+    TEST_PATH_ENV_VAR = "TEST_PATH"
+    TEST_PATH_ENV_VAL = "/unknown/path/to/file.txt"
+    TEST_JSON_ENV_VAR = "TEST_JSON_VARS"
+
+    ENV[TEST_PATH_ENV_VAR] = TEST_PATH_ENV_VAL
+    ENV[TEST_JSON_ENV_VAR] = JSON.generate(default_keyfile_hash)
+
+    class TestCredentials < Google::Gax::Credentials
+      SCOPE = 'http://example.com/scope'
+      PATH_ENV_VARS = [TEST_PATH_ENV_VAR]
+      JSON_ENV_VARS = [TEST_JSON_ENV_VAR]
+    end
+
+    allow(::File).to receive(:file?).with(TEST_PATH_ENV_VAL) { false }
+
+    mocked_signet = double('Signet::OAuth2::Client')
+    allow(mocked_signet).to receive(:fetch_access_token!).and_return(true)
+    allow(Signet::OAuth2::Client).to receive(:new) do |options|
+      expect(options[:token_credential_uri]).to eq('https://accounts.google.com/o/oauth2/token')
+      expect(options[:audience]).to eq('https://accounts.google.com/o/oauth2/token')
+      expect(options[:scope]).to eq(['http://example.com/scope'])
+      expect(options[:issuer]).to eq(default_keyfile_hash['client_email'])
+      expect(options[:signing_key]).to be_a_kind_of(OpenSSL::PKey::RSA)
+
+      mocked_signet
+    end
+
+    TestCredentials.default
+  end
 end

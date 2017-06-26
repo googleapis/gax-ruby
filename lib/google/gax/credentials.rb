@@ -111,7 +111,9 @@ module Google
 
       # Verify that the keyfile argument is provided.
       def verify_keyfile_provided!(keyfile)
-        raise 'You must provide a keyfile to connect with.' if keyfile.nil?
+        if keyfile.nil?
+          raise 'The keyfile passed to Google::Gax::Credentials.new was nil.'
+        end
       end
 
       # Verify that the keyfile argument is a file.
