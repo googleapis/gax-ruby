@@ -44,19 +44,21 @@ module Google
 
       # rubocop:disable Metrics/ParameterLists
 
-      # Creates a gRPC client stub.
+      # Creates a gRPC client stub. The following precedence will be taken if
+      # multiple of channel, chan_creds, and updater_proc are given:
+      # channel > chan_creds > updater_proc.
       #
       # @param service_path [String] The domain name of the API remote host.
       #
       # @param port [Fixnum] The port on which to connect to the remote host.
       #
-      # @param chan_creds [Grpc::Core::ChannelCredentials]
-      #   A ChannelCredentials object for use with an SSL-enabled Channel.
-      #   If nil, credentials are pulled from a default location.
-      #
       # @param channel [Object]
       #   A Channel object through which to make calls. If nil, a secure
       #   channel is constructed.
+      #
+      # @param chan_creds [Grpc::Core::ChannelCredentials]
+      #   A ChannelCredentials object for use with an SSL-enabled Channel.
+      #   If nil, credentials are pulled from a default location.
       #
       # @param updater_proc [Proc]
       #   A function that transforms the metadata for requests, e.g., to give
@@ -72,22 +74,23 @@ module Google
       # @return A gRPC client stub.
       def create_stub(service_path,
                       port,
-                      chan_creds: nil,
                       channel: nil,
+                      chan_creds: nil,
                       updater_proc: nil,
                       scopes: nil)
         address = "#{service_path}:#{port}"
-        if channel.nil?
-          chan_creds = GRPC::Core::ChannelCredentials.new if chan_creds.nil?
+        if channel
+          yield(address, nil, channel_override: channel)
+        elsif chan_creds
+          yield(address, chan_creds)
+        else
           if updater_proc.nil?
             auth_creds = Google::Auth.get_application_default(scopes)
             updater_proc = auth_creds.updater_proc
           end
           call_creds = GRPC::Core::CallCredentials.new(updater_proc)
-          chan_creds = chan_creds.compose(call_creds)
+          chan_creds = GRPC::Core::ChannelCredentials.new.compose(call_creds)
           yield(address, chan_creds)
-        else
-          yield(address, nil, channel_override: channel)
         end
       end
 
