@@ -29,6 +29,7 @@
 
 require 'grpc'
 require 'googleauth'
+require 'google/gax/errors'
 
 module Google
   module Gax
@@ -44,9 +45,7 @@ module Google
 
       # rubocop:disable Metrics/ParameterLists
 
-      # Creates a gRPC client stub. The following precedence will be taken if
-      # multiple of channel, chan_creds, and updater_proc are given:
-      # channel > chan_creds > updater_proc.
+      # Creates a gRPC client stub.
       #
       # @param service_path [String] The domain name of the API remote host.
       #
@@ -68,6 +67,9 @@ module Google
       #   The OAuth scopes for this service. This parameter is ignored if
       #   a custom metadata_transformer is supplied.
       #
+      # @raise [ArgumentError] if a combination channel, chan_creds, and
+      #    updater_proc are passed.
+      #
       # @yield [address, creds]
       #   the generated gRPC method to create a stub.
       #
@@ -78,6 +80,7 @@ module Google
                       chan_creds: nil,
                       updater_proc: nil,
                       scopes: nil)
+        verify_params(channel, chan_creds, updater_proc)
         address = "#{service_path}:#{port}"
         if channel
           yield(address, nil, channel_override: channel)
@@ -95,6 +98,18 @@ module Google
       end
 
       module_function :create_stub
+
+      def self.verify_params(channel, chan_creds, updater_proc)
+        if (channel && chan_creds) ||
+           (channel && updater_proc) ||
+           (chan_creds && updater_proc)
+          raise ArgumentError, 'Only one of channel, chan_creds, and ' \
+              'updater_proc should be passed into ' \
+              'Google::Gax::Grpc#create_stub.'
+        end
+      end
+
+      private_class_method :verify_params
     end
   end
 end
