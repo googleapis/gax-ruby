@@ -19,6 +19,11 @@ Metrics/AbcSize:
 Metrics/CyclomaticComplexity:
   Max: 9
 
+# Offense count: 2
+Metrics/LineLength:
+  Exclude:
+    - 'spec/google/gax/credentials_spec.rb'
+
 # Offense count: 8
 # Configuration parameters: CountComments.
 Metrics/MethodLength:
