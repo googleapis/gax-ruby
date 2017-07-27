@@ -101,7 +101,9 @@ module Google
     #
     # @return [Array<Object>] The coerced version of the given values.
     def coerce_array(array, field_descriptor)
-      raise ArgumentError unless array.is_a? Array
+      unless array.is_a? Array
+        raise ArgumentError, 'Value ' + array.to_s + ' must be an array'
+      end
       array.map do |val|
         coerce(val, field_descriptor)
       end
