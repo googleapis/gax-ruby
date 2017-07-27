@@ -28,6 +28,7 @@ message User {
   string name = 1;
   UserType type = 2;
   repeated Post posts = 3;
+  map<string, string> map_field = 4;
 }
 
 message Post {

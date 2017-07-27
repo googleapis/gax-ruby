@@ -12,6 +12,7 @@ Google::Protobuf::DescriptorPool.generated_pool.build do
     optional :name, :string, 1
     optional :type, :enum, 2, "google.protobuf.User.UserType"
     repeated :posts, :message, 3, "google.protobuf.Post"
+    map :map_field, :string, :string, 4
   end
   add_enum "google.protobuf.User.UserType" do
     value :UNSPECIFIED, 0

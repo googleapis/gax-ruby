@@ -83,7 +83,7 @@ module Google
     #
     # @return [Object] The coerced version of the given value.
     def coerce_submessage(val, field_descriptor)
-      if field_descriptor.label == :repeated
+      if (field_descriptor.label == :repeated) && !(map_field? field_descriptor)
         coerce_array(val, field_descriptor)
       else
         coerce(val, field_descriptor)
@@ -107,6 +107,16 @@ module Google
       end
     end
 
+    # Hack to determine if field_descriptor is for a map.
+    #
+    # TODO(jgeiger): Remove this once protobuf Ruby supports an official way
+    # to determine if a FieldDescriptor represents a map.
+    # See: https://github.com/google/protobuf/issues/3425
+    def map_field?(field_descriptor)
+      (field_descriptor.label == :repeated) &&
+        (field_descriptor.subtype.name.include? '_MapEntry_')
+    end
+
     # Coerces the value of a field to be acceptable by the instantiation method
     # of the wrapping message.
     #
@@ -118,13 +128,13 @@ module Google
     #
     # @return [Object] The coerced version of the given value.
     def coerce(val, field_descriptor)
-      return val unless val.is_a? Hash
+      return val unless (val.is_a? Hash) && !(map_field? field_descriptor)
       to_proto(val, field_descriptor.subtype.msgclass)
     end
 
     module_function :to_proto, :coerce_submessages, :coerce_submessage,
-                    :coerce_array, :coerce
+                    :coerce_array, :coerce, :map_field?
     private_class_method :coerce_submessages, :coerce_submessage, :coerce_array,
-                         :coerce
+                         :coerce, :map_field?
   end
 end
