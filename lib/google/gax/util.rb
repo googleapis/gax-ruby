@@ -30,6 +30,13 @@
 module Google
   # Gax defines Google API extensions
   module Gax
+    # Regex used by gapic to find version files and directories.
+    VERSION_MATCHER = /
+        ([vV]\d+) # Major version eg: v1
+        ([pP]\d+)? # Point release eg: p2
+        (([aA]lpha|[bB]eta)\d*)? # Release level eg: alpha3
+    /x
+
     # Creates an instance of a protobuf message from a hash that may include
     # nested hashes. `google/protobuf` allows for the instantiation of protobuf
     # messages using hashes but does not allow for nested hashes to instantiate
