@@ -118,7 +118,7 @@ module Google
 
     # Hack to determine if field_descriptor is for a map.
     #
-    # TODO(jgeiger): Remove this once protobuf Ruby supports an official way
+    # TODO(geigerj): Remove this once protobuf Ruby supports an official way
     # to determine if a FieldDescriptor represents a map.
     # See: https://github.com/google/protobuf/issues/3425
     def map_field?(field_descriptor)
