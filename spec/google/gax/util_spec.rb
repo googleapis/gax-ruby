@@ -36,6 +36,10 @@ describe Google::Gax do
     USER_NAME = 'Ernest'.freeze
     USER_TYPE = :ADMINISTRATOR
     POST_TEXT = 'This is a test post.'.freeze
+    MAP = {
+      'key1' => 'val1',
+      'key2' => 'val2'
+    }.freeze
 
     it 'creates a protobuf message from a simple hash' do
       hash = { name: USER_NAME, type: USER_TYPE }
@@ -88,6 +92,20 @@ describe Google::Gax do
       user.posts.each do |post|
         expect(post).to be_an_instance_of(Google::Protobuf::Post)
         expect(post.text).to eq(POST_TEXT)
+      end
+    end
+
+    it 'handles maps' do
+      request_hash = {
+        name: USER_NAME,
+        map_field: MAP
+      }
+      user = Google::Gax.to_proto(request_hash, Google::Protobuf::User)
+      expect(user).to be_an_instance_of(Google::Protobuf::User)
+      expect(user.name).to eq(USER_NAME)
+      expect(user.map_field).to be_an_instance_of(Google::Protobuf::Map)
+      user.map_field.each do |k, v|
+        expect(MAP[k]).to eq v
       end
     end
 
