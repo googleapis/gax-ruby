@@ -48,7 +48,7 @@ module Google
     # Manages long-running operations with an API service.
     #
     # When an API method normally takes long time to complete, it can be designed
-    # to return Operation to the client, and the client can use this
+    # to return {Google::Longrunning::Operation Operation} to the client, and the client can use this
     # interface to receive the real response asynchronously by polling the
     # operation resource, or pass the operation resource to another API (such as
     # Google Cloud Pub/Sub API) to receive the response.  Any API service that
@@ -86,13 +86,21 @@ module Google
       #   The domain name of the API remote host.
       # @param port [Integer]
       #   The port on which to connect to the remote host.
-      # @param channel [Channel]
-      #   A Channel object through which to make calls.
-      # @param chan_creds [Grpc::ChannelCredentials]
-      #   A ChannelCredentials for the setting up the RPC client.
-      # @param updater_proc [Proc]
-      #   A function that transforms the metadata for requests, e.g., to give
-      #   OAuth credentials.
+      # @param credentials
+      #   [Google::Gax::Credentials, String, Hash, GRPC::Core::Channel, GRPC::Core::ChannelCredentials, Proc]
+      #   Provides the means for authenticating requests made by the client. This parameter can
+      #   be many types.
+      #   A `Google::Gax::Credentials` uses a the properties of its represented keyfile for
+      #   authenticating requests made by this client.
+      #   A `String` will be treated as the path to the keyfile to be used for the construction of
+      #   credentials for this client.
+      #   A `Hash` will be treated as the contents of a keyfile to be used for the construction of
+      #   credentials for this client.
+      #   A `GRPC::Core::Channel` will be used to make calls through.
+      #   A `GRPC::Core::ChannelCredentials` for the setting up the RPC client. The channel credentials
+      #   should already be composed with a `GRPC::Core::CallCredentials` object.
+      #   A `Proc` will be used as an updater_proc for the Grpc channel. The proc transforms the
+      #   metadata for requests, generally, to give OAuth credentials.
       # @param scopes [Array<String>]
       #   The OAuth scopes for this service. This parameter is ignored if
       #   an updater_proc is supplied.
@@ -109,6 +117,7 @@ module Google
           channel: nil,
           chan_creds: nil,
           updater_proc: nil,
+          credentials: nil,
           scopes: ALL_SCOPES,
           client_config: {},
           timeout: DEFAULT_TIMEOUT,
@@ -122,9 +131,33 @@ module Google
         require "google/gax/grpc"
         require "google/longrunning/operations_services_pb"
 
-
+        if channel || chan_creds || updater_proc
+          warn "The `channel`, `chan_creds`, and `updater_proc` parameters will be removed " \
+            "on 2017/09/08"
+          credentials ||= channel
+          credentials ||= chan_creds
+          credentials ||= updater_proc
+        end
         if app_name || app_version
           warn "`app_name` and `app_version` are no longer being used in the request headers."
+        end
+
+        credentials ||= Google::Gax::Credentials.default
+
+        if credentials.is_a?(String) || credentials.is_a?(Hash)
+          updater_proc = Google::Gax::Credentials.new(credentials).updater_proc
+        end
+        if credentials.is_a?(GRPC::Core::Channel)
+          channel = credentials
+        end
+        if credentials.is_a?(GRPC::Core::ChannelCredentials)
+          chan_creds = credentials
+        end
+        if credentials.is_a?(Proc)
+          updater_proc = credentials
+        end
+        if credentials.is_a?(Google::Gax::Credentials)
+          updater_proc = credentials.updater_proc
         end
 
         google_api_client = "gl-ruby/#{RUBY_VERSION}"
@@ -193,16 +226,17 @@ module Google
       # @example
       #   require "google/longrunning"
       #
-      #   operations_client = Google::Longrunning::OperationsClient.new
+      #   operations_client = Google::Longrunning.new
       #   name = ''
       #   response = operations_client.get_operation(name)
 
       def get_operation \
           name,
           options: nil
-        req = Google::Longrunning::GetOperationRequest.new({
+        req = {
           name: name
-        }.delete_if { |_, v| v.nil? })
+        }.delete_if { |_, v| v.nil? }
+        req = Google::Gax::to_proto(req, Google::Longrunning::GetOperationRequest)
         @get_operation.call(req, options)
       end
 
@@ -234,7 +268,7 @@ module Google
       # @example
       #   require "google/longrunning"
       #
-      #   operations_client = Google::Longrunning::OperationsClient.new
+      #   operations_client = Google::Longrunning.new
       #   name = ''
       #   filter = ''
       #
@@ -256,11 +290,12 @@ module Google
           filter,
           page_size: nil,
           options: nil
-        req = Google::Longrunning::ListOperationsRequest.new({
+        req = {
           name: name,
           filter: filter,
           page_size: page_size
-        }.delete_if { |_, v| v.nil? })
+        }.delete_if { |_, v| v.nil? }
+        req = Google::Gax::to_proto(req, Google::Longrunning::ListOperationsRequest)
         @list_operations.call(req, options)
       end
 
@@ -268,11 +303,11 @@ module Google
       # makes a best effort to cancel the operation, but success is not
       # guaranteed.  If the server doesn't support this method, it returns
       # +google.rpc.Code.UNIMPLEMENTED+.  Clients can use
-      # Operations::GetOperation or
+      # {Google::Longrunning::Operations::GetOperation Operations::GetOperation} or
       # other methods to check whether the cancellation succeeded or whether the
       # operation completed despite cancellation. On successful cancellation,
       # the operation is not deleted; instead, it becomes an operation with
-      # an Operation#error value with a Google::Rpc::Status#code of 1,
+      # an {Google::Longrunning::Operation#error Operation#error} value with a {Google::Rpc::Status#code} of 1,
       # corresponding to +Code.CANCELLED+.
       #
       # @param name [String]
@@ -284,16 +319,17 @@ module Google
       # @example
       #   require "google/longrunning"
       #
-      #   operations_client = Google::Longrunning::OperationsClient.new
+      #   operations_client = Google::Longrunning.new
       #   name = ''
       #   operations_client.cancel_operation(name)
 
       def cancel_operation \
           name,
           options: nil
-        req = Google::Longrunning::CancelOperationRequest.new({
+        req = {
           name: name
-        }.delete_if { |_, v| v.nil? })
+        }.delete_if { |_, v| v.nil? }
+        req = Google::Gax::to_proto(req, Google::Longrunning::CancelOperationRequest)
         @cancel_operation.call(req, options)
         nil
       end
@@ -312,16 +348,17 @@ module Google
       # @example
       #   require "google/longrunning"
       #
-      #   operations_client = Google::Longrunning::OperationsClient.new
+      #   operations_client = Google::Longrunning.new
       #   name = ''
       #   operations_client.delete_operation(name)
 
       def delete_operation \
           name,
           options: nil
-        req = Google::Longrunning::DeleteOperationRequest.new({
+        req = {
           name: name
-        }.delete_if { |_, v| v.nil? })
+        }.delete_if { |_, v| v.nil? }
+        req = Google::Gax::to_proto(req, Google::Longrunning::DeleteOperationRequest)
         @delete_operation.call(req, options)
         nil
       end
