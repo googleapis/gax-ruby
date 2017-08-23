@@ -32,8 +32,6 @@ require 'time'
 require 'google/gax/errors'
 require 'google/gax/bundling'
 
-# rubocop:disable Metrics/ModuleLength
-
 module Google
   module Gax
     # A class to provide the Enumerable interface for page-streaming method.
@@ -246,21 +244,9 @@ module Google
                      add_timeout_arg(func, this_settings.timeout,
                                      this_settings.kwargs)
                    end
-        api_call = catch_errors(api_call, settings.errors)
-        api_caller.call(api_call, request, this_settings)
-      end
-    end
-
-    # Updates a_func to wrap exceptions with GaxError
-    #
-    # @param a_func [Proc]
-    # @param errors [Array<Exception>] Configures the exceptions to wrap.
-    # @return [Proc] A proc that will wrap certain exceptions with GaxError.
-    def catch_errors(a_func, errors)
-      proc do |request|
         begin
-          a_func.call(request)
-        rescue *errors
+          api_caller.call(api_call, request, this_settings)
+        rescue *settings.errors
           raise GaxError, 'RPC failed'
         end
       end
@@ -312,8 +298,6 @@ module Google
       enumerable.method(:start)
     end
 
-    # rubocop:disable Metrics/MethodLength
-
     # Creates a proc equivalent to a_func, but that retries on certain
     # exceptions.
     #
@@ -336,29 +320,24 @@ module Google
         delay = retry_options.backoff_settings.initial_retry_delay_millis
         timeout = (retry_options.backoff_settings.initial_rpc_timeout_millis /
                    MILLIS_PER_SECOND)
-        result = nil
-        now = Time.now
-        deadline = now + total_timeout
-        loop do
-          begin
-            result = add_timeout_arg(a_func, timeout, kwargs).call(request)
-            break
-          rescue => exception
-            unless exception.respond_to?(:code) &&
-                   retry_options.retry_codes.include?(exception.code)
-              raise RetryError, 'Exception occurred in retry method that ' \
-                'was not classified as transient'
-            end
-            sleep(rand(delay) / MILLIS_PER_SECOND)
-            now = Time.now
-            delay = [delay * delay_mult, max_delay].min
-            timeout = [timeout * timeout_mult, max_timeout, deadline - now].min
-            if now >= deadline
-              raise RetryError, 'Retry total timeout exceeded with exception'
-            end
+        deadline = Time.now + total_timeout
+        begin
+          a_func.call(request, deadline: Time.now + timeout, metadata: kwargs)
+        rescue => exception
+          unless exception.respond_to?(:code) &&
+                 retry_options.retry_codes.include?(exception.code)
+            raise RetryError, 'Exception occurred in retry method that ' \
+              'was not classified as transient'
           end
+          sleep(rand(delay) / MILLIS_PER_SECOND)
+          now = Time.now
+          delay = [delay * delay_mult, max_delay].min
+          timeout = [timeout * timeout_mult, max_timeout, deadline - now].min
+          if now >= deadline
+            raise RetryError, 'Retry total timeout exceeded with exception'
+          end
+          retry
         end
-        result
       end
     end
 
@@ -377,9 +356,9 @@ module Google
       end
     end
 
-    module_function :create_api_call, :catch_errors, :bundleable,
+    module_function :create_api_call, :bundleable,
                     :page_streamable, :retryable, :add_timeout_arg
-    private_class_method :catch_errors, :bundleable, :page_streamable,
+    private_class_method :bundleable, :page_streamable,
                          :retryable, :add_timeout_arg
   end
 end
