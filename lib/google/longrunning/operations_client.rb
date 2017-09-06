@@ -80,6 +80,7 @@ module Google
       # The scopes needed to make gRPC calls to all of the methods defined in
       # this service.
       ALL_SCOPES = [
+        "https://www.googleapis.com/auth/cloud-platform",
       ].freeze
 
       # @param service_path [String]
@@ -142,7 +143,7 @@ module Google
           warn "`app_name` and `app_version` are no longer being used in the request headers."
         end
 
-        credentials ||= Google::Gax::Credentials.default
+        credentials ||= Google::Gax::Credentials.default(scope: scopes)
 
         if credentials.is_a?(String) || credentials.is_a?(Hash)
           updater_proc = Google::Gax::Credentials.new(credentials).updater_proc
