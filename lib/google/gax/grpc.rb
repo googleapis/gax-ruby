@@ -28,8 +28,12 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 require 'grpc'
+require 'grpc/google_rpc_status_utils'
 require 'googleauth'
 require 'google/gax/errors'
+require 'google/protobuf/well_known_types'
+# Required in order to deserialize common error detail proto types
+require 'google/rpc/error_details_pb'
 
 module Google
   module Gax
@@ -42,6 +46,24 @@ module Google
       ].freeze
 
       API_ERRORS = [GRPC::BadStatus, GRPC::Cancelled].freeze
+
+      def deserialize_error_status_details(error)
+        return unless error.is_a? GRPC::BadStatus
+        details =
+          GRPC::GoogleRpcStatusUtils.extract_google_rpc_status(
+            error.to_status
+          ).details
+        details.map do |any|
+          # If the type of the proto wrapped by the Any instance is not
+          # available, do not deserialize.
+          candidate_class_name = class_case(any.type_name.split('.')).join('::')
+          begin
+            any.unpack(Object.const_get(candidate_class_name))
+          rescue NameError
+            any
+          end
+        end
+      end
 
       # rubocop:disable Metrics/ParameterLists
 
@@ -97,7 +119,7 @@ module Google
         end
       end
 
-      module_function :create_stub
+      module_function :create_stub, :deserialize_error_status_details
 
       def self.verify_params(channel, chan_creds, updater_proc)
         if (channel && chan_creds) ||
@@ -109,7 +131,15 @@ module Google
         end
       end
 
-      private_class_method :verify_params
+      # Capitalize all modules except the message class, which is already
+      # correctly cased
+      def self.class_case(modules)
+        message = modules.pop
+        modules = modules.map(&:capitalize)
+        modules << message
+      end
+
+      private_class_method :verify_params, :class_case
     end
   end
 end

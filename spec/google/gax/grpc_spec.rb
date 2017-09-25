@@ -114,4 +114,37 @@ describe Google::Gax::Grpc do
       end.to raise_error(ArgumentError)
     end
   end
+  describe '#deserialize_error_status_details' do
+    it 'deserializes a known error type' do
+      expected_error = Google::Rpc::DebugInfo.new(detail: 'shoes are untied')
+
+      any = Google::Protobuf::Any.new
+      any.pack(expected_error)
+      status = Google::Rpc::Status.new(details: [any])
+      encoded = Google::Rpc::Status.encode(status)
+      metadata = {
+        'grpc-status-details-bin' => encoded
+      }
+      error = GRPC::BadStatus.new(1, '', metadata)
+
+      expect(Google::Gax::Grpc.deserialize_error_status_details(error))
+        .to eq [expected_error]
+    end
+    it 'does not deserialize an unknown error type' do
+      expected_error = Random.new.bytes(8)
+
+      any = Google::Protobuf::Any.new(
+        type_url: 'unknown-type', value: expected_error
+      )
+      status = Google::Rpc::Status.new(details: [any])
+      encoded = Google::Rpc::Status.encode(status)
+      metadata = {
+        'grpc-status-details-bin' => encoded
+      }
+      error = GRPC::BadStatus.new(1, '', metadata)
+
+      expect(Google::Gax::Grpc.deserialize_error_status_details(error))
+        .to eq [any]
+    end
+  end
 end
