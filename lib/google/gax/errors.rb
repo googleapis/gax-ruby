@@ -29,21 +29,16 @@
 
 require 'English'
 
-require 'google/gax/grpc'
-
 module Google
   module Gax
     # Common base class for exceptions raised by GAX.
     class GaxError < StandardError
-      attr_reader :details
-
       # @param msg [String] describes the error that occurred.
       def initialize(msg)
         msg = "GaxError #{msg}"
         msg += ", caused by #{$ERROR_INFO}" if $ERROR_INFO
         super(msg)
         @cause = $ERROR_INFO
-        @details = Google::Gax::Grpc.deserialize_error_status_details(@cause)
       end
 
       # cause is a new method introduced in 2.1.0, bring this
