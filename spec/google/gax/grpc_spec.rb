@@ -115,7 +115,7 @@ describe Google::Gax::Grpc do
     end
   end
   describe '#deserialize_error_status_details' do
-    it 'deserializes a known error type' do
+    skip 'deserializes a known error type' do
       expected_error = Google::Rpc::DebugInfo.new(detail: 'shoes are untied')
 
       any = Google::Protobuf::Any.new
@@ -130,7 +130,7 @@ describe Google::Gax::Grpc do
       expect(Google::Gax::Grpc.deserialize_error_status_details(error))
         .to eq [expected_error]
     end
-    it 'does not deserialize an unknown error type' do
+    skip 'does not deserialize an unknown error type' do
       expected_error = Random.new.bytes(8)
 
       any = Google::Protobuf::Any.new(

@@ -28,6 +28,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 require 'google/gax'
+require 'google/protobuf/any_pb'
 require 'spec/fixtures/fixture_pb'
 
 describe Google::Gax do
@@ -118,5 +119,21 @@ describe Google::Gax do
         Google::Gax.to_proto(user_hash, Google::Protobuf::User)
       end.to raise_error(ArgumentError)
     end
+
+    it 'handles proto messages' do
+      user_message = Google::Protobuf::User.new(
+        name: USER_NAME, type: USER_TYPE
+      )
+      user = Google::Gax.to_proto(user_message, Google::Protobuf::User)
+      expect(user).to eq user_message
+    end
+
+    it 'fails if proto message has unexpected type' do
+      user_message = Google::Protobuf::Any
+      expect do
+        Google::Gax.to_proto(user_message, Google::Protobuf::User)
+      end.to raise_error(ArgumentError)
+    end
+
   end
 end

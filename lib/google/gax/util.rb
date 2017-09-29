@@ -51,6 +51,12 @@ module Google
     # @return [Object] An instance of the given message class.
     def to_proto(hash, message_class)
       return hash if hash.is_a? message_class
+
+      # Sanity check: input must be a Hash
+      unless hash.is_a? Hash
+        raise ArgumentError,
+              "Value #{hash.to_s} must be a Hash or a #{message_class.name}"
+      end
       hash = coerce_submessages(hash, message_class)
       message_class.new(hash)
     end
