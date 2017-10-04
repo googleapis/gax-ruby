@@ -48,25 +48,32 @@ module Google
       API_ERRORS = [GRPC::BadStatus, GRPC::Cancelled].freeze
 
       def deserialize_error_status_details(error)
-        # TODO (geigerj): Uncomment once https://github.com/grpc/grpc/pull/12721
-        # is released.
-        #
-        #
-        # return unless error.is_a? GRPC::BadStatus
-        # details =
-        #   GRPC::GoogleRpcStatusUtils.extract_google_rpc_status(
-        #     error.to_status
-        #   ).details
-        # details.map do |any|
-        #   # If the type of the proto wrapped by the Any instance is not
-        #   # available, do not deserialize.
-        #   candidate_class_name = class_case(any.type_name.split('.')).join('::')
-        #   begin
-        #     any.unpack(Object.const_get(candidate_class_name))
-        #   rescue NameError
-        #     any
-        #   end
-        # end
+        return unless error.is_a? GRPC::BadStatus
+        # If error status is malformed, swallow the gRPC error that gets raised.
+        begin
+          details =
+            GRPC::GoogleRpcStatusUtils.extract_google_rpc_status(
+              error.to_status
+            ).details
+        rescue
+          return "Could not parse error details due to a malformed server "\
+                 "response trailer."
+        end
+        return if details.nil?
+        details =
+          GRPC::GoogleRpcStatusUtils.extract_google_rpc_status(
+            error.to_status
+          ).details
+        details.map do |any|
+          # If the type of the proto wrapped by the Any instance is not
+          # available, do not deserialize.
+          candidate_class_name = class_case(any.type_name.split('.')).join('::')
+          begin
+            any.unpack(Object.const_get(candidate_class_name))
+          rescue NameError
+            any
+          end
+        end
       end
 
       # rubocop:disable Metrics/ParameterLists

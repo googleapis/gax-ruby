@@ -134,6 +134,5 @@ describe Google::Gax do
         Google::Gax.to_proto(user_message, Google::Protobuf::User)
       end.to raise_error(ArgumentError)
     end
-
   end
 end
