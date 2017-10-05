@@ -42,12 +42,21 @@ module Google
     # messages using hashes but does not allow for nested hashes to instantiate
     # nested submessages.
     #
-    # @param hash [Hash] The hash to be converted into a proto message.
+    # @param hash [Hash || Class] The hash to be converted into a proto message.
+    #   If an instance of the proto message class is given, it is returned
+    #   unchanged.
     # @param message_class [Class] The corresponding protobuf message class of
     #   the given hash.
     #
     # @return [Object] An instance of the given message class.
     def to_proto(hash, message_class)
+      return hash if hash.is_a? message_class
+
+      # Sanity check: input must be a Hash
+      unless hash.is_a? Hash
+        raise ArgumentError,
+              "Value #{hash} must be a Hash or a #{message_class.name}"
+      end
       hash = coerce_submessages(hash, message_class)
       message_class.new(hash)
     end
