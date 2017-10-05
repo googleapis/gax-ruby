@@ -55,7 +55,7 @@ module Google
       # Sanity check: input must be a Hash
       unless hash.is_a? Hash
         raise ArgumentError,
-              "Value #{hash.to_s} must be a Hash or a #{message_class.name}"
+              "Value #{hash} must be a Hash or a #{message_class.name}"
       end
       hash = coerce_submessages(hash, message_class)
       message_class.new(hash)

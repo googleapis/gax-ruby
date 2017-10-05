@@ -56,8 +56,8 @@ module Google
               error.to_status
             ).details
         rescue
-          return "Could not parse error details due to a malformed server "\
-                 "response trailer."
+          return 'Could not parse error details due to a malformed server '\
+                 'response trailer.'
         end
         return if details.nil?
         details =
