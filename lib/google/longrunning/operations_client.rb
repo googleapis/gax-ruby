@@ -80,18 +80,12 @@ module Google
       # The scopes needed to make gRPC calls to all of the methods defined in
       # this service.
       ALL_SCOPES = [
-        "https://www.googleapis.com/auth/cloud-platform",
       ].freeze
 
-      # @param service_path [String]
-      #   The domain name of the API remote host.
-      # @param port [Integer]
-      #   The port on which to connect to the remote host.
-      # @param credentials
-      #   [Google::Gax::Credentials, String, Hash, GRPC::Core::Channel, GRPC::Core::ChannelCredentials, Proc]
+      # @param credentials [Google::Auth::Credentials, String, Hash, GRPC::Core::Channel, GRPC::Core::ChannelCredentials, Proc]
       #   Provides the means for authenticating requests made by the client. This parameter can
       #   be many types.
-      #   A `Google::Gax::Credentials` uses a the properties of its represented keyfile for
+      #   A `Google::Auth::Credentials` uses a the properties of its represented keyfile for
       #   authenticating requests made by this client.
       #   A `String` will be treated as the path to the keyfile to be used for the construction of
       #   credentials for this client.
@@ -105,7 +99,7 @@ module Google
       # @param scopes [Array<String>]
       #   The OAuth scopes for this service. This parameter is ignored if
       #   an updater_proc is supplied.
-      # @param client_config[Hash]
+      # @param client_config [Hash]
       #   A Hash for call options for each method. See
       #   Google::Gax#construct_settings for the structure of
       #   this data. Falls back to the default config if not specified
@@ -122,8 +116,6 @@ module Google
           scopes: ALL_SCOPES,
           client_config: {},
           timeout: DEFAULT_TIMEOUT,
-          app_name: nil,
-          app_version: nil,
           lib_name: nil,
           lib_version: ""
         # These require statements are intentionally placed here to initialize
@@ -139,14 +131,14 @@ module Google
           credentials ||= chan_creds
           credentials ||= updater_proc
         end
-        if app_name || app_version
-          warn "`app_name` and `app_version` are no longer being used in the request headers."
+        if service_path != SERVICE_ADDRESS || port != DEFAULT_SERVICE_PORT
+          warn "`service_path` and `port` parameters are deprecated and will be removed"
         end
 
-        credentials ||= Google::Gax::Credentials.default(scope: scopes)
+        credentials ||= Google::Auth::Credentials.default
 
         if credentials.is_a?(String) || credentials.is_a?(Hash)
-          updater_proc = Google::Gax::Credentials.new(credentials).updater_proc
+          updater_proc = Google::Auth::Credentials.new(credentials).updater_proc
         end
         if credentials.is_a?(GRPC::Core::Channel)
           channel = credentials
@@ -157,7 +149,7 @@ module Google
         if credentials.is_a?(Proc)
           updater_proc = credentials
         end
-        if credentials.is_a?(Google::Gax::Credentials)
+        if credentials.is_a?(Google::Auth::Credentials)
           updater_proc = credentials.updater_proc
         end
 
