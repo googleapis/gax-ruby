@@ -29,7 +29,6 @@
 
 require 'google/gax/api_callable'
 require 'google/gax/constants'
-require 'google/gax/credentials'
 require 'google/gax/errors'
 require 'google/gax/path_template'
 require 'google/gax/settings'
