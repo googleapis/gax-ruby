@@ -132,8 +132,8 @@ module Google
           credentials ||= chan_creds
           credentials ||= updater_proc
         end
-        if service_path != SERVICE_ADDRESS || port != DEFAULT_SERVICE_PORT
-          warn "`service_path` and `port` parameters are deprecated and will be removed"
+        if port != DEFAULT_SERVICE_PORT
+          warn "the `port` parameter is deprecated and will be removed"
         end
 
         credentials ||= Google::Auth::Credentials.default(scopes: scopes)
