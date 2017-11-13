@@ -54,6 +54,21 @@ module Google
           @cause
         end
       end
+
+      def code
+        return nil unless cause && cause.respond_to?(:code)
+        cause.code
+      end
+
+      def details
+        return nil unless cause && cause.respond_to?(:details)
+        cause.details
+      end
+
+      def metadata
+        return nil unless cause && cause.respond_to?(:metadata)
+        cause.metadata
+      end
     end
 
     # Indicates an error during automatic GAX retrying.
