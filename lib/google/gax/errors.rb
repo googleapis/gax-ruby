@@ -35,7 +35,7 @@ module Google
   module Gax
     # Common base class for exceptions raised by GAX.
     class GaxError < StandardError
-      attr_reader :details
+      attr_reader :status_details
 
       # @param msg [String] describes the error that occurred.
       def initialize(msg)
@@ -43,7 +43,8 @@ module Google
         msg += ", caused by #{$ERROR_INFO}" if $ERROR_INFO
         super(msg)
         @cause = $ERROR_INFO
-        @details = Google::Gax::Grpc.deserialize_error_status_details(@cause)
+        @status_details = \
+          Google::Gax::Grpc.deserialize_error_status_details(@cause)
       end
 
       # cause is a new method introduced in 2.1.0, bring this
@@ -52,6 +53,21 @@ module Google
         define_method(:cause) do
           @cause
         end
+      end
+
+      def code
+        return nil unless cause && cause.respond_to?(:code)
+        cause.code
+      end
+
+      def details
+        return nil unless cause && cause.respond_to?(:details)
+        cause.details
+      end
+
+      def metadata
+        return nil unless cause && cause.respond_to?(:metadata)
+        cause.metadata
       end
     end
 
