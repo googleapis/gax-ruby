@@ -199,6 +199,27 @@ describe Google::Gax do
     end
   end
 
+  describe 'with_routing_header' do
+    it 'merges request header params with the existing settings' do
+      settings = CallSettings.new
+      metadata_arg = nil
+      func = proc do |_, metadata: nil, **_deadline|
+        metadata_arg = metadata
+        42
+      end
+      params_extractor = proc do |request|
+        { 'name' => request[:name], 'book.read' => request[:book][:read] }
+      end
+      my_callable = Google::Gax.create_api_call(
+        func, settings, params_extractor: params_extractor
+      )
+      expect(my_callable.call(name: 'foo', book: { read: true })).to eq(42)
+      expect(metadata_arg).to eq(
+        'x-goog-request-params' => 'name=foo&book.read=true'
+      )
+    end
+  end
+
   describe 'retryable' do
     RetryOptions = Google::Gax::RetryOptions
     BackoffSettings = Google::Gax::BackoffSettings

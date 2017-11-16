@@ -33,6 +33,8 @@ require 'google/gax/errors'
 require 'google/gax/bundling'
 
 module Google
+  # rubocop:disable Metrics/ModuleLength
+
   module Gax
     # A class to provide the Enumerable interface for page-streaming method.
     # PagedEnumerable assumes that the API call returns a message for a page
@@ -214,10 +216,12 @@ module Google
     #
     # @param func [Proc] used to make a bare rpc call
     # @param settings [CallSettings] provides the settings for this call
+    # @param params_extractor [Proc] extracts routing header params from the
+    #   request
     # @return [Proc] a bound method on a request stub used to make an rpc call
     # @raise [StandardError] if +settings+ has incompatible values,
     #   e.g, if bundling and page_streaming are both configured
-    def create_api_call(func, settings)
+    def create_api_call(func, settings, params_extractor: nil)
       api_caller = proc do |api_call, request|
         api_call.call(request)
       end
@@ -237,6 +241,10 @@ module Google
 
       proc do |request, options = nil|
         this_settings = settings.merge(options)
+        if params_extractor
+          params = params_extractor.call(request)
+          this_settings = with_routing_header(this_settings, params)
+        end
         api_call = if settings.retry_codes?
                      retryable(func, this_settings.retry_options,
                                this_settings.kwargs)
@@ -298,6 +306,20 @@ module Google
       enumerable.method(:start)
     end
 
+    # Create a new CallSettings with the routing metadata from the request
+    # header params merged with the given settings.
+    #
+    # @param settings [CallSettings] the settings for an API call.
+    # @param params [Hash] the request header params.
+    # @return [CallSettings] a new merged settings.
+    def with_routing_header(settings, params)
+      routing_header = params.map { |k, v| "#{k}=#{v}" }.join('&')
+      options = CallOptions.new(
+        kwargs: { 'x-goog-request-params' => routing_header }
+      )
+      settings.merge(options)
+    end
+
     # Creates a proc equivalent to a_func, but that retries on certain
     # exceptions.
     #
@@ -357,8 +379,9 @@ module Google
     end
 
     module_function :create_api_call, :bundleable,
-                    :page_streamable, :retryable, :add_timeout_arg
+                    :page_streamable, :with_routing_header, :retryable,
+                    :add_timeout_arg
     private_class_method :bundleable, :page_streamable,
-                         :retryable, :add_timeout_arg
+                         :with_routing_header, :retryable, :add_timeout_arg
   end
 end
