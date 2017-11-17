@@ -307,7 +307,9 @@ describe Google::Gax::Operation do
       op = create_op(GrpcOp.new(done: false), client: mock_client)
       time_now = Time.now
       allow(Time).to receive(:now) { time_now }
-      expect(op).to receive(:sleep).exactly(3).times { |secs| time_now += secs }
+      expect(op).to(
+        receive(:sleep).exactly(3).times { |secs| time_now += secs }
+      )
       op.wait_until_done!
       expect(to_call).to eq(0)
     end
@@ -324,7 +326,9 @@ describe Google::Gax::Operation do
 
       time_now = Time.now
       allow(Time).to receive(:now) { time_now }
-      expect(op).to receive(:sleep).exactly(3).times { |secs| time_now += secs }
+      expect(op).to(
+        receive(:sleep).exactly(3).times { |secs| time_now += secs }
+      )
 
       op.wait_until_done!
       expect(to_call).to eq(0)

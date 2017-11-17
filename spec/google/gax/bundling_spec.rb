@@ -77,7 +77,7 @@ describe Google::Gax do
       it 'composite value with nil' do
         actual =
           Google::Gax.compute_bundle_id(
-            simple_builder('dummy_value'), %w(field1 field2)
+            simple_builder('dummy_value'), %w[field1 field2]
           )
         expect(actual).to eq(['dummy_value', ''])
       end
@@ -86,16 +86,16 @@ describe Google::Gax do
         actual =
           Google::Gax.compute_bundle_id(
             simple_builder('dummy_value', other_value: 'other_value'),
-            %w(field1 field2)
+            %w[field1 field2]
           )
-        expect(actual).to eq(%w(dummy_value other_value))
+        expect(actual).to eq(%w[dummy_value other_value])
       end
 
       it 'simple dotted value' do
         actual =
           Google::Gax.compute_bundle_id(
             outer_builder('dummy_value'),
-            %w(inner.field1)
+            %w[inner.field1]
           )
         expect(actual).to eq(['dummy_value'])
       end
@@ -104,9 +104,9 @@ describe Google::Gax do
         actual =
           Google::Gax.compute_bundle_id(
             outer_builder('dummy_value'),
-            %w(inner.field1 inner.field2 field1)
+            %w[inner.field1 inner.field2 field1]
           )
-        expect(actual).to eq(%w(dummy_value dummy_value dummy_value))
+        expect(actual).to eq(%w[dummy_value dummy_value dummy_value])
       end
 
       it 'should return false for a single missing field value' do
@@ -122,7 +122,7 @@ describe Google::Gax do
         expect(
           Google::Gax.compute_bundle_id(
             simple_builder('dummy_value'),
-            %w(field1 field3)
+            %w[field1 field3]
           )
         ).to eq(['dummy_value', nil])
       end
@@ -287,7 +287,7 @@ describe Google::Gax do
       it 'should group the api_calls by bundle_id' do
         an_elt = 'dummy_message'
         api_call = return_request
-        bundle_ids = %w(id1 id2)
+        bundle_ids = %w[id1 id2]
         threshold = 5
         options =
           Google::Gax::BundleOptions.new(element_count_threshold: threshold)

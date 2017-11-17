@@ -36,8 +36,8 @@ A_CONFIG = {
   'interfaces' => {
     SERVICE_NAME => {
       'retry_codes' => {
-        'foo_retry' => %w(code_a code_b),
-        'bar_retry' => %w(code_c)
+        'foo_retry' => %w[code_a code_b],
+        'bar_retry' => %w[code_c]
       },
       'retry_params' => {
         'default' => {

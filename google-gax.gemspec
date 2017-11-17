@@ -1,5 +1,6 @@
 # -*- ruby -*-
 # encoding: utf-8
+
 $LOAD_PATH.push File.expand_path('../lib', __FILE__)
 require 'google/gax/version'
 
@@ -12,10 +13,10 @@ Gem::Specification.new do |s|
   s.summary = 'Aids the development of APIs for clients and servers based'
   s.summary += ' on GRPC and Google APIs conventions'
   s.description = 'Google API Extensions'
-  s.files = %w(Rakefile README.md)
+  s.files = %w[Rakefile README.md]
   s.files += Dir.glob('lib/**/*')
   s.files += Dir.glob('spec/**/*')
-  s.require_paths = %w(lib)
+  s.require_paths = %w[lib]
   s.platform = Gem::Platform::RUBY
   s.license = 'BSD-3-Clause'
 
@@ -30,6 +31,6 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'codecov', '~> 0.1'
   s.add_development_dependency 'rake', '>= 10.0'
   s.add_development_dependency 'rspec', '~> 3.0'
-  s.add_development_dependency 'rubocop', '= 0.47.1'
+  s.add_development_dependency 'rubocop', '= 0.49.0'
   s.add_development_dependency 'simplecov', '~> 0.9'
 end
