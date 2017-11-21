@@ -108,8 +108,8 @@ module Google
       # @param timeout [Numeric]
       #   The default timeout, in seconds, for calls made through this client.
       def initialize \
-          service_path: SERVICE_ADDRESS,
-          port: DEFAULT_SERVICE_PORT,
+          service_path: self.class::SERVICE_ADDRESS,
+          port: self.class::DEFAULT_SERVICE_PORT,
           channel: nil,
           chan_creds: nil,
           updater_proc: nil,
