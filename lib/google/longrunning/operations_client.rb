@@ -1,4 +1,4 @@
-# Copyright 2017, Google Inc. All rights reserved.
+# Copyright 2017, Google LLC All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -10,7 +10,7 @@
 # copyright notice, this list of conditions and the following disclaimer
 # in the documentation and/or other materials provided with the
 # distribution.
-#     * Neither the name of Google Inc. nor the names of its
+#     * Neither the name of Google LLC nor the names of its
 # contributors may be used to endorse or promote products derived from
 # this software without specific prior written permission.
 #
@@ -83,6 +83,7 @@ module Google
       ALL_SCOPES = [
       ].freeze
 
+
       # @param credentials [Google::Auth::Credentials, String, Hash, GRPC::Core::Channel, GRPC::Core::ChannelCredentials, Proc]
       #   Provides the means for authenticating requests made by the client. This parameter can
       #   be many types.
@@ -108,11 +109,6 @@ module Google
       # @param timeout [Numeric]
       #   The default timeout, in seconds, for calls made through this client.
       def initialize \
-          service_path: self.class::SERVICE_ADDRESS,
-          port: self.class::DEFAULT_SERVICE_PORT,
-          channel: nil,
-          chan_creds: nil,
-          updater_proc: nil,
           credentials: nil,
           scopes: ALL_SCOPES,
           client_config: {},
@@ -124,17 +120,6 @@ module Google
         # See https://github.com/googleapis/toolkit/issues/446
         require "google/gax/grpc"
         require "google/longrunning/operations_services_pb"
-
-        if channel || chan_creds || updater_proc
-          warn "The `channel`, `chan_creds`, and `updater_proc` parameters will be removed " \
-            "on 2017/09/08"
-          credentials ||= channel
-          credentials ||= chan_creds
-          credentials ||= updater_proc
-        end
-        if port != DEFAULT_SERVICE_PORT
-          warn "the `port` parameter is deprecated and will be removed"
-        end
 
         credentials ||= Google::Auth::Credentials.default(scopes: scopes)
 
@@ -154,9 +139,11 @@ module Google
           updater_proc = credentials.updater_proc
         end
 
+        package_version = Gem.loaded_specs['google-gax'].version.version
+
         google_api_client = "gl-ruby/#{RUBY_VERSION}"
         google_api_client << " #{lib_name}/#{lib_version}" if lib_name
-        google_api_client << " gapic/0.6.8 gax/#{Google::Gax::VERSION}"
+        google_api_client << " gapic/#{package_version} gax/#{Google::Gax::VERSION}"
         google_api_client << " grpc/#{GRPC::VERSION}"
         google_api_client.freeze
 
@@ -176,6 +163,10 @@ module Google
             kwargs: headers
           )
         end
+
+        # Allow overriding the service path/port in subclasses.
+        service_path = self.class::SERVICE_ADDRESS
+        port = self.class::DEFAULT_SERVICE_PORT
         @operations_stub = Google::Gax::Grpc.create_stub(
           service_path,
           port,
