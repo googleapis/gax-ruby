@@ -38,13 +38,14 @@ Metrics/BlockLength:
     - "**/*_spec.rb"
   Max: 26
 
-# Offense count: 2
+# Offense count: 3
 Style/Documentation:
   Exclude:
     - 'spec/**/*'
     - 'test/**/*'
     - 'lib/google/gax/api_callable.rb'
     - 'lib/google/gax/settings.rb'
+    - 'lib/google/gax/errors.rb'
 
 # Offense count: 5
 Style/StructInheritance:

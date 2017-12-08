@@ -67,7 +67,7 @@ describe Google::Gax::GaxError do
     it 'presents GRPC::BadStatus values' do
       error = wrapped_badstatus(3, 'invalid')
 
-      expect(error).to be_an_instance_of(Google::Gax::GaxError)
+      expect(error).to be_a_kind_of(Google::Gax::GaxError)
       expect(error.message).to eq('GaxError 3:invalid, caused by 3:invalid')
       expect(error.code).to eq(3)
       expect(error.details).to eq('invalid')
@@ -93,7 +93,7 @@ describe Google::Gax::GaxError do
                    'grpc-status-details-bin' => encoded_status_detail }
       error = wrapped_badstatus(1, 'cancelled', metadata)
 
-      expect(error).to be_an_instance_of(Google::Gax::GaxError)
+      expect(error).to be_a_kind_of(Google::Gax::GaxError)
       expect(error.message).to eq('GaxError 1:cancelled, caused by 1:cancelled')
       expect(error.code).to eq(1)
       expect(error.details).to eq('cancelled')
@@ -111,7 +111,8 @@ describe Google::Gax::GaxError do
   def wrap_with_gax_error(err)
     raise err
   rescue => e
-    raise Google::Gax::GaxError, e.message
+    klass = Google::Gax.from_error(e)
+    raise klass.new(e.message)
   end
 
   def wrapped_error(msg)
