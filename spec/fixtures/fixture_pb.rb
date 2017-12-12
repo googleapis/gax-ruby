@@ -3,6 +3,7 @@
 
 require 'google/protobuf'
 
+require 'google/protobuf/timestamp_pb'
 Google::Protobuf::DescriptorPool.generated_pool.build do
   add_message "google.protobuf.Request" do
     optional :name, :string, 1
@@ -13,6 +14,8 @@ Google::Protobuf::DescriptorPool.generated_pool.build do
     optional :type, :enum, 2, "google.protobuf.User.UserType"
     repeated :posts, :message, 3, "google.protobuf.Post"
     map :map_field, :string, :string, 4
+    optional :bytes_field, :bytes, 5
+    optional :timestamp, :message, 6, "google.protobuf.Timestamp"
   end
   add_enum "google.protobuf.User.UserType" do
     value :UNSPECIFIED, 0
