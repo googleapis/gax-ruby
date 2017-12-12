@@ -27,6 +27,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+require 'google/protobuf/timestamp_pb'
+
 module Google
   # Gax defines Google API extensions
   module Gax
@@ -80,6 +82,9 @@ module Google
         field_descriptor = message_descriptor.lookup(key.to_s)
         if field_descriptor && field_descriptor.type == :message
           coerced[key] = coerce_submessage(val, field_descriptor)
+        elsif field_descriptor && field_descriptor.type == :bytes &&
+              val.is_a?(IO)
+          coerced[key] = val.binmode.read
         else
           # `google/protobuf` should throw an error if no field descriptor is
           # found. Simply pass through.
@@ -102,6 +107,9 @@ module Google
     def coerce_submessage(val, field_descriptor)
       if (field_descriptor.label == :repeated) && !(map_field? field_descriptor)
         coerce_array(val, field_descriptor)
+      elsif field_descriptor.subtype.msgclass == Google::Protobuf::Timestamp &&
+            val.is_a?(Time)
+        time_to_timestamp(val)
       else
         coerce(val, field_descriptor)
       end
@@ -151,8 +159,31 @@ module Google
       to_proto(val, field_descriptor.subtype.msgclass)
     end
 
+    # Utility for converting a Google::Protobuf::Timestamp instance to a Ruby
+    # time.
+    #
+    # @param timestamp [Google::Protobuf::Timestamp] The timestamp to be
+    #   converted.
+    #
+    # @return [Time] The converted Time.
+    def timestamp_to_time(timestamp)
+      Time.at(timestamp.nanos * 10**-9 + timestamp.seconds)
+    end
+
+    # Utility for converting a Ruby Time instance to a
+    # Google::Protobuf::Timestamp.
+    #
+    # @param time [Time] The Time to be converted.
+    #
+    # @return [Google::Protobuf::Timestamp] The converted
+    #   Google::Protobuf::Timestamp.
+    def time_to_timestamp(time)
+      Google::Protobuf::Timestamp.new(seconds: time.to_i, nanos: time.nsec)
+    end
+
     module_function :to_proto, :coerce_submessages, :coerce_submessage,
-                    :coerce_array, :coerce, :map_field?
+                    :coerce_array, :coerce, :map_field?, :timestamp_to_time,
+                    :time_to_timestamp
     private_class_method :coerce_submessages, :coerce_submessage, :coerce_array,
                          :coerce, :map_field?
   end

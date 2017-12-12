@@ -29,6 +29,7 @@
 
 require 'google/gax'
 require 'google/protobuf/any_pb'
+require 'google/protobuf/timestamp_pb'
 require 'spec/fixtures/fixture_pb'
 
 describe Google::Gax do
@@ -110,6 +111,28 @@ describe Google::Gax do
       end
     end
 
+    it 'handles IO instances' do
+      file = File.new('spec/fixtures/fixture_file.txt')
+      request_hash = {
+        bytes_field: file
+      }
+      user = Google::Gax.to_proto(request_hash, Google::Protobuf::User)
+      expect(user.bytes_field).to eq("This is a text file.\n")
+    end
+
+    it 'auto-coerces Time' do
+      seconds = 271_828_182
+      nanos = 845_904_523
+      # Fixnum, not float, for precision
+      sometime = seconds + nanos * 10**-9
+      request_hash = {
+        timestamp: Time.at(sometime)
+      }
+      user = Google::Gax.to_proto(request_hash, Google::Protobuf::User)
+      expected = Google::Protobuf::Timestamp.new(seconds: seconds, nanos: nanos)
+      expect(user.timestamp).to eq(expected)
+    end
+
     it 'fails if a key does not exist in the target message type' do
       user_hash = {
         name: USER_NAME,
@@ -133,6 +156,33 @@ describe Google::Gax do
       expect do
         Google::Gax.to_proto(user_message, Google::Protobuf::User)
       end.to raise_error(ArgumentError)
+    end
+  end
+
+  describe 'time-timestamp conversion' do
+    SECONDS = 271_828_182
+    NANOS = 845_904_523
+    A_TIME = Time.at(SECONDS + NANOS * 10**-9)
+    A_TIMESTAMP =
+      Google::Protobuf::Timestamp.new(seconds: SECONDS, nanos: NANOS)
+
+    it 'converts time to timestamp' do
+      expect(Google::Gax.time_to_timestamp(A_TIME)).to eq A_TIMESTAMP
+    end
+
+    it 'converts timestamp to time' do
+      expect(Google::Gax.timestamp_to_time(A_TIMESTAMP)).to eq A_TIME
+    end
+
+    it 'is an identity when conversion is a round trip' do
+      expect(
+        Google::Gax.timestamp_to_time(Google::Gax.time_to_timestamp(A_TIME))
+      ).to eq A_TIME
+      expect(
+        Google::Gax.time_to_timestamp(
+          Google::Gax.timestamp_to_time(A_TIMESTAMP)
+        )
+      ).to eq A_TIMESTAMP
     end
   end
 end
