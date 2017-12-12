@@ -175,14 +175,14 @@ describe Google::Gax do
     end
 
     it 'is an identity when conversion is a round trip' do
-      expect do
+      expect(
         Google::Gax.timestamp_to_time(Google::Gax.time_to_timestamp(A_TIME))
-      end.to eq A_TIME
-      expect do
+      ).to eq A_TIME
+      expect(
         Google::Gax.time_to_timestamp(
           Google::Gax.timestamp_to_time(A_TIMESTAMP)
         )
-      end.to eq A_TIMESTAMP
+      ).to eq A_TIMESTAMP
     end
   end
 end
