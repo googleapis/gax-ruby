@@ -56,8 +56,9 @@ module Google
 
       # Sanity check: input must be a Hash
       unless hash.is_a? Hash
-        raise ArgumentError,
-              "Value #{hash} must be a Hash or a #{message_class.name}"
+        raise ArgumentError.new(
+          "Value #{hash} must be a Hash or a #{message_class.name}"
+        )
       end
       hash = coerce_submessages(hash, message_class)
       message_class.new(hash)
@@ -126,7 +127,7 @@ module Google
     # @return [Array<Object>] The coerced version of the given values.
     def coerce_array(array, field_descriptor)
       unless array.is_a? Array
-        raise ArgumentError, 'Value ' + array.to_s + ' must be an array'
+        raise ArgumentError.new('Value ' + array.to_s + ' must be an array')
       end
       array.map do |val|
         coerce(val, field_descriptor)

@@ -158,7 +158,7 @@ describe Google::Gax do
   # A dummy api call that raises an exception
   def raise_exc
     proc do |_|
-      raise Google::Gax::GaxError, 'Raised in a test'
+      raise Google::Gax::GaxError.new('Raised in a test')
     end
   end
 

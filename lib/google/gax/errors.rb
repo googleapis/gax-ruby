@@ -71,8 +71,81 @@ module Google
       end
     end
 
+    def from_error(error)
+      if error.respond_to? :code
+        grpc_error_class_for error.code
+      else
+        GaxError
+      end
+    end
+
     # Indicates an error during automatic GAX retrying.
     class RetryError < GaxError
     end
+
+    # Errors corresponding to standard HTTP/gRPC statuses.
+    class CanceledError < GaxError
+    end
+
+    class UnknownError < GaxError
+    end
+
+    class InvalidArgumentError < GaxError
+    end
+
+    class DeadlineExceededError < GaxError
+    end
+
+    class NotFoundError < GaxError
+    end
+
+    class AlreadyExistsError < GaxError
+    end
+
+    class PermissionDeniedError < GaxError
+    end
+
+    class ResourceExhaustedError < GaxError
+    end
+
+    class FailedPreconditionError < GaxError
+    end
+
+    class AbortedError < GaxError
+    end
+
+    class OutOfRangeError < GaxError
+    end
+
+    class UnimplementedError < GaxError
+    end
+
+    class InternalError < GaxError
+    end
+
+    class UnavailableError < GaxError
+    end
+
+    class DataLossError < GaxError
+    end
+
+    class UnauthenticatedError < GaxError
+    end
+
+    # @private Identify the subclass for a gRPC error
+    # Note: ported from
+    # https:/g/github.com/GoogleCloudPlatform/google-cloud-ruby/blob/master/google-cloud-core/lib/google/cloud/errors.rb
+    def self.grpc_error_class_for(grpc_error_code)
+      # The gRPC status code 0 is for a successful response.
+      # So there is no error subclass for a 0 status code, use current class.
+      [GaxError, CanceledError, UnknownError, InvalidArgumentError,
+       DeadlineExceededError, NotFoundError, AlreadyExistsError,
+       PermissionDeniedError, ResourceExhaustedError, FailedPreconditionError,
+       AbortedError, OutOfRangeError, UnimplementedError, InternalError,
+       UnavailableError, DataLossError,
+       UnauthenticatedError][grpc_error_code] || GaxError
+    end
+
+    module_function :from_error
   end
 end
