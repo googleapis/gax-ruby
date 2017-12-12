@@ -108,6 +108,102 @@ describe Google::Gax::GaxError do
     end
   end
 
+  describe '#from_error' do
+    it 'identifies CanceledError' do
+      mapped_error = Google::Gax.from_error GRPC::BadStatus.new(1, 'cancelled')
+      expect(mapped_error).to eq Google::Gax::CanceledError
+    end
+
+    it 'identifies UnknownError' do
+      mapped_error = Google::Gax.from_error GRPC::BadStatus.new(2, 'unknown')
+      expect(mapped_error).to eq Google::Gax::UnknownError
+    end
+
+    it 'identifies InvalidArgumentError' do
+      mapped_error = Google::Gax.from_error GRPC::BadStatus.new(3, 'invalid')
+      expect(mapped_error).to eq Google::Gax::InvalidArgumentError
+    end
+
+    it 'identifies DeadlineExceededError' do
+      mapped_error = Google::Gax.from_error GRPC::BadStatus.new(4, 'exceeded')
+      expect(mapped_error).to eq Google::Gax::DeadlineExceededError
+    end
+
+    it 'identifies NotFoundError' do
+      mapped_error = Google::Gax.from_error GRPC::BadStatus.new(5, 'not found')
+      expect(mapped_error).to eq Google::Gax::NotFoundError
+    end
+
+    it 'identifies AlreadyExistsError' do
+      mapped_error = Google::Gax.from_error GRPC::BadStatus.new(6, 'exists')
+      expect(mapped_error).to eq Google::Gax::AlreadyExistsError
+    end
+
+    it 'identifies PermissionDeniedError' do
+      mapped_error = Google::Gax.from_error GRPC::BadStatus.new(7, 'denied')
+      expect(mapped_error).to eq Google::Gax::PermissionDeniedError
+    end
+
+    it 'identifies ResourceExhaustedError' do
+      mapped_error = Google::Gax.from_error GRPC::BadStatus.new(8, 'exhausted')
+      expect(mapped_error).to eq Google::Gax::ResourceExhaustedError
+    end
+
+    it 'identifies FailedPreconditionError' do
+      mapped_error =
+        Google::Gax.from_error GRPC::BadStatus.new(9, 'precondition')
+      expect(mapped_error).to eq Google::Gax::FailedPreconditionError
+    end
+
+    it 'identifies AbortedError' do
+      mapped_error = Google::Gax.from_error GRPC::BadStatus.new(10, 'aborted')
+      expect(mapped_error).to eq Google::Gax::AbortedError
+    end
+
+    it 'identifies OutOfRangeError' do
+      mapped_error =
+        Google::Gax.from_error GRPC::BadStatus.new(11, 'out of range')
+      expect(mapped_error).to eq Google::Gax::OutOfRangeError
+    end
+
+    it 'identifies UnimplementedError' do
+      mapped_error =
+        Google::Gax.from_error GRPC::BadStatus.new(12, 'unimplemented')
+      expect(mapped_error).to eq Google::Gax::UnimplementedError
+    end
+
+    it 'identifies InternalError' do
+      mapped_error = Google::Gax.from_error GRPC::BadStatus.new(13, 'internal')
+      expect(mapped_error).to eq Google::Gax::InternalError
+    end
+
+    it 'identifies UnavailableError' do
+      mapped_error =
+        Google::Gax.from_error GRPC::BadStatus.new(14, 'unavailable')
+      expect(mapped_error).to eq Google::Gax::UnavailableError
+    end
+
+    it 'identifies DataLossError' do
+      mapped_error = Google::Gax.from_error GRPC::BadStatus.new(15, 'data loss')
+      expect(mapped_error).to eq Google::Gax::DataLossError
+    end
+
+    it 'identifies UnauthenticatedError' do
+      mapped_error =
+        Google::Gax.from_error GRPC::BadStatus.new(16, 'unauthenticated')
+      expect(mapped_error).to eq Google::Gax::UnauthenticatedError
+    end
+
+    it 'identifies unknown error' do
+      # We don't know what to map this error case to
+      mapped_error = Google::Gax.from_error GRPC::BadStatus.new(0, 'unknown')
+      expect(mapped_error).to eq Google::Gax::GaxError
+
+      mapped_error = Google::Gax.from_error GRPC::BadStatus.new(17, 'unknown')
+      expect(mapped_error).to eq Google::Gax::GaxError
+    end
+  end
+
   def wrap_with_gax_error(err)
     raise err
   rescue => e

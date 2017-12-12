@@ -138,12 +138,12 @@ module Google
     def self.grpc_error_class_for(grpc_error_code)
       # The gRPC status code 0 is for a successful response.
       # So there is no error subclass for a 0 status code, use current class.
-      [self, CanceledError, UnknownError, InvalidArgumentError,
+      [GaxError, CanceledError, UnknownError, InvalidArgumentError,
        DeadlineExceededError, NotFoundError, AlreadyExistsError,
        PermissionDeniedError, ResourceExhaustedError, FailedPreconditionError,
        AbortedError, OutOfRangeError, UnimplementedError, InternalError,
        UnavailableError, DataLossError,
-       UnauthenticatedError][grpc_error_code] || self
+       UnauthenticatedError][grpc_error_code] || GaxError
     end
 
     module_function :from_error
