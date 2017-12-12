@@ -158,8 +158,8 @@ module Google
       to_proto(val, field_descriptor.subtype.msgclass)
     end
 
-    # Utility for converting a Ruby Time instance to a
-    # Google::Protobuf::Timestamp.
+    # Utility for converting a Google::Protobuf::Timestamp instance to a Ruby
+    # time.
     #
     # @param timestamp [Google::Protobuf::Timestamp] The timestamp to be
     #   converted.
@@ -170,7 +170,7 @@ module Google
     end
 
     # Utility for converting a Ruby Time instance to a
-    # Google::Protobuf::Timestamp
+    # Google::Protobuf::Timestamp.
     #
     # @param time [Time] The Time to be converted.
     #
