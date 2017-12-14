@@ -254,7 +254,7 @@ module Google
         until done?
           sleep(delay)
           if Time.now >= deadline
-            raise RetryError, 'Retry total timeout exceeded with exception'
+            raise RetryError.new('Retry total timeout exceeded with exception')
           end
           delay = [delay * delay_multiplier, max_delay].min
           reload!

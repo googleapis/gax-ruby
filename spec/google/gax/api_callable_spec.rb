@@ -39,8 +39,8 @@ class CustomException < StandardError
   end
 end
 
-FAKE_STATUS_CODE_1 = :FAKE_STATUS_CODE_1
-FAKE_STATUS_CODE_2 = :FAKE_STATUS_CODE_2
+FAKE_STATUS_CODE_1 = 1
+FAKE_STATUS_CODE_2 = 2
 
 # Google::Gax::CallSettings is private, only accessible in the module context.
 # For testing purpose, this makes a toplevel ::CallSettings point to the same

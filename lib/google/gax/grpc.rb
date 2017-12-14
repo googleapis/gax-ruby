@@ -136,9 +136,9 @@ module Google
         if (channel && chan_creds) ||
            (channel && updater_proc) ||
            (chan_creds && updater_proc)
-          raise ArgumentError, 'Only one of channel, chan_creds, and ' \
+          raise ArgumentError.new('Only one of channel, chan_creds, and ' \
               'updater_proc should be passed into ' \
-              'Google::Gax::Grpc#create_stub.'
+              'Google::Gax::Grpc#create_stub.')
         end
       end
 

@@ -56,8 +56,9 @@ module Google
 
       # Sanity check: input must be a Hash
       unless hash.is_a? Hash
-        raise ArgumentError,
-              "Value #{hash} must be a Hash or a #{message_class.name}"
+        raise ArgumentError.new(
+          "Value #{hash} must be a Hash or a #{message_class.name}"
+        )
       end
       hash = coerce_submessages(hash, message_class)
       message_class.new(hash)
@@ -82,7 +83,7 @@ module Google
         if field_descriptor && field_descriptor.type == :message
           coerced[key] = coerce_submessage(val, field_descriptor)
         elsif field_descriptor && field_descriptor.type == :bytes &&
-              val.is_a?(IO)
+              (val.is_a?(IO) || val.is_a?(StringIO))
           coerced[key] = val.binmode.read
         else
           # `google/protobuf` should throw an error if no field descriptor is
@@ -126,7 +127,7 @@ module Google
     # @return [Array<Object>] The coerced version of the given values.
     def coerce_array(array, field_descriptor)
       unless array.is_a? Array
-        raise ArgumentError, 'Value ' + array.to_s + ' must be an array'
+        raise ArgumentError.new('Value ' + array.to_s + ' must be an array')
       end
       array.map do |val|
         coerce(val, field_descriptor)

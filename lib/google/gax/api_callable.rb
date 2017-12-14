@@ -168,7 +168,7 @@ module Google
       # @yield [Page] Gives the pages in the stream.
       # @raise [GaxError] if it's not started yet.
       def each_page
-        raise GaxError, 'not started!' unless started?
+        raise GaxError.new('not started!') unless started?
         yield @page
         loop do
           break unless next_page?
@@ -254,8 +254,9 @@ module Google
                    end
         begin
           api_caller.call(api_call, request, this_settings)
-        rescue *settings.errors
-          raise GaxError, 'RPC failed'
+        rescue *settings.errors => e
+          error_class = Google::Gax.from_error e
+          raise error_class.new('RPC failed')
         end
       end
     end
@@ -348,15 +349,15 @@ module Google
         rescue => exception
           unless exception.respond_to?(:code) &&
                  retry_options.retry_codes.include?(exception.code)
-            raise RetryError, 'Exception occurred in retry method that ' \
-              'was not classified as transient'
+            raise RetryError.new('Exception occurred in retry method that ' \
+              'was not classified as transient')
           end
           sleep(rand(delay) / MILLIS_PER_SECOND)
           now = Time.now
           delay = [delay * delay_mult, max_delay].min
           timeout = [timeout * timeout_mult, max_timeout, deadline - now].min
           if now >= deadline
-            raise RetryError, 'Retry total timeout exceeded with exception'
+            raise RetryError.new('Retry total timeout exceeded with exception')
           end
           retry
         end

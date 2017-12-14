@@ -31,6 +31,7 @@ require 'google/gax'
 require 'google/protobuf/any_pb'
 require 'google/protobuf/timestamp_pb'
 require 'spec/fixtures/fixture_pb'
+require 'stringio'
 
 describe Google::Gax do
   describe '#to_proto' do
@@ -118,6 +119,16 @@ describe Google::Gax do
       }
       user = Google::Gax.to_proto(request_hash, Google::Protobuf::User)
       expect(user.bytes_field).to eq("This is a text file.\n")
+    end
+
+    it 'handles StringIO instances' do
+      expected = 'This is a StringIO.'
+      string_io = StringIO.new(expected)
+      request_hash = {
+        bytes_field: string_io
+      }
+      user = Google::Gax.to_proto(request_hash, Google::Protobuf::User)
+      expect(user.bytes_field).to eq(expected)
     end
 
     it 'auto-coerces Time' do

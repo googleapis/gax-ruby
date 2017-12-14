@@ -175,7 +175,7 @@ module Google
             literal_sym = segment.literal.to_sym
             unless bindings.key?(literal_sym)
               msg = "Value for key #{segment.literal} is not provided"
-              raise(ArgumentError, msg)
+              raise ArgumentError.new(msg)
             end
             out.concat(PathTemplate.new(bindings[literal_sym]).segments)
             binding = true
