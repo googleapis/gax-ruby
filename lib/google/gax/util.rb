@@ -83,7 +83,7 @@ module Google
         if field_descriptor && field_descriptor.type == :message
           coerced[key] = coerce_submessage(val, field_descriptor)
         elsif field_descriptor && field_descriptor.type == :bytes &&
-              val.is_a?(IO)
+              (val.is_a?(IO) || val.is_a?(StringIO))
           coerced[key] = val.binmode.read
         else
           # `google/protobuf` should throw an error if no field descriptor is
