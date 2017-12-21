@@ -60,7 +60,7 @@ A_CONFIG = {
             'element_count_limit' => 10
           }
         },
-        'PageStreamingMethod' => {
+        'SomeHTTPSPageStreamingMethod' => {
           'retry_codes_name' => 'bar_retry',
           'retry_params_name' => 'default'
         }
@@ -70,7 +70,7 @@ A_CONFIG = {
 }.freeze
 
 PAGE_DESCRIPTORS = {
-  'page_streaming_method' => Google::Gax::PageDescriptor.new(
+  'some_https_page_streaming_method' => Google::Gax::PageDescriptor.new(
     'page_token', 'next_page_token', 'page_streams'
   )
 }.freeze
@@ -107,7 +107,7 @@ describe Google::Gax do
     expect(settings.kwargs).to match('key' => 'value')
     expect(settings.errors).to match_array([StandardError])
 
-    settings = defaults['page_streaming_method']
+    settings = defaults['some_https_page_streaming_method']
     expect(settings.timeout).to be(30)
     expect(settings.bundler).to be_nil
     expect(settings.bundle_descriptor).to be_nil
@@ -126,7 +126,7 @@ describe Google::Gax do
       'interfaces' => {
         SERVICE_NAME => {
           'methods' => {
-            'PageStreamingMethod' => nil,
+            'SomeHTTPSPageStreamingMethod' => nil,
             'BundlingMethod' => {
               'bundling' => nil
             }
@@ -145,7 +145,7 @@ describe Google::Gax do
     expect(settings.bundler).to be_nil
     expect(settings.page_descriptor).to be_nil
 
-    settings = defaults['page_streaming_method']
+    settings = defaults['some_https_page_streaming_method']
     expect(settings.timeout).to be(30)
     expect(settings.page_descriptor).to be_a(Google::Gax::PageDescriptor)
     expect(settings.retry_options).to be_nil
@@ -194,10 +194,10 @@ describe Google::Gax do
     expect(settings.bundler).to be_nil
     expect(settings.bundle_descriptor).to be_a(Google::Gax::BundleDescriptor)
 
-    # page_streaming_method is unaffected because it's not specified in
-    # overrides. 'bar_retry' or 'default' definitions in overrides should
+    # some_https_page_streaming_method is unaffected because it's not specified
+    # in overrides. 'bar_retry' or 'default' definitions in overrides should
     # not affect the methods which are not in the overrides.
-    settings = defaults['page_streaming_method']
+    settings = defaults['some_https_page_streaming_method']
     backoff = settings.retry_options.backoff_settings
     expect(backoff.initial_retry_delay_millis).to be(100)
     expect(backoff.retry_delay_multiplier).to be(1.2)
