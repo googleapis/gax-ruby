@@ -388,8 +388,19 @@ module Google
       RetryOptions.new(codes, backoff_settings)
     end
 
-    def upper_camel_to_lower_underscore(string)
-      string.scan(/[[:upper:]][^[:upper:]]*/).map(&:downcase).join('_')
+    # Port of GRPC::GenericService.underscore that works on frozen strings.
+    # Note that this function often is used on strings inside Hashes, which
+    # are frozen by default, so the GRPC implementation cannot be used directly.
+    #
+    # TODO(geigerj): Consider whether this logic can be factored out into
+    # a shared location that both gRPC and GAX can depend on in order to remove
+    # the additional dependency on gRPC this introduces.
+    def upper_camel_to_lower_underscore(s)
+      s = s.gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
+      s = s.gsub(/([a-z\d])([A-Z])/, '\1_\2')
+      s = s.tr('-', '_')
+      s = s.downcase
+      s
     end
 
     # Constructs a dictionary mapping method names to CallSettings.
