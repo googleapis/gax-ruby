@@ -399,7 +399,7 @@ module Google
       s = s.gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
       s = s.gsub(/([a-z\d])([A-Z])/, '\1_\2')
       s = s.tr('-', '_')
-      s = s.downcase!
+      s = s.downcase
       s
     end
 
