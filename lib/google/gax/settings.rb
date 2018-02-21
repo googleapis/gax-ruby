@@ -42,11 +42,11 @@ module Google
     #   @return [Object]
     # @!attribute [r] bundle_descriptor
     #   @return [BundleDescriptor]
-    # @!attribute [r] kwargs
+    # @!attribute [r] metadata
     #   @return [Hash]
     class CallSettings
       attr_reader :timeout, :retry_options, :page_descriptor, :page_token,
-                  :bundler, :bundle_descriptor, :kwargs, :errors
+                  :bundler, :bundle_descriptor, :metadata, :errors
 
       # @param timeout [Numeric] The client-side timeout for API calls. This
       #   parameter is ignored for retrying calls.
@@ -62,20 +62,22 @@ module Google
       #   performed.
       # @param bundle_descriptor [BundleDescriptor] indicates the structure of
       #   the bundle. If nil, bundling is not performed.
+      # @param metadata [Hash] the request header params.
       # @param kwargs [Hash]
-      #   Additional keyword argments to be passed to the API call.
+      #   Deprecated, if set this will be merged with the metadata field.
       # @param errors [Array<Exception>]
       #   Configures the exceptions to wrap with GaxError.
       def initialize(timeout: 30, retry_options: nil, page_descriptor: nil,
                      page_token: nil, bundler: nil, bundle_descriptor: nil,
-                     kwargs: {}, errors: [])
+                     metadata: {}, kwargs: {}, errors: [])
         @timeout = timeout
         @retry_options = retry_options
         @page_descriptor = page_descriptor
         @page_token = page_token
         @bundler = bundler
         @bundle_descriptor = bundle_descriptor
-        @kwargs = kwargs
+        @metadata = metadata
+        @metadata.merge!(kwargs) if kwargs && metadata
         @errors = errors
       end
 
@@ -101,7 +103,7 @@ module Google
                                   page_token: @page_token,
                                   bundler: @bundler,
                                   bundle_descriptor: @bundle_descriptor,
-                                  kwargs: @kwargs,
+                                  metadata: @metadata,
                                   errors: @errors)
         end
 
@@ -121,8 +123,8 @@ module Google
                        options.page_token
                      end
 
-        kwargs = @kwargs.dup
-        kwargs.update(options.kwargs) if options.kwargs != :OPTION_INHERIT
+        metadata = metadata.dup || {}
+        metadata.update(options.metadata) if options.metadata != :OPTION_INHERIT
 
         CallSettings.new(timeout: timeout,
                          retry_options: retry_options,
@@ -130,7 +132,7 @@ module Google
                          page_token: page_token,
                          bundler: @bundler,
                          bundle_descriptor: @bundle_descriptor,
-                         kwargs: kwargs,
+                         metadata: metadata,
                          errors: @errors)
       end
     end
@@ -144,10 +146,10 @@ module Google
     #   @return [RetryOptions, :OPTION_INHERIT]
     # @!attribute [r] page_token
     #   @return [Object, :OPTION_INHERIT, :INITIAL_PAGE]
-    # @!attribute [r] kwargs
+    # @!attribute [r] metadata
     #  @return [Hash, :OPTION_INHERIT]
     class CallOptions
-      attr_reader :timeout, :retry_options, :page_token, :kwargs
+      attr_reader :timeout, :retry_options, :page_token, :metadata
 
       # @param timeout [Numeric, :OPTION_INHERIT]
       #   The client-side timeout for API calls.
@@ -157,16 +159,19 @@ module Google
       # @param page_token [Object, :OPTION_INHERIT]
       #   If set and the call is configured for page streaming, page streaming
       #   is starting with this page_token.
+      # @param metadata [Hash] the request header params.
       # @param kwargs [Hash, :OPTION_INHERIT]
-      #   Additional keyword argments to be passed to the API call.
+      #   Deprecated, if set this will be merged with the metadata field.
       def initialize(timeout: :OPTION_INHERIT,
                      retry_options: :OPTION_INHERIT,
                      page_token: :OPTION_INHERIT,
+                     metadata: :OPTION_INHERIT,
                      kwargs: :OPTION_INHERIT)
         @timeout = timeout
         @retry_options = retry_options
         @page_token = page_token
-        @kwargs = kwargs
+        @metadata = metadata
+        @metadata.merge!(kwargs) if kwargs.is_a?(Hash) && metadata.is_a?(Hash)
       end
     end
 
@@ -466,15 +471,15 @@ module Google
     # @param page_descriptors [Hash{String => PageDescriptor}] A
     #   dictionary of method names to PageDescriptor objects for
     #   methods that are page streaming-enabled.
-    # @param kwargs [Hash]
-    #   Additional keyword argments to be passed to the API call.
+    # @param metadata [Hash]
+    #   Header params to be passed to the API call.
     # @param errors [Array<Exception>]
     #   Configures the exceptions to wrap with GaxError.
     # @return [CallSettings, nil] A CallSettings, or nil if the
     #   service is not found in the config.
     def construct_settings(service_name, client_config, config_overrides,
                            retry_names, timeout, bundle_descriptors: {},
-                           page_descriptors: {}, kwargs: {}, errors: [])
+                           page_descriptors: {}, metadata: {}, errors: [])
       defaults = {}
 
       service_config = client_config.fetch('interfaces', {})[service_name]
@@ -509,7 +514,7 @@ module Google
           page_descriptor: page_descriptors[snake_name],
           bundler: construct_bundling(bundling_config, bundle_descriptor),
           bundle_descriptor: bundle_descriptor,
-          kwargs: kwargs,
+          metadata: metadata,
           errors: errors
         )
       end

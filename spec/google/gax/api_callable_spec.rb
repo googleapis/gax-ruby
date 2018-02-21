@@ -56,10 +56,15 @@ describe Google::Gax do
     it 'calls api call' do
       settings = CallSettings.new
       deadline_arg = nil
+
+      op = double("op")
+      allow(op).to receive(:execute) { 42 }
+
       func = proc do |deadline: nil, **_kwargs|
         deadline_arg = deadline
-        42
+        op
       end
+
       my_callable = Google::Gax.create_api_call(func, settings)
       expect(my_callable.call(nil)).to eq(42)
       expect(deadline_arg).to be_a(Time)
@@ -71,10 +76,30 @@ describe Google::Gax do
     end
   end
 
+  describe 'create_api_call with block options' do
+    it 'calls with block' do
+      adder = 0
+      settings = CallSettings.new
+
+      op = double("op", :request => 3)
+      allow(op).to receive(:execute) { 2 + op.request + adder }
+
+      func = proc do |request, deadline: nil, **_kwargs|
+        deadline_arg = deadline
+        expect(request).to eq(3)
+        op
+      end
+
+      my_callable = Google::Gax.create_api_call(func, settings)
+      expect(my_callable.call(3)).to eq(5)
+      expect(my_callable.call(3) { adder = 5 }).to eq(5)
+      expect(my_callable.call(3)).to eq(10)
+    end
+  end
+
   describe 'page streaming' do
     page_size = 3
     pages_to_stream = 5
-
     page_descriptor = Google::Gax::PageDescriptor.new('page_token',
                                                       'next_page_token', 'nums')
     settings = CallSettings.new(page_descriptor: page_descriptor)
@@ -93,7 +118,13 @@ describe Google::Gax do
     end
 
     it 'iterates over elements' do
-      my_callable = Google::Gax.create_api_call(func, settings)
+      func2 = proc do |request, **kwargs|
+        op = double("op")
+        allow(op).to receive(:execute) { func.call(request, **kwargs) }
+        op
+      end
+
+      my_callable = Google::Gax.create_api_call(func2, settings)
       expect(my_callable.call('page_token' => 0).to_a).to match_array(
         (0...(page_size * pages_to_stream))
       )
@@ -101,7 +132,13 @@ describe Google::Gax do
     end
 
     it 'offers interface for pages' do
-      my_callable = Google::Gax.create_api_call(func, settings)
+      func2 = proc do |request, **kwargs|
+        op = double("op")
+        allow(op).to receive(:execute) { func.call(request, **kwargs) }
+        op
+      end
+
+      my_callable = Google::Gax.create_api_call(func2, settings)
       stream = my_callable.call('page_token' => 0)
       page = stream.page
       expect(page.to_a).to eq((0...page_size).to_a)
@@ -114,8 +151,14 @@ describe Google::Gax do
     end
 
     it 'starts from the specified page_token' do
+      func2 = proc do |request, **kwargs|
+        op = double("op")
+        allow(op).to receive(:execute) { func.call(request, **kwargs) }
+        op
+      end
+
       my_settings = settings.merge(Google::Gax::CallOptions.new(page_token: 3))
-      my_callable = Google::Gax.create_api_call(func, my_settings)
+      my_callable = Google::Gax.create_api_call(func2, my_settings)
       expect(my_callable.call({}).to_a).to match_array(
         3...(page_size * pages_to_stream)
       )
@@ -188,8 +231,13 @@ describe Google::Gax do
       func = proc do |request, _|
         request['elements'].count
       end
+      func2 = proc do |request, **kwargs|
+        op = double("op")
+        allow(op).to receive(:execute) { func.call(request, **kwargs) }
+        op
+      end
 
-      callable = Google::Gax.create_api_call(func, settings)
+      callable = Google::Gax.create_api_call(func2, settings)
 
       first = callable.call('elements' => [0] * 5)
       expect(first).to be_an_instance_of Google::Gax::Event
@@ -207,11 +255,16 @@ describe Google::Gax do
         metadata_arg = metadata
         42
       end
+      func2 = proc do |request, **kwargs|
+        op = double("op")
+        allow(op).to receive(:execute) { func.call(request, **kwargs) }
+        op
+      end
       params_extractor = proc do |request|
         { 'name' => request[:name], 'book.read' => request[:book][:read] }
       end
       my_callable = Google::Gax.create_api_call(
-        func, settings, params_extractor: params_extractor
+        func2, settings, params_extractor: params_extractor
       )
       expect(my_callable.call(name: 'foo', book: { read: true })).to eq(42)
       expect(metadata_arg).to eq(
@@ -241,7 +294,13 @@ describe Google::Gax do
         raise CustomException.new('', FAKE_STATUS_CODE_1) if to_attempt > 0
         1729
       end
-      my_callable = Google::Gax.create_api_call(func, settings)
+      func2 = proc do |request, **kwargs|
+        op = double("op")
+        allow(op).to receive(:execute) { func.call(request, **kwargs) }
+        op
+      end
+
+      my_callable = Google::Gax.create_api_call(func2, settings)
       expect(my_callable.call).to eq(1729)
       expect(to_attempt).to eq(0)
       expect(deadline_arg).to be_a(Time)
@@ -318,7 +377,12 @@ describe Google::Gax do
 
     it 'does not retry even when no responses' do
       func = proc { nil }
-      my_callable = Google::Gax.create_api_call(func, settings)
+      func2 = proc do |request, **kwargs|
+        op = double("op")
+        allow(op).to receive(:execute) { func.call(request, **kwargs) }
+        op
+      end
+      my_callable = Google::Gax.create_api_call(func2, settings)
       expect(my_callable.call).to be_nil
     end
 
