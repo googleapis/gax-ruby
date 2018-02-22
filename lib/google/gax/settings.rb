@@ -473,14 +473,18 @@ module Google
     #   methods that are page streaming-enabled.
     # @param metadata [Hash]
     #   Header params to be passed to the API call.
+    # @param kwargs [Hash]
+    #   Deprecated, same as metadata and if present will be merged with metadata
     # @param errors [Array<Exception>]
     #   Configures the exceptions to wrap with GaxError.
     # @return [CallSettings, nil] A CallSettings, or nil if the
     #   service is not found in the config.
     def construct_settings(service_name, client_config, config_overrides,
                            retry_names, timeout, bundle_descriptors: {},
-                           page_descriptors: {}, metadata: {}, errors: [])
+                           page_descriptors: {}, metadata: {}, kwargs: {}, errors: [])
       defaults = {}
+
+      metadata.merge!(kwargs) if kwargs.is_a?(Hash) && metadata.is_a?(Hash)
 
       service_config = client_config.fetch('interfaces', {})[service_name]
       return nil unless service_config
