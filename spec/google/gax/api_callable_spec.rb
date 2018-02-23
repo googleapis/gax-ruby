@@ -57,7 +57,7 @@ describe Google::Gax do
       settings = CallSettings.new
       deadline_arg = nil
 
-      op = double("op")
+      op = double('op')
       allow(op).to receive(:execute) { 42 }
 
       func = proc do |deadline: nil, **_kwargs|
@@ -81,11 +81,10 @@ describe Google::Gax do
       adder = 0
       settings = CallSettings.new
 
-      op = double("op", :request => 3)
+      op = double('op', request: 3)
       allow(op).to receive(:execute) { 2 + op.request + adder }
 
-      func = proc do |request, deadline: nil, **_kwargs|
-        deadline_arg = deadline
+      func = proc do |request, _deadline: nil, **_kwargs|
         expect(request).to eq(3)
         op
       end
@@ -119,7 +118,7 @@ describe Google::Gax do
 
     it 'iterates over elements' do
       func2 = proc do |request, **kwargs|
-        op = double("op")
+        op = double('op')
         allow(op).to receive(:execute) { func.call(request, **kwargs) }
         op
       end
@@ -133,7 +132,7 @@ describe Google::Gax do
 
     it 'offers interface for pages' do
       func2 = proc do |request, **kwargs|
-        op = double("op")
+        op = double('op')
         allow(op).to receive(:execute) { func.call(request, **kwargs) }
         op
       end
@@ -152,7 +151,7 @@ describe Google::Gax do
 
     it 'starts from the specified page_token' do
       func2 = proc do |request, **kwargs|
-        op = double("op")
+        op = double('op')
         allow(op).to receive(:execute) { func.call(request, **kwargs) }
         op
       end
@@ -232,7 +231,7 @@ describe Google::Gax do
         request['elements'].count
       end
       func2 = proc do |request, **kwargs|
-        op = double("op")
+        op = double('op')
         allow(op).to receive(:execute) { func.call(request, **kwargs) }
         op
       end
@@ -256,7 +255,7 @@ describe Google::Gax do
         42
       end
       func2 = proc do |request, **kwargs|
-        op = double("op")
+        op = double('op')
         allow(op).to receive(:execute) { func.call(request, **kwargs) }
         op
       end
@@ -295,7 +294,7 @@ describe Google::Gax do
         1729
       end
       func2 = proc do |request, **kwargs|
-        op = double("op")
+        op = double('op')
         allow(op).to receive(:execute) { func.call(request, **kwargs) }
         op
       end
@@ -378,7 +377,7 @@ describe Google::Gax do
     it 'does not retry even when no responses' do
       func = proc { nil }
       func2 = proc do |request, **kwargs|
-        op = double("op")
+        op = double('op')
         allow(op).to receive(:execute) { func.call(request, **kwargs) }
         op
       end

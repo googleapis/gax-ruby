@@ -222,7 +222,7 @@ module Google
     # @raise [StandardError] if +settings+ has incompatible values,
     #   e.g, if bundling and page_streaming are both configured
     def create_api_call(func, settings, params_extractor: nil)
-      api_caller = proc do |api_call, request, settings, block|
+      api_caller = proc do |api_call, request, _settings, block|
         api_call.call(request, block)
       end
 
@@ -317,7 +317,7 @@ module Google
     def with_routing_header(settings, params)
       routing_header = params.map { |k, v| "#{k}=#{v}" }.join('&')
       options = CallOptions.new(
-          metadata: { 'x-goog-request-params' => routing_header }
+        metadata: { 'x-goog-request-params' => routing_header }
       )
       settings.merge(options)
     end

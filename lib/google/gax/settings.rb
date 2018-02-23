@@ -481,7 +481,8 @@ module Google
     #   service is not found in the config.
     def construct_settings(service_name, client_config, config_overrides,
                            retry_names, timeout, bundle_descriptors: {},
-                           page_descriptors: {}, metadata: {}, kwargs: {}, errors: [])
+                           page_descriptors: {}, metadata: {}, kwargs: {},
+                           errors: [])
       defaults = {}
 
       metadata.merge!(kwargs) if kwargs.is_a?(Hash) && metadata.is_a?(Hash)
