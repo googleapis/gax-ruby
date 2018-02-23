@@ -123,7 +123,7 @@ module Google
                        options.page_token
                      end
 
-        metadata = metadata.dup || {}
+        metadata = (metadata.dup if metadata) || {}
         metadata.update(options.metadata) if options.metadata != :OPTION_INHERIT
 
         CallSettings.new(timeout: timeout,
