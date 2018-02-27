@@ -159,7 +159,7 @@ module Google
       # @param page_token [Object, :OPTION_INHERIT]
       #   If set and the call is configured for page streaming, page streaming
       #   is starting with this page_token.
-      # @param metadata [Hash] the request header params.
+      # @param metadata [Hash, :OPTION_INHERIT] the request header params.
       # @param kwargs [Hash, :OPTION_INHERIT]
       #   Deprecated, if set this will be merged with the metadata field.
       def initialize(timeout: :OPTION_INHERIT,
