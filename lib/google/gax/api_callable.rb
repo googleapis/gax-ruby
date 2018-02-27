@@ -279,11 +279,11 @@ module Google
     def bundleable(desc)
       proc do |api_call, request, settings, block|
         return api_call(request, block) unless settings.bundler
+        raise 'Bundling calls cannot accept blocks' if block
         the_id = Google::Gax.compute_bundle_id(
           request,
           desc.request_discriminator_fields
         )
-        # TODO: how to handle the block arg in next line?
         settings.bundler.schedule(api_call, the_id, desc, request)
       end
     end
