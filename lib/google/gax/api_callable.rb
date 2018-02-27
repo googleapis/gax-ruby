@@ -387,7 +387,7 @@ module Google
         op = a_func.call(request,
                          deadline: Time.now + timeout,
                          metadata: metadata,
-                         return_top: true)
+                         return_op: true)
         res = op.execute
         block.call op if block
         res
