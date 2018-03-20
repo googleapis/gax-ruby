@@ -136,15 +136,15 @@ module Google
       # @param request [Object]
       #   The initial request object.
       # @param settings [CallSettings]
-      #   The call settings to enumerate pages.
+      #   The call settings to enumerate pages
       # @return [PagedEnumerable]
       #   returning self for further uses.
-      def start(api_call, request, settings)
+      def start(api_call, request, settings, block)
         @func = api_call
         @request = request
         page_token = settings.page_token
         @request[@request_page_token_field] = page_token if page_token
-        @page = @page.dup_with(@func.call(@request))
+        @page = @page.dup_with(@func.call(@request, block))
         self
       end
 
@@ -222,8 +222,8 @@ module Google
     # @raise [StandardError] if +settings+ has incompatible values,
     #   e.g, if bundling and page_streaming are both configured
     def create_api_call(func, settings, params_extractor: nil)
-      api_caller = proc do |api_call, request|
-        api_call.call(request)
+      api_caller = proc do |api_call, request, _settings, block|
+        api_call.call(request, block)
       end
 
       if settings.page_descriptor
@@ -239,7 +239,7 @@ module Google
         api_caller = bundleable(settings.bundle_descriptor)
       end
 
-      proc do |request, options = nil|
+      proc do |request, options = nil, &block|
         this_settings = settings.merge(options)
         if params_extractor
           params = params_extractor.call(request)
@@ -247,13 +247,13 @@ module Google
         end
         api_call = if settings.retry_codes?
                      retryable(func, this_settings.retry_options,
-                               this_settings.kwargs)
+                               this_settings.metadata)
                    else
                      add_timeout_arg(func, this_settings.timeout,
-                                     this_settings.kwargs)
+                                     this_settings.metadata)
                    end
         begin
-          api_caller.call(api_call, request, this_settings)
+          api_caller.call(api_call, request, this_settings, block)
         rescue *settings.errors => e
           error_class = Google::Gax.from_error e
           raise error_class.new('RPC failed')
@@ -277,8 +277,9 @@ module Google
     # @return [Proc] A proc takes the API call's request and returns
     #   an Event object.
     def bundleable(desc)
-      proc do |api_call, request, settings|
-        return api_call(request) unless settings.bundler
+      proc do |api_call, request, settings, block|
+        return api_call(request, block) unless settings.bundler
+        raise 'Bundling calls cannot accept blocks' if block
         the_id = Google::Gax.compute_bundle_id(
           request,
           desc.request_discriminator_fields
@@ -316,7 +317,7 @@ module Google
     def with_routing_header(settings, params)
       routing_header = params.map { |k, v| "#{k}=#{v}" }.join('&')
       options = CallOptions.new(
-        kwargs: { 'x-goog-request-params' => routing_header }
+        metadata: { 'x-goog-request-params' => routing_header }
       )
       settings.merge(options)
     end
@@ -328,8 +329,9 @@ module Google
     # @param retry_options [RetryOptions] Configures the exceptions
     #   upon which the proc should retry, and the parameters to the
     #   exponential backoff retry algorithm.
+    # @param metadata [Hash] request metadata headers
     # @return [Proc] A proc that will retry on exception.
-    def retryable(a_func, retry_options, kwargs)
+    def retryable(a_func, retry_options, metadata)
       delay_mult = retry_options.backoff_settings.retry_delay_multiplier
       max_delay = (retry_options.backoff_settings.max_retry_delay_millis /
                    MILLIS_PER_SECOND)
@@ -339,13 +341,19 @@ module Google
       total_timeout = (retry_options.backoff_settings.total_timeout_millis /
                        MILLIS_PER_SECOND)
 
-      proc do |request|
+      proc do |request, block|
         delay = retry_options.backoff_settings.initial_retry_delay_millis
         timeout = (retry_options.backoff_settings.initial_rpc_timeout_millis /
                    MILLIS_PER_SECOND)
         deadline = Time.now + total_timeout
         begin
-          a_func.call(request, deadline: Time.now + timeout, metadata: kwargs)
+          op = a_func.call(request,
+                           deadline: Time.now + timeout,
+                           metadata: metadata,
+                           return_op: true)
+          res = op.execute
+          block.call res, op if block
+          res
         rescue => exception
           unless exception.respond_to?(:code) &&
                  retry_options.retry_codes.include?(exception.code)
@@ -372,10 +380,17 @@ module Google
     # @param a_func [Proc] a proc to be updated
     # @param timeout [Numeric] to be added to the original proc as it
     #   final positional arg.
+    # @param metadata [Hash] request metadata headers
     # @return [Proc] the original proc updated to the timeout arg
-    def add_timeout_arg(a_func, timeout, kwargs)
-      proc do |request|
-        a_func.call(request, deadline: Time.now + timeout, metadata: kwargs)
+    def add_timeout_arg(a_func, timeout, metadata)
+      proc do |request, block|
+        op = a_func.call(request,
+                         deadline: Time.now + timeout,
+                         metadata: metadata,
+                         return_op: true)
+        res = op.execute
+        block.call op if block
+        res
       end
     end
 

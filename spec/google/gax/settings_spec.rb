@@ -91,7 +91,7 @@ describe Google::Gax do
       SERVICE_NAME, A_CONFIG, {}, RETRY_DICT, 30,
       bundle_descriptors: BUNDLE_DESCRIPTORS,
       page_descriptors: PAGE_DESCRIPTORS,
-      kwargs: { 'key' => 'value' },
+      metadata: { 'key' => 'value' },
       errors: [StandardError]
     )
     settings = defaults['bundling_method']
@@ -104,7 +104,7 @@ describe Google::Gax do
     expect(settings.retry_options.backoff_settings).to be_a(
       Google::Gax::BackoffSettings
     )
-    expect(settings.kwargs).to match('key' => 'value')
+    expect(settings.metadata).to match('key' => 'value')
     expect(settings.errors).to match_array([StandardError])
 
     settings = defaults['some_https_page_streaming_method']
@@ -117,7 +117,7 @@ describe Google::Gax do
     expect(settings.retry_options.backoff_settings).to be_a(
       Google::Gax::BackoffSettings
     )
-    expect(settings.kwargs).to match('key' => 'value')
+    expect(settings.metadata).to match('key' => 'value')
     expect(settings.errors).to match_array([StandardError])
   end
 

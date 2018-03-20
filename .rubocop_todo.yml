@@ -27,7 +27,7 @@ Metrics/LineLength:
 # Offense count: 8
 # Configuration parameters: CountComments.
 Metrics/MethodLength:
-  Max: 35
+  Max: 38
 
 # Offense count: 1
 Metrics/PerceivedComplexity:
@@ -36,7 +36,7 @@ Metrics/PerceivedComplexity:
 Metrics/BlockLength:
   Exclude:
     - "**/*_spec.rb"
-  Max: 26
+  Max: 28
 
 # Offense count: 3
 Style/Documentation:
