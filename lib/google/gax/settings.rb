@@ -149,7 +149,7 @@ module Google
     # @!attribute [r] metadata
     #   @return [Hash, :OPTION_INHERIT]
     # @!attribute [r] kwargs
-    #  @return [Hash, :OPTION_INHERIT] deprecated, use metadata instead
+    #   @return [Hash, :OPTION_INHERIT] deprecated, use metadata instead
     class CallOptions
       attr_reader :timeout, :retry_options, :page_token, :metadata
       alias kwargs metadata
