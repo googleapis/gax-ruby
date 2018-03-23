@@ -147,9 +147,12 @@ module Google
     # @!attribute [r] page_token
     #   @return [Object, :OPTION_INHERIT, :INITIAL_PAGE]
     # @!attribute [r] metadata
-    #  @return [Hash, :OPTION_INHERIT]
+    #   @return [Hash, :OPTION_INHERIT]
+    # @!attribute [r] kwargs
+    #  @return [Hash, :OPTION_INHERIT] deprecated, use metadata instead
     class CallOptions
       attr_reader :timeout, :retry_options, :page_token, :metadata
+      alias_method :kwargs, :metadata
 
       # @param timeout [Numeric, :OPTION_INHERIT]
       #   The client-side timeout for API calls.
