@@ -97,7 +97,7 @@ describe Google::Gax do
   end
 
   describe 'custom exceptions' do
-    it 'wrap an exception' do
+    it 'traps an exception' do
       settings = CallSettings.new
 
       transformer = proc do |ex|
@@ -110,6 +110,21 @@ describe Google::Gax do
       end
       my_callable = Google::Gax.create_api_call(func, settings, exception_transformer: transformer)
       expect { my_callable.call }.to raise_error(CustomException)
+    end
+
+    it 'traps a wrapped exception' do
+      settings = CallSettings.new(errors: [CustomException])
+
+      transformer = proc do |ex|
+        expect(ex).to be_a(Google::Gax::GaxError)
+        raise Exception.new('')
+      end
+
+      func = proc do
+        raise CustomException.new('', :FAKE_STATUS_CODE_1)
+      end
+      my_callable = Google::Gax.create_api_call(func, settings, exception_transformer: transformer)
+      expect { my_callable.call }.to raise_error(Exception)
     end
   end
 
