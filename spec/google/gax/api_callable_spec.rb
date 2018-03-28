@@ -108,7 +108,9 @@ describe Google::Gax do
       func = proc do
         raise Google::Gax::RetryError.new('')
       end
-      my_callable = Google::Gax.create_api_call(func, settings, exception_transformer: transformer)
+      my_callable = Google::Gax.create_api_call(
+        func, settings, exception_transformer: transformer
+      )
       expect { my_callable.call }.to raise_error(CustomException)
     end
 
@@ -123,7 +125,9 @@ describe Google::Gax do
       func = proc do
         raise CustomException.new('', :FAKE_STATUS_CODE_1)
       end
-      my_callable = Google::Gax.create_api_call(func, settings, exception_transformer: transformer)
+      my_callable = Google::Gax.create_api_call(
+        func, settings, exception_transformer: transformer
+      )
       expect { my_callable.call }.to raise_error(Exception)
     end
   end
