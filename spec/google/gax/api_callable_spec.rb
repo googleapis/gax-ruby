@@ -96,6 +96,23 @@ describe Google::Gax do
     end
   end
 
+  describe 'custom exceptions' do
+    it 'wrap an exception' do
+      settings = CallSettings.new
+
+      transformer = proc do |ex|
+        expect(ex).to be_a(Google::Gax::RetryError)
+        raise CustomException.new('', FAKE_STATUS_CODE_2)
+      end
+
+      func = proc do
+        raise Google::Gax::RetryError.new('')
+      end
+      my_callable = Google::Gax.create_api_call(func, settings, exception_transformer: transformer)
+      expect { my_callable.call }.to raise_error(CustomException)
+    end
+  end
+
   describe 'page streaming' do
     page_size = 3
     pages_to_stream = 5
