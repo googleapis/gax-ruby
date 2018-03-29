@@ -218,10 +218,14 @@ module Google
     # @param settings [CallSettings] provides the settings for this call
     # @param params_extractor [Proc] extracts routing header params from the
     #   request
+    # @param exception_transformer [Proc] if an API exception occurs this
+    #   transformer is given the original exception for custom processing
+    #   instead of raising the error directly
     # @return [Proc] a bound method on a request stub used to make an rpc call
     # @raise [StandardError] if +settings+ has incompatible values,
     #   e.g, if bundling and page_streaming are both configured
-    def create_api_call(func, settings, params_extractor: nil)
+    def create_api_call(func, settings, params_extractor: nil,
+                        exception_transformer: nil)
       api_caller = proc do |api_call, request, _settings, block|
         api_call.call(request, block)
       end
@@ -255,8 +259,13 @@ module Google
         begin
           api_caller.call(api_call, request, this_settings, block)
         rescue *settings.errors => e
-          error_class = Google::Gax.from_error e
-          raise error_class.new('RPC failed')
+          error_class = Google::Gax.from_error(e)
+          error = error_class.new('RPC failed')
+          raise error if exception_transformer.nil?
+          exception_transformer.call error
+        rescue StandardError => error
+          raise error if exception_transformer.nil?
+          exception_transformer.call error
         end
       end
     end
