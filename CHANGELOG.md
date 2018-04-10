@@ -1,5 +1,9 @@
 # Release History
 
+### 1.2.0 / 2018-4-10
+
+* Add support for custom exception mapping
+
 ### 1.1.0 / 2018-3-20
 
 * Add support for passing blocks to unary RPC calls
