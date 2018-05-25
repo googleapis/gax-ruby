@@ -45,21 +45,64 @@ describe Google::Gax::Grpc do
 
       expect do |blk|
         Google::Gax::Grpc.create_stub('service', 'port', &blk)
-      end.to yield_with_args('service:port', composed_mock)
+      end.to yield_with_args('service:port', composed_mock, interceptors: [])
     end
 
     it 'yields given channel' do
       mock = instance_double(GRPC::Core::Channel)
+      interceptors = instance_double(Array)
       expect do |blk|
-        Google::Gax::Grpc.create_stub('service', 'port', channel: mock, &blk)
-      end.to yield_with_args('service:port', nil, channel_override: mock)
+        Google::Gax::Grpc.create_stub(
+          'service', 'port', channel: mock, interceptors: interceptors, &blk
+        )
+      end.to yield_with_args(
+        'service:port', nil, channel_override: mock, interceptors: interceptors
+      )
+    end
+
+    it 'yields given channel and interceptors' do
+      mock = instance_double(GRPC::Core::Channel)
+      expect do |blk|
+        Google::Gax::Grpc.create_stub(
+          'service', 'port', channel: mock, &blk
+        )
+      end.to yield_with_args(
+        'service:port', nil, channel_override: mock, interceptors: []
+      )
+    end
+
+    it 'yields given interceptors' do
+      interceptors = instance_double(Array)
+      expect do |blk|
+        Google::Gax::Grpc.create_stub(
+          'service', 'port', interceptors: interceptors, &blk
+        )
+      end.to yield_with_args(
+        'service:port', anything, interceptors: interceptors
+      )
     end
 
     it 'yields given channel credentials' do
       mock = instance_double(GRPC::Core::ChannelCredentials)
       expect do |blk|
-        Google::Gax::Grpc.create_stub('service', 'port', chan_creds: mock, &blk)
-      end.to yield_with_args('service:port', mock)
+        Google::Gax::Grpc.create_stub(
+          'service', 'port', chan_creds: mock, &blk
+        )
+      end.to yield_with_args(
+        'service:port', mock, interceptors: []
+      )
+    end
+
+    it 'yields given channel credentials and interceptors' do
+      mock = instance_double(GRPC::Core::ChannelCredentials)
+      interceptors = instance_double(Array)
+      expect do |blk|
+        Google::Gax::Grpc.create_stub(
+          'service', 'port', chan_creds: mock, interceptors: interceptors, &blk
+        )
+      end.to yield_with_args(
+        'service:port', mock, interceptors: interceptors
+      )
     end
 
     it 'yields channel credentials composed of the given updater_proc' do
@@ -78,7 +121,9 @@ describe Google::Gax::Grpc do
         Google::Gax::Grpc.create_stub(
           'service', 'port', updater_proc: updater_proc, &blk
         )
-      end.to yield_with_args('service:port', composed_chan_creds)
+      end.to yield_with_args(
+        'service:port', composed_chan_creds, interceptors: []
+      )
     end
 
     it 'raise an argument error if multiple creds are passed in' do
