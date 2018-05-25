@@ -79,7 +79,8 @@ describe Google::Gax::Grpc do
           'service', 'port', channel: channel, interceptors: interceptors, &blk
         )
       end.to yield_with_args(
-        'service:port', anything, channel_override: channel, interceptors: interceptors
+        'service:port', anything, channel_override: channel,
+                                  interceptors: interceptors
       )
     end
 
