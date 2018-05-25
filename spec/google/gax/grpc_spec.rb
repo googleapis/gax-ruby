@@ -73,12 +73,13 @@ describe Google::Gax::Grpc do
 
     it 'yields given interceptors' do
       interceptors = instance_double(Array)
+      channel = instance_double(GRPC::Core::Channel)
       expect do |blk|
         Google::Gax::Grpc.create_stub(
-          'service', 'port', interceptors: interceptors, &blk
+          'service', 'port', channel: channel, interceptors: interceptors, &blk
         )
       end.to yield_with_args(
-        'service:port', anything, interceptors: interceptors
+        'service:port', anything, channel_override: channel, interceptors: interceptors
       )
     end
 
