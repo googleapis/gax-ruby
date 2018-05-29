@@ -108,7 +108,7 @@ module Google
       # @raise [ArgumentError] if a combination channel, chan_creds, and
       #    updater_proc are passed.
       #
-      # @yield [address, creds]
+      # @yield [address, creds, channel_override, interceptors]
       #   the generated gRPC method to create a stub.
       #
       # @return A gRPC client stub.
