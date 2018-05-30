@@ -155,26 +155,21 @@ module Google
         segment_count = @size
 
         @segments.each do |segment|
-          current_var = "$#{bindings.size}"
-          current_sym = segment.literal
-
-          # check for named variables (i.e. {foo=*}, {foo})
-          if segment.kind == :variable
-            current_var = segment.name
-            current_sym = segment.value || '*'
-          end
-
-          # matched based on the literal in the template
-          if current_sym == '**'
+          # match based on the kind
+          if segment.kind == :anon
+            bindings["$#{bindings.size}"] = that[at]
+            at += 1
+          elsif segment.kind == :literal && segment.literal == that[at]
+            at += 1
+          elsif segment.kind == :wildcard
             size = that.size - segment_count + 1
             segment_count += size - 1
-            bindings[current_var] = that[at, size].join('/')
+            bindings["$#{bindings.size}"] = that[at, size].join('/')
             at += size
-          elsif current_sym == '*'
-            bindings[current_var] = that[at]
-            at += 1
-          elsif current_sym == that[at]
-            at += 1
+          elsif segment.kind == :variable
+            size = (segment.value || '*').count('/') + 1
+            bindings[segment.name] = that[at, size].join('/')
+            at += size
           else
             throw ArgumentError.new(
               "mismatched literal: '#{segment.literal}' != '#{that[at]}'"

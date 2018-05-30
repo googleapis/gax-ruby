@@ -107,6 +107,15 @@ describe Google::Gax::PathTemplate do
       want = { '$0' => 'foo/foo', '$1' => 'bar' }
       expect(template.match('bar/foo/foo/foo/bar')).to eq(want)
     end
+
+    it 'should returns the same params that render uses' do
+      template = PathTemplate.new('v1/{name=parent/*}')
+      params = { 'name' => 'parent/child' }
+      path = 'v1/parent/child'
+
+      expect(template.render(symbolize_keys(params))).to eq(path)
+      expect(template.match(path)).to eq(params)
+    end
   end
 
   describe 'method `render`' do
