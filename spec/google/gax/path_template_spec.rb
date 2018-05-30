@@ -28,7 +28,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 require 'google/gax/path_template'
-require 'rly'
 
 describe Google::Gax::PathTemplate do
   PathTemplate = Google::Gax::PathTemplate
@@ -140,6 +139,21 @@ describe Google::Gax::PathTemplate do
       params = symbolize_keys('$0' => '1/2', '$1' => '3')
       want = 'bar/1/2/foo/3'
       expect(template.render(**params)).to eq(want)
+    end
+
+    it 'should render with named variables' do
+      template = PathTemplate.new(
+        'buckets/{one}/{two=foo/*}/{three}/objects/{last=*}'
+      )
+      params = symbolize_keys(
+        'one' => 'f',
+        'two' => 'o/p',
+        'three' => 'o',
+        'last' => 'google.com:a-b'
+      )
+
+      want = 'buckets/f/o/p/o/objects/google.com:a-b'
+      expect(template.render(params)).to eq(want)
     end
   end
 

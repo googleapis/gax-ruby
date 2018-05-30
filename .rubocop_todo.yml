@@ -29,6 +29,9 @@ Metrics/LineLength:
 Metrics/MethodLength:
   Max: 40
 
+Metrics/ClassLength:
+  Max: 250
+
 # Offense count: 1
 Metrics/PerceivedComplexity:
   Max: 11

@@ -77,8 +77,6 @@ module Google
       result
     end
 
-    # rubocop:disable Metrics/ClassLength
-
     # Coordinates the execution of a single bundle.
     #
     # @!attribute [r] bundle_id
