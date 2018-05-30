@@ -164,6 +164,22 @@ describe Google::Gax::PathTemplate do
       want = 'buckets/f/o/p/o/objects/google.com:a-b'
       expect(template.render(params)).to eq(want)
     end
+
+    # rubocop:disable Style/SymbolLiteral
+    it 'should render with lots of named variables' do
+      template = PathTemplate.new(
+        'projects/{project}/instances/{instance}/databases/{database}'
+      )
+      params = {
+        :'project' => 'p',
+        :'instance' => 'i',
+        :'database' => 'd'
+      }
+
+      want = 'projects/p/instances/i/databases/d'
+      expect(template.render(params)).to eq(want)
+    end
+    # rubocop:enable Style/SymbolLiteral
   end
 
   describe 'method `to_s`' do
