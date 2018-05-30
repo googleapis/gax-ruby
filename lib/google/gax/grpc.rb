@@ -100,10 +100,15 @@ module Google
       #   The OAuth scopes for this service. This parameter is ignored if
       #   a custom metadata_transformer is supplied.
       #
+      # @param interceptors [Array<GRPC::ClientInterceptor>] An array of
+      #     GRPC::ClientInterceptor objects that will be used for
+      #     intercepting calls before they are executed
+      #     Interceptors are an EXPERIMENTAL API.
+      #
       # @raise [ArgumentError] if a combination channel, chan_creds, and
       #    updater_proc are passed.
       #
-      # @yield [address, creds]
+      # @yield [address, creds, channel_override, interceptors]
       #   the generated gRPC method to create a stub.
       #
       # @return A gRPC client stub.
@@ -112,13 +117,15 @@ module Google
                       channel: nil,
                       chan_creds: nil,
                       updater_proc: nil,
-                      scopes: nil)
+                      scopes: nil,
+                      interceptors: [])
         verify_params(channel, chan_creds, updater_proc)
         address = "#{service_path}:#{port}"
         if channel
-          yield(address, nil, channel_override: channel)
+          yield(address, nil, channel_override: channel,
+                              interceptors: interceptors)
         elsif chan_creds
-          yield(address, chan_creds)
+          yield(address, chan_creds, interceptors: interceptors)
         else
           if updater_proc.nil?
             auth_creds = Google::Auth.get_application_default(scopes)
@@ -126,7 +133,7 @@ module Google
           end
           call_creds = GRPC::Core::CallCredentials.new(updater_proc)
           chan_creds = GRPC::Core::ChannelCredentials.new.compose(call_creds)
-          yield(address, chan_creds)
+          yield(address, chan_creds, interceptors: interceptors)
         end
       end
 
