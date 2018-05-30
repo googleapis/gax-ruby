@@ -13,7 +13,7 @@ AllCops:
 
 # Offense count: 1
 Metrics/AbcSize:
-  Max: 38
+  Max: 44
 
 # Offense count: 1
 Metrics/CyclomaticComplexity:
