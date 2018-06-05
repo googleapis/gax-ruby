@@ -463,9 +463,9 @@ module Google
     #   API client config file.
     # @param config_overrides [Hash] A hash in the same structure of
     #   client_config to override the settings.
-    # @param retry_names [Hash] A dictionary mapping the strings
-    #   referring to response status codes to the Python objects
-    #   representing those codes.
+    # @param retry_names [Hash] A hash mapping the string names
+    #   used in the standard API client config file to API response
+    #   status codes.
     # @param timeout [Numeric] The timeout parameter for all API calls
     #   in this dictionary.
     # @param bundle_descriptors [Hash{String => BundleDescriptor}]
