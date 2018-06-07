@@ -28,7 +28,7 @@ After all [pull requests](https://github.com/googleapis/gax-ruby/pulls) for a re
 
 1. Update the `CHANGELOG.md`. Write bullet-point lists of the major and minor changes. You can also add examples, fixes, thank yous, and anything else helpful or relevant. See google-cloud-node [v0.18.0](https://github.com/GoogleCloudPlatform/google-cloud-node/releases/tag/v0.18.0) for an example with all the bells and whistles.
 
-1. Edit `lib/google/gax/version.rb` file, changing the value of `VERSION` to your new version number.
+1. Edit `lib/google/gax/version.rb` file, changing the value of `VERSION` to your new version number. This repo requires a PR for all changes so doing this in a branch is best.
 
 1. Run the tests, one last time.
 
@@ -43,7 +43,7 @@ After all [pull requests](https://github.com/googleapis/gax-ruby/pulls) for a re
     $ git commit -am "Release google-gax <version> ..."
     ```
 
-1. Tag the version.
+1. Tag the version after all changes have been merged.
 
     ```sh
     $ git tag google-gax/v<version>

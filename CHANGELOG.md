@@ -1,5 +1,9 @@
 # Release History
 
+### 1.3.0 / 2018-6-7
+
+* Add support for gRPC interceptors (experimental)
+
 ### 1.2.0 / 2018-4-10
 
 * Add support for custom exception mapping
