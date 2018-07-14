@@ -121,10 +121,10 @@ module Google
         require "google/gax/grpc"
         require "google/longrunning/operations_services_pb"
 
-        credentials ||= Google::Auth::Credentials.default(scopes: scopes)
+        credentials ||= Google::Auth::Credentials.default(scope: scopes)
 
         if credentials.is_a?(String) || credentials.is_a?(Hash)
-          updater_proc = Google::Auth::Credentials.new(credentials).updater_proc
+          updater_proc = Google::Auth::Credentials.new(credentials, scope: scopes).updater_proc
         end
         if credentials.is_a?(GRPC::Core::Channel)
           channel = credentials
