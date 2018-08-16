@@ -33,6 +33,7 @@ require 'time'
 require 'google/gax/constants'
 require 'google/gax/settings'
 require 'google/protobuf/well_known_types'
+require 'uri'
 
 module Google
   module Gax
@@ -155,7 +156,19 @@ module Google
       # @return [Object, nil]
       #   The metadata of the operation. Can be nil.
       def metadata
-        return nil if @grpc_op.metadata.nil?
+        return if @grpc_op.metadata.nil?
+
+        @metadata_type ||= begin
+          lookup_uri = URI.parse(@grpc_op.metadata.type_url)
+          lookup_type = lookup_uri.path.split('/'.freeze).last
+          lookup_desc = Google::Protobuf::DescriptorPool.generated_pool.lookup(
+            lookup_type
+          )
+          lookup_desc.msgclass if lookup_desc
+        end
+
+        return @grpc_op.metadata if @metadata_type.nil?
+
         @grpc_op.metadata.unpack(@metadata_type)
       end
 
@@ -180,7 +193,20 @@ module Google
       # @return [Object, nil]
       #   The response of the operation.
       def response
-        @grpc_op.response.unpack(@result_type) if response?
+        return unless response?
+
+        @result_type ||= begin
+          lookup_uri = URI.parse(@grpc_op.response.type_url)
+          lookup_type = lookup_uri.path.split('/'.freeze).last
+          lookup_desc = Google::Protobuf::DescriptorPool.generated_pool.lookup(
+            lookup_type
+          )
+          lookup_desc.msgclass if lookup_desc
+        end
+
+        return @grpc_op.response if @result_type.nil?
+
+        @grpc_op.response.unpack(@result_type)
       end
 
       # Checks if the operation is done and the result is an error.

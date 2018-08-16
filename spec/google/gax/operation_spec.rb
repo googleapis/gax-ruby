@@ -70,17 +70,30 @@ METADATA_ANY = Google::Protobuf::Any.new
 METADATA = Google::Rpc::Status.new(code: 2, message: 'Metadata')
 METADATA_ANY.pack(METADATA)
 
+TIMESTAMP_ANY = Google::Protobuf::Any.new
+TIMESTAMP = Google::Protobuf::Timestamp.new(
+  seconds: 123_456_789,
+  nanos: 987_654_321
+)
+TIMESTAMP_ANY.pack(TIMESTAMP)
+
+UNKNOWN_ANY = Google::Protobuf::Any.new(
+  type_url: 'type.unknown.tld/this.does.not.Exist',
+  value: ''
+)
+
 DONE_GET_METHOD = proc do
   GrpcOp.new(done: true, response: RESULT_ANY, metadata: METADATA_ANY)
 end
 DONE_ON_GET_CLIENT = MockLroClient.new(get_method: DONE_GET_METHOD)
 
-def create_op(operation, client: nil, call_options: nil)
+def create_op(operation, client: nil, result_type: Google::Rpc::Status,
+              metadata_type: Google::Rpc::Status, call_options: nil)
   GaxOp.new(
     operation,
     client || DONE_ON_GET_CLIENT,
-    Google::Rpc::Status,
-    Google::Rpc::Status,
+    result_type,
+    metadata_type,
     call_options: call_options
   )
 end
@@ -115,6 +128,25 @@ describe Google::Gax::Operation do
     it 'should unpack the metadata' do
       op = create_op(GrpcOp.new(done: true, metadata: METADATA_ANY))
       expect(op.metadata).to eq(METADATA)
+    end
+
+    it 'should unpack the metadata when metadata_type is set to type class.' do
+      op = create_op(GrpcOp.new(done: true, metadata: TIMESTAMP_ANY),
+                     metadata_type: Google::Protobuf::Timestamp)
+      expect(op.metadata).to eq(TIMESTAMP)
+    end
+
+    it 'should unpack the metadata when metadata_type is looked up.' do
+      op = create_op(GrpcOp.new(done: true, metadata: TIMESTAMP_ANY),
+                     metadata_type: nil)
+      expect(op.metadata).to eq(TIMESTAMP)
+    end
+
+    it 'should return original metadata when metadata_type is not found when ' \
+       'looked up.' do
+      op = create_op(GrpcOp.new(done: true, metadata: UNKNOWN_ANY),
+                     metadata_type: nil)
+      expect(op.metadata).to eq(UNKNOWN_ANY)
     end
   end
 
@@ -192,6 +224,25 @@ describe Google::Gax::Operation do
     it 'should result on finished operation.' do
       op = create_op(GrpcOp.new(done: true, response: RESULT_ANY))
       expect(op.response).to eq(RESULT)
+    end
+
+    it 'should unpack the result when result_type is set to type class.' do
+      op = create_op(GrpcOp.new(done: true, response: TIMESTAMP_ANY),
+                     result_type: Google::Protobuf::Timestamp)
+      expect(op.response).to eq(TIMESTAMP)
+    end
+
+    it 'should unpack the result when result_type is looked up.' do
+      op = create_op(GrpcOp.new(done: true, response: TIMESTAMP_ANY),
+                     result_type: nil)
+      expect(op.response).to eq(TIMESTAMP)
+    end
+
+    it 'should return original response when result_type is not found when ' \
+       'looked up.' do
+      op = create_op(GrpcOp.new(done: true, response: UNKNOWN_ANY),
+                     result_type: nil)
+      expect(op.response).to eq(UNKNOWN_ANY)
     end
   end
 
