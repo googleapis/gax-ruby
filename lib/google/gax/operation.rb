@@ -33,7 +33,6 @@ require 'time'
 require 'google/gax/constants'
 require 'google/gax/settings'
 require 'google/protobuf/well_known_types'
-require 'uri'
 
 module Google
   module Gax
@@ -158,18 +157,14 @@ module Google
       def metadata
         return if @grpc_op.metadata.nil?
 
-        @metadata_type ||= begin
-          lookup_uri = URI.parse(@grpc_op.metadata.type_url)
-          lookup_type = lookup_uri.path.split('/'.freeze).last
-          lookup_desc = Google::Protobuf::DescriptorPool.generated_pool.lookup(
-            lookup_type
-          )
-          lookup_desc.msgclass if lookup_desc
-        end
+        return @grpc_op.metadata.unpack(@metadata_type) if @metadata_type
 
-        return @grpc_op.metadata if @metadata_type.nil?
+        descriptor = Google::Protobuf::DescriptorPool.generated_pool.lookup(
+          @grpc_op.metadata.type_name
+        )
+        return @grpc_op.metadata.unpack(descriptor.msgclass) if descriptor
 
-        @grpc_op.metadata.unpack(@metadata_type)
+        @grpc_op.metadata
       end
 
       # Checks if the operation is done. This does not send a new api call,
@@ -195,18 +190,14 @@ module Google
       def response
         return unless response?
 
-        @result_type ||= begin
-          lookup_uri = URI.parse(@grpc_op.response.type_url)
-          lookup_type = lookup_uri.path.split('/'.freeze).last
-          lookup_desc = Google::Protobuf::DescriptorPool.generated_pool.lookup(
-            lookup_type
-          )
-          lookup_desc.msgclass if lookup_desc
-        end
+        return @grpc_op.response.unpack(@result_type) if @result_type
 
-        return @grpc_op.response if @result_type.nil?
+        descriptor = Google::Protobuf::DescriptorPool.generated_pool.lookup(
+          @grpc_op.response.type_name
+        )
+        return @grpc_op.response.unpack(descriptor.msgclass) if descriptor
 
-        @grpc_op.response.unpack(@result_type)
+        @grpc_op.response
       end
 
       # Checks if the operation is done and the result is an error.
