@@ -155,8 +155,16 @@ module Google
       # @return [Object, nil]
       #   The metadata of the operation. Can be nil.
       def metadata
-        return nil if @grpc_op.metadata.nil?
-        @grpc_op.metadata.unpack(@metadata_type)
+        return if @grpc_op.metadata.nil?
+
+        return @grpc_op.metadata.unpack(@metadata_type) if @metadata_type
+
+        descriptor = Google::Protobuf::DescriptorPool.generated_pool.lookup(
+          @grpc_op.metadata.type_name
+        )
+        return @grpc_op.metadata.unpack(descriptor.msgclass) if descriptor
+
+        @grpc_op.metadata
       end
 
       # Checks if the operation is done. This does not send a new api call,
@@ -180,7 +188,16 @@ module Google
       # @return [Object, nil]
       #   The response of the operation.
       def response
-        @grpc_op.response.unpack(@result_type) if response?
+        return unless response?
+
+        return @grpc_op.response.unpack(@result_type) if @result_type
+
+        descriptor = Google::Protobuf::DescriptorPool.generated_pool.lookup(
+          @grpc_op.response.type_name
+        )
+        return @grpc_op.response.unpack(descriptor.msgclass) if descriptor
+
+        @grpc_op.response
       end
 
       # Checks if the operation is done and the result is an error.

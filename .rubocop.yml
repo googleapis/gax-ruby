@@ -2,5 +2,7 @@ inherit_from: .rubocop_todo.yml
 
 # Prefer compact style, as Ruby runtime overwrites the GAX error message
 # when exploded exception style is used.
+Metrics/ClassLength:
+  Max: 110
 Style/RaiseArgs:
   EnforcedStyle: compact
