@@ -65,12 +65,13 @@ module Google
             error.to_status
           ).details
         details.map do |any|
-          # If the type of the proto wrapped by the Any instance is not
-          # available, do not deserialize.
-          candidate_class_name = class_case(any.type_name.split('.')).join('::')
+          # deserialize the proto wrapped by the Any in the error details
           begin
-            any.unpack(Object.const_get(candidate_class_name))
-          rescue NameError
+            type = Google::Protobuf::DescriptorPool.generated_pool.lookup(
+              any.type_name
+            )
+            any.unpack(type.msgclass)
+          rescue
             any
           end
         end
