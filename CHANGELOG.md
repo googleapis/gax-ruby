@@ -1,5 +1,11 @@
 # Release History
 
+### 1.4.0 / 2018-9-26
+
+* Fix for misspelled scopes option in the operations_client
+* Add option to use protobuf descriptor pool to unpack long running response types
+* Use protobuf descriptor pool to unpack error message details instead of the expected class name
+
 ### 1.3.0 / 2018-6-7
 
 * Add support for gRPC interceptors (experimental)
