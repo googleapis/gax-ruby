@@ -111,7 +111,7 @@ module Google
       #   metadata. When a `nil` value is given the class type will be looked
       #   up.
       # @param call_options [Google::Gax::CallOptions]
-      #   The call options that are used when reloading the operation.
+      #   The call options that are used when reloading the operation. Optional.
       def initialize(grpc_op, client, result_type, metadata_type,
                      call_options: nil)
         @grpc_op = grpc_op
