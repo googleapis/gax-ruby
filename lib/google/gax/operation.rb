@@ -105,9 +105,9 @@ module Google
       #   The inital longrunning operation.
       # @param client [Google::Longrunning::OperationsClient]
       #   The client that handles the grpc operations.
-      # @param result_type [Class] The class type to be unpacked from the
+      # @param result_type [Class, nil] The class type to be unpacked from the
       #   result. When a `nil` value is given the class type will be looked up.
-      # @param metadata_type [Class] The class type to be unpacked from the
+      # @param metadata_type [Class, nil] The class type to be unpacked from the
       #   metadata. When a `nil` value is given the class type will be looked
       #   up.
       # @param call_options [Google::Gax::CallOptions]
