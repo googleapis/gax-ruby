@@ -106,9 +106,10 @@ module Google
       # @param client [Google::Longrunning::OperationsClient]
       #   The client that handles the grpc operations.
       # @param result_type [Class] The class type to be unpacked from the
-      #   result.
+      #   result. When a `nil` value is given the class type will be looked up.
       # @param metadata_type [Class] The class type to be unpacked from the
-      #   metadata.
+      #   metadata. When a `nil` value is given the class type will be looked
+      #   up.
       # @param call_options [Google::Gax::CallOptions]
       #   The call options that are used when reloading the operation.
       def initialize(grpc_op, client, result_type, metadata_type,
