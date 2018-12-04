@@ -142,6 +142,15 @@ describe Google::Gax::Operation do
       expect(op.metadata).to eq(TIMESTAMP)
     end
 
+    it 'should lookup and unpack the metadata when metadata_type is not ' \
+       'provided' do
+      op = GaxOp.new( # create Operation without result_type or metadata_type
+        GrpcOp.new(done: true, metadata: TIMESTAMP_ANY),
+        DONE_ON_GET_CLIENT
+      )
+      expect(op.metadata).to eq(TIMESTAMP)
+    end
+
     it 'should return original metadata when metadata_type is not found when ' \
        'looked up.' do
       op = create_op(GrpcOp.new(done: true, metadata: UNKNOWN_ANY),
@@ -235,6 +244,15 @@ describe Google::Gax::Operation do
     it 'should unpack the result when result_type is looked up.' do
       op = create_op(GrpcOp.new(done: true, response: TIMESTAMP_ANY),
                      result_type: nil)
+      expect(op.response).to eq(TIMESTAMP)
+    end
+
+    it 'should lookup and unpack the result when result_type is not ' \
+       'provided.' do
+      op = GaxOp.new( # create Operation without result_type or metadata_type
+        GrpcOp.new(done: true, response: TIMESTAMP_ANY),
+        DONE_ON_GET_CLIENT
+      )
       expect(op.response).to eq(TIMESTAMP)
     end
 
