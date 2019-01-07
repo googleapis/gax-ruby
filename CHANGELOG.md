@@ -1,5 +1,10 @@
 # Release History
 
+### 1.5.0 / 2019-1-7
+
+* Loosen googleauth dependency
+* Make Operation class type arguments optional
+
 ### 1.4.0 / 2018-9-26
 
 * Fix for misspelled scopes option in the operations_client
