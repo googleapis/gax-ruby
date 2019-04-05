@@ -32,8 +32,6 @@ require 'time'
 require 'google/gax/errors'
 
 module Google
-  # rubocop:disable Metrics/ModuleLength
-
   module Gax
     # A class to provide the Enumerable interface for page-streaming method.
     # PagedEnumerable assumes that the API call returns a message for a page
@@ -197,8 +195,6 @@ module Google
       end
     end
 
-    # rubocop:disable Metrics/AbcSize
-
     # Converts an rpc call into an API call governed by the settings.
     #
     # In typical usage, +func+ will be a proc used to make an rpc request.
@@ -239,13 +235,8 @@ module Google
           params = params_extractor.call(request)
           this_settings = with_routing_header(this_settings, params)
         end
-        api_call = if settings.retry_codes?
-                     retryable(func, this_settings.retry_options,
-                               this_settings.metadata)
-                   else
-                     add_timeout_arg(func, this_settings.timeout,
-                                     this_settings.metadata)
-                   end
+        api_call = add_timeout_arg(func, this_settings.timeout,
+                                   this_settings.metadata)
         begin
           api_caller.call(api_call, request, this_settings, block)
         rescue *settings.errors => e
@@ -294,56 +285,6 @@ module Google
       settings.merge(options)
     end
 
-    # Creates a proc equivalent to a_func, but that retries on certain
-    # exceptions.
-    #
-    # @param a_func [Proc]
-    # @param retry_options [RetryOptions] Configures the exceptions
-    #   upon which the proc should retry, and the parameters to the
-    #   exponential backoff retry algorithm.
-    # @param metadata [Hash] request metadata headers
-    # @return [Proc] A proc that will retry on exception.
-    def retryable(a_func, retry_options, metadata)
-      delay_mult = retry_options.backoff_settings.retry_delay_multiplier
-      max_delay = (retry_options.backoff_settings.max_retry_delay_millis /
-                   MILLIS_PER_SECOND)
-      timeout_mult = retry_options.backoff_settings.rpc_timeout_multiplier
-      max_timeout = (retry_options.backoff_settings.max_rpc_timeout_millis /
-                     MILLIS_PER_SECOND)
-      total_timeout = (retry_options.backoff_settings.total_timeout_millis /
-                       MILLIS_PER_SECOND)
-
-      proc do |request, block|
-        delay = retry_options.backoff_settings.initial_retry_delay_millis
-        timeout = (retry_options.backoff_settings.initial_rpc_timeout_millis /
-                   MILLIS_PER_SECOND)
-        deadline = Time.now + total_timeout
-        begin
-          op = a_func.call(request,
-                           deadline: Time.now + timeout,
-                           metadata: metadata,
-                           return_op: true)
-          res = op.execute
-          block.call res, op if block
-          res
-        rescue => exception
-          unless exception.respond_to?(:code) &&
-                 retry_options.retry_codes.include?(exception.code)
-            raise RetryError.new('Exception occurred in retry method that ' \
-              'was not classified as transient')
-          end
-          sleep(rand(delay) / MILLIS_PER_SECOND)
-          now = Time.now
-          delay = [delay * delay_mult, max_delay].min
-          timeout = [timeout * timeout_mult, max_timeout, deadline - now].min
-          if now >= deadline
-            raise RetryError.new('Retry total timeout exceeded with exception')
-          end
-          retry
-        end
-      end
-    end
-
     # Updates +a_func+ so that it gets called with the timeout as its final arg.
     #
     # This converts a proc, a_func, into another proc with an additional
@@ -367,9 +308,9 @@ module Google
     end
 
     module_function :create_api_call,
-                    :page_streamable, :with_routing_header, :retryable,
+                    :page_streamable, :with_routing_header,
                     :add_timeout_arg
     private_class_method :page_streamable,
-                         :with_routing_header, :retryable, :add_timeout_arg
+                         :with_routing_header, :add_timeout_arg
   end
 end

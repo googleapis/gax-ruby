@@ -34,8 +34,6 @@ module Google
     # Encapsulates the call settings for an ApiCallable
     # @!attribute [r] timeout
     #   @return [Numeric]
-    # @!attribute [r] retry_options
-    #   @return [RetryOptions]
     # @!attribute [r] page_descriptor
     #   @return [PageDescriptor]
     # @!attribute [r] page_token
@@ -45,13 +43,10 @@ module Google
     # @!attribute [r] metadata
     #   @return [Hash]
     class CallSettings
-      attr_reader :timeout, :retry_options, :page_descriptor, :page_token,
+      attr_reader :timeout, :page_descriptor, :page_token,
                   :metadata, :errors
 
-      # @param timeout [Numeric] The client-side timeout for API calls. This
-      #   parameter is ignored for retrying calls.
-      # @param retry_options [RetryOptions] The configuration for retrying upon
-      #   transient error. If set to nil, this call will not retry.
+      # @param timeout [Numeric] The client-side timeout for API calls.
       # @param page_descriptor [PageDescriptor] indicates the structure of page
       #   streaming to be performed. If set to nil, page streaming is not
       #   performed.
@@ -63,21 +58,15 @@ module Google
       #   Deprecated, if set this will be merged with the metadata field.
       # @param errors [Array<Exception>]
       #   Configures the exceptions to wrap with GaxError.
-      def initialize(timeout: 30, retry_options: nil, page_descriptor: nil,
+      def initialize(timeout: 30, page_descriptor: nil,
                      page_token: nil,
                      metadata: {}, kwargs: {}, errors: [])
         @timeout = timeout
-        @retry_options = retry_options
         @page_descriptor = page_descriptor
         @page_token = page_token
         @metadata = metadata
         @metadata.merge!(kwargs) if kwargs && metadata
         @errors = errors
-      end
-
-      # @return true when it has retry codes.
-      def retry_codes?
-        @retry_options && @retry_options.retry_codes
       end
 
       # Creates a new CallSetting instance which is based on this but merged
@@ -87,7 +76,6 @@ module Google
       def merge(options)
         unless options
           return CallSettings.new(timeout: @timeout,
-                                  retry_options: @retry_options,
                                   page_descriptor: @page_descriptor,
                                   page_token: @page_token,
                                   metadata: @metadata,
@@ -99,11 +87,6 @@ module Google
                   else
                     options.timeout
                   end
-        retry_options = if options.retry_options == :OPTION_INHERIT
-                          @retry_options
-                        else
-                          options.retry_options
-                        end
         page_token = if options.page_token == :OPTION_INHERIT
                        @page_token
                      else
@@ -114,7 +97,6 @@ module Google
         metadata.update(options.metadata) if options.metadata != :OPTION_INHERIT
 
         CallSettings.new(timeout: timeout,
-                         retry_options: retry_options,
                          page_descriptor: @page_descriptor,
                          page_token: page_token,
                          metadata: metadata,
@@ -127,8 +109,6 @@ module Google
     # Encapsulates the overridable settings for a particular API call
     # @!attribute [r] timeout
     #   @return [Numeric, :OPTION_INHERIT]
-    # @!attribute [r] retry_options
-    #   @return [RetryOptions, :OPTION_INHERIT]
     # @!attribute [r] page_token
     #   @return [Object, :OPTION_INHERIT, :INITIAL_PAGE]
     # @!attribute [r] metadata
@@ -136,14 +116,11 @@ module Google
     # @!attribute [r] kwargs
     #   @return [Hash, :OPTION_INHERIT] deprecated, use metadata instead
     class CallOptions
-      attr_reader :timeout, :retry_options, :page_token, :metadata
+      attr_reader :timeout, :page_token, :metadata
       alias kwargs metadata
 
       # @param timeout [Numeric, :OPTION_INHERIT]
       #   The client-side timeout for API calls.
-      # @param retry_options [RetryOptions, :OPTION_INHERIT]
-      #   The configuration for retrying upon transient error.
-      #   If set to nil, this call will not retry.
       # @param page_token [Object, :OPTION_INHERIT]
       #   If set and the call is configured for page streaming, page streaming
       #   is starting with this page_token.
@@ -151,12 +128,10 @@ module Google
       # @param kwargs [Hash, :OPTION_INHERIT]
       #   Deprecated, if set this will be merged with the metadata field.
       def initialize(timeout: :OPTION_INHERIT,
-                     retry_options: :OPTION_INHERIT,
                      page_token: :OPTION_INHERIT,
                      metadata: :OPTION_INHERIT,
                      kwargs: :OPTION_INHERIT)
         @timeout = timeout
-        @retry_options = retry_options
         @page_token = page_token
         @metadata = metadata
         @metadata.merge!(kwargs) if kwargs.is_a?(Hash) && metadata.is_a?(Hash)
@@ -167,16 +142,6 @@ module Google
     class PageDescriptor < Struct.new(:request_page_token_field,
                                       :response_page_token_field,
                                       :resource_field)
-    end
-
-    # Per-call configurable settings for retrying upon transient failure.
-    class RetryOptions < Struct.new(:retry_codes, :backoff_settings)
-      # @!attribute retry_codes
-      #   @return [Array<Grpc::Code>] a list of exceptions upon which
-      #     a retry should be attempted.
-      # @!attribute backoff_settings
-      #   @return [BackoffSettings] configuring the retry exponential
-      #     backoff algorithm.
     end
 
     # Parameters to the exponential backoff algorithm for retrying.
@@ -217,69 +182,6 @@ module Google
       #     from when the initial request is sent, after which an
       #     error will be returned, regardless of the retrying
       #     attempts made meanwhile.
-    end
-
-    # Helper for #construct_settings
-    #
-    # @param method_config [Hash] A dictionary representing a single
-    #   +methods+ entry of the standard API client config file. (See
-    #   #construct_settings for information on this yaml.)
-    # @param retry_codes [Hash] A dictionary parsed from the
-    #   +retry_codes_def+ entry of the standard API client config
-    #   file. (See #construct_settings for information on this yaml.)
-    # @param retry_params [Hash] A dictionary parsed from the
-    #   +retry_params+ entry of the standard API client config
-    #   file. (See #construct_settings for information on this yaml.)
-    # @param retry_names [Hash] A dictionary mapping the string names
-    #   used in the standard API client config file to API response
-    #   status codes.
-    # @return [RetryOptions, nil]
-    def construct_retry(method_config, retry_codes, retry_params, retry_names)
-      return nil unless method_config
-      codes = nil
-      if retry_codes && method_config.key?('retry_codes_name')
-        retry_codes_name = method_config['retry_codes_name']
-        codes = retry_codes.fetch(retry_codes_name, []).map do |name|
-          retry_names[name]
-        end
-      end
-
-      backoff_settings = nil
-      if retry_params && method_config.key?('retry_params_name')
-        params = retry_params[method_config['retry_params_name']]
-        backoff_settings = BackoffSettings.new(
-          *params.values_at(*BackoffSettings.members.map(&:to_s))
-        )
-      end
-
-      RetryOptions.new(codes, backoff_settings)
-    end
-
-    # Helper for #construct_settings.
-    #
-    # Takes two retry options, and merges them into a single RetryOption
-    # instance.
-    #
-    # @param retry_options [RetryOptions] The base RetryOptions.
-    # @param overrides [RetryOptions] The RetryOptions used for overriding
-    #   +retry+. Use the values if it is not nil. If entire
-    #   +overrides+ is nli, ignore the base retry and return nil.
-    # @return [RetryOptions, nil]
-    def merge_retry_options(retry_options, overrides)
-      return nil if overrides.nil?
-
-      if overrides.retry_codes.nil? && overrides.backoff_settings.nil?
-        return retry_options
-      end
-
-      codes = retry_options.retry_codes
-      codes = overrides.retry_codes unless overrides.retry_codes.nil?
-      backoff_settings = retry_options.backoff_settings
-      unless overrides.backoff_settings.nil?
-        backoff_settings = overrides.backoff_settings
-      end
-
-      RetryOptions.new(codes, backoff_settings)
     end
 
     # Port of GRPC::GenericService.underscore that works on frozen strings.
@@ -342,9 +244,6 @@ module Google
     #   API client config file.
     # @param config_overrides [Hash] A hash in the same structure of
     #   client_config to override the settings.
-    # @param retry_names [Hash] A hash mapping the string names
-    #   used in the standard API client config file to API response
-    #   status codes.
     # @param timeout [Numeric] The timeout parameter for all API calls
     #   in this dictionary.
     # @param page_descriptors [Hash{String => PageDescriptor}] A
@@ -358,8 +257,8 @@ module Google
     #   Configures the exceptions to wrap with GaxError.
     # @return [CallSettings, nil] A CallSettings, or nil if the
     #   service is not found in the config.
-    def construct_settings(service_name, client_config, config_overrides,
-                           retry_names, timeout,
+    def construct_settings(service_name, client_config, _config_overrides,
+                           timeout,
                            page_descriptors: {}, metadata: {}, kwargs: {},
                            errors: [])
       defaults = {}
@@ -369,26 +268,11 @@ module Google
       service_config = client_config.fetch('interfaces', {})[service_name]
       return nil unless service_config
 
-      overrides = config_overrides.fetch('interfaces', {})[service_name] || {}
-
-      service_config['methods'].each_pair do |method_name, method_config|
+      service_config['methods'].each_pair do |method_name, _method_config|
         snake_name = upper_camel_to_lower_underscore(method_name)
-
-        overriding_method =
-          overrides.fetch('methods', {}).fetch(method_name, {})
 
         defaults[snake_name] = CallSettings.new(
           timeout: timeout,
-          retry_options: merge_retry_options(
-            construct_retry(method_config,
-                            service_config['retry_codes'],
-                            service_config['retry_params'],
-                            retry_names),
-            construct_retry(overriding_method,
-                            overrides['retry_codes'],
-                            overrides['retry_params'],
-                            retry_names)
-          ),
           page_descriptor: page_descriptors[snake_name],
           metadata: metadata,
           errors: errors
@@ -399,10 +283,7 @@ module Google
     end
 
     module_function :construct_settings,
-                    :construct_retry, :upper_camel_to_lower_underscore,
-                    :merge_retry_options
-    private_class_method :construct_retry,
-                         :upper_camel_to_lower_underscore,
-                         :merge_retry_options
+                    :upper_camel_to_lower_underscore
+    private_class_method :upper_camel_to_lower_underscore
   end
 end
