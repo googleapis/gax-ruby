@@ -46,7 +46,7 @@ module Google
     #   @return [Hash]
     class CallSettings
       attr_reader :timeout, :retry_options, :page_descriptor, :page_token,
-                  :bundler, :bundle_descriptor, :metadata, :errors
+                  :metadata, :errors
 
       # @param timeout [Numeric] The client-side timeout for API calls. This
       #   parameter is ignored for retrying calls.
@@ -58,24 +58,18 @@ module Google
       # @param page_token [Object] determines the page token used in the
       #   page streaming request. If there is no page_descriptor, this has no
       #   meaning.
-      # @param bundler orchestrates bundling. If nil, bundling is not
-      #   performed.
-      # @param bundle_descriptor [BundleDescriptor] indicates the structure of
-      #   the bundle. If nil, bundling is not performed.
       # @param metadata [Hash] the request header params.
       # @param kwargs [Hash]
       #   Deprecated, if set this will be merged with the metadata field.
       # @param errors [Array<Exception>]
       #   Configures the exceptions to wrap with GaxError.
       def initialize(timeout: 30, retry_options: nil, page_descriptor: nil,
-                     page_token: nil, bundler: nil, bundle_descriptor: nil,
+                     page_token: nil,
                      metadata: {}, kwargs: {}, errors: [])
         @timeout = timeout
         @retry_options = retry_options
         @page_descriptor = page_descriptor
         @page_token = page_token
-        @bundler = bundler
-        @bundle_descriptor = bundle_descriptor
         @metadata = metadata
         @metadata.merge!(kwargs) if kwargs && metadata
         @errors = errors
@@ -84,11 +78,6 @@ module Google
       # @return true when it has retry codes.
       def retry_codes?
         @retry_options && @retry_options.retry_codes
-      end
-
-      # @return true when it has valid bundler configuration.
-      def bundler?
-        @bundler && @bundle_descriptor
       end
 
       # Creates a new CallSetting instance which is based on this but merged
@@ -101,8 +90,6 @@ module Google
                                   retry_options: @retry_options,
                                   page_descriptor: @page_descriptor,
                                   page_token: @page_token,
-                                  bundler: @bundler,
-                                  bundle_descriptor: @bundle_descriptor,
                                   metadata: @metadata,
                                   errors: @errors)
         end
@@ -130,8 +117,6 @@ module Google
                          retry_options: retry_options,
                          page_descriptor: @page_descriptor,
                          page_token: page_token,
-                         bundler: @bundler,
-                         bundle_descriptor: @bundle_descriptor,
                          metadata: metadata,
                          errors: @errors)
       end
@@ -232,105 +217,6 @@ module Google
       #     from when the initial request is sent, after which an
       #     error will be returned, regardless of the retrying
       #     attempts made meanwhile.
-    end
-
-    # Describes the structure of bundled call.
-    #
-    # request_discriminator_fields may include '.' as a separator, which is
-    # used to indicate object traversal.  This allows fields in nested objects
-    # to be used to determine what requests to bundle.
-    class BundleDescriptor < Struct.new(:bundled_field,
-                                        :request_discriminator_fields,
-                                        :subresponse_field)
-      # @!attribute bundled_field
-      #   @return [String] the repeated field in the request message
-      #     that will have its elements aggregated by bundling.
-      # @!attribute request_discriminator_fields
-      #   @return [Array<String>] a list of fields in the target
-      #     request message class that are used to determine which
-      #     messages should be bundled together.
-      # @!attribute subresponse_field
-      #   @return [String] an optional field, when present it
-      #     indicates the field in the response message that should be
-      #     used to demultiplex the response into multiple response
-      #     messages.
-      def initialize(bundled_field, request_discriminator_fields,
-                     subresponse_field: nil)
-        super(bundled_field, request_discriminator_fields, subresponse_field)
-      end
-    end
-
-    # Holds values used to configure bundling.
-    #
-    # The xxx_threshold attributes are used to configure when the bundled
-    # request should be made.
-    class BundleOptions < Struct.new(:element_count_threshold,
-                                     :element_count_limit,
-                                     :request_byte_threshold,
-                                     :request_byte_limit,
-                                     :delay_threshold_millis)
-      # @!attribute element_count_threshold
-      #   @return [Numeric] the bundled request will be sent once the
-      #     count of outstanding elements in the repeated field
-      #     reaches this value.
-      # @!attribute element_count_limit
-      #   @return [Numeric] represents a hard limit on the number of
-      #     elements in the repeated field of the bundle; if adding a
-      #     request to a bundle would exceed this value, the bundle is
-      #     sent and the new request is added to a fresh bundle. It is
-      #     invalid for a single request to exceed this limit.
-      # @!attribute request_byte_threshold
-      #   @return [Numeric] the bundled request will be sent once the
-      #     count of bytes in the request reaches this value. Note
-      #     that this value is pessimistically approximated by summing
-      #     the bytesizes of the elements in the repeated field, and
-      #     therefore may be an under-approximation.
-      # @!attribute request_byte_limit
-      #   @return [Numeric] represents a hard limit on the size of the
-      #     bundled request; if adding a request to a bundle would
-      #     exceed this value, the bundle is sent and the new request
-      #     is added to a fresh bundle. It is invalid for a single
-      #     request to exceed this limit. Note that this value is
-      #     pessimistically approximated by summing the bytesizes of
-      #     the elements in the repeated field, with a buffer applied
-      #     to correspond to the resulting under-approximation.
-      # @!attribute delay_threshold_millis
-      #   @return [Numeric] the bundled request will be sent this
-      #     amount of time after the first element in the bundle was
-      #     added to it.
-      def initialize(element_count_threshold: 0,
-                     element_count_limit: 0,
-                     request_byte_threshold: 0,
-                     request_byte_limit: 0,
-                     delay_threshold_millis: 0)
-        super(
-          element_count_threshold,
-          element_count_limit,
-          request_byte_threshold,
-          request_byte_limit,
-          delay_threshold_millis)
-      end
-    end
-
-    # Helper for #construct_settings
-    #
-    # @param bundle_config A Hash specifying a bundle parameters, the value for
-    #   'bundling' field in a method config (See ``construct_settings()`` for
-    #   information on this config.)
-    # @param bundle_descriptor [BundleDescriptor] A BundleDescriptor
-    #   object describing the structure of bundling for this
-    #   method. If not set, this method will not bundle.
-    # @return An Executor that configures bundling, or nil if this
-    #   method should not bundle.
-    def construct_bundling(bundle_config, bundle_descriptor)
-      return unless bundle_config && bundle_descriptor
-      options = BundleOptions.new
-      bundle_config.each_pair do |key, value|
-        options[key.intern] = value
-      end
-      # Bundling is currently not supported.
-      # Executor.new(options)
-      nil
     end
 
     # Helper for #construct_settings
@@ -441,14 +327,7 @@ module Google
     #           },
     #           "Publish": {
     #             "retry_codes_name": "non_idempotent",
-    #             "retry_params_name": "default",
-    #             "bundling": {
-    #               "element_count_threshold": 40,
-    #               "element_count_limit": 200,
-    #               "request_byte_threshold": 90000,
-    #               "request_byte_limit": 100000,
-    #               "delay_threshold_millis": 100
-    #             }
+    #             "retry_params_name": "default"
     #           }
     #         }
     #       }
@@ -468,9 +347,6 @@ module Google
     #   status codes.
     # @param timeout [Numeric] The timeout parameter for all API calls
     #   in this dictionary.
-    # @param bundle_descriptors [Hash{String => BundleDescriptor}]
-    #   A dictionary of method names to BundleDescriptor objects for
-    #   methods that are bundling-enabled.
     # @param page_descriptors [Hash{String => PageDescriptor}] A
     #   dictionary of method names to PageDescriptor objects for
     #   methods that are page streaming-enabled.
@@ -483,7 +359,7 @@ module Google
     # @return [CallSettings, nil] A CallSettings, or nil if the
     #   service is not found in the config.
     def construct_settings(service_name, client_config, config_overrides,
-                           retry_names, timeout, bundle_descriptors: {},
+                           retry_names, timeout,
                            page_descriptors: {}, metadata: {}, kwargs: {},
                            errors: [])
       defaults = {}
@@ -501,12 +377,6 @@ module Google
         overriding_method =
           overrides.fetch('methods', {}).fetch(method_name, {})
 
-        bundling_config = method_config.fetch('bundling', nil)
-        if overriding_method && overriding_method.key?('bundling')
-          bundling_config = overriding_method['bundling']
-        end
-        bundle_descriptor = bundle_descriptors[snake_name]
-
         defaults[snake_name] = CallSettings.new(
           timeout: timeout,
           retry_options: merge_retry_options(
@@ -520,8 +390,6 @@ module Google
                             retry_names)
           ),
           page_descriptor: page_descriptors[snake_name],
-          bundler: construct_bundling(bundling_config, bundle_descriptor),
-          bundle_descriptor: bundle_descriptor,
           metadata: metadata,
           errors: errors
         )
@@ -530,10 +398,10 @@ module Google
       defaults
     end
 
-    module_function :construct_settings, :construct_bundling,
+    module_function :construct_settings,
                     :construct_retry, :upper_camel_to_lower_underscore,
                     :merge_retry_options
-    private_class_method :construct_bundling, :construct_retry,
+    private_class_method :construct_retry,
                          :upper_camel_to_lower_underscore,
                          :merge_retry_options
   end

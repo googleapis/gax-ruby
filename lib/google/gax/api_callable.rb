@@ -30,7 +30,6 @@
 require 'time'
 
 require 'google/gax/errors'
-require 'google/gax/bundling'
 
 module Google
   # rubocop:disable Metrics/ModuleLength
@@ -211,8 +210,7 @@ module Google
     # which function decorators to apply.
     #
     # The result is another proc which for most values of +settings+ has the
-    # same signature as the original. Only when +settings+ configures bundling
-    # does the signature change.
+    # same signature as the original.
     #
     # @param func [Proc] used to make a bare rpc call
     # @param settings [CallSettings] provides the settings for this call
@@ -222,8 +220,6 @@ module Google
     #   transformer is given the original exception for custom processing
     #   instead of raising the error directly
     # @return [Proc] a bound method on a request stub used to make an rpc call
-    # @raise [StandardError] if +settings+ has incompatible values,
-    #   e.g, if bundling and page_streaming are both configured
     def create_api_call(func, settings, params_extractor: nil,
                         exception_transformer: nil)
       api_caller = proc do |api_call, request, _settings, block|
@@ -231,16 +227,10 @@ module Google
       end
 
       if settings.page_descriptor
-        if settings.bundler?
-          raise 'ApiCallable has incompatible settings: ' \
-              'bundling and page streaming'
-        end
         page_descriptor = settings.page_descriptor
         api_caller = page_streamable(page_descriptor.request_page_token_field,
                                      page_descriptor.response_page_token_field,
                                      page_descriptor.resource_field)
-      elsif settings.bundler?
-        api_caller = bundleable(settings.bundle_descriptor)
       end
 
       proc do |request, options = nil, &block|
@@ -267,33 +257,6 @@ module Google
           raise error if exception_transformer.nil?
           exception_transformer.call error
         end
-      end
-    end
-
-    # Creates a proc that transforms an API call into a bundling call.
-    #
-    # It transform a_func from an API call that receives the requests and
-    # returns the response into a proc that receives the same request, and
-    # returns a +Google::Gax::Bundling::Event+.
-    #
-    # The returned Event object can be used to obtain the eventual result of the
-    # bundled call.
-    #
-    # @param a_func [Proc] an API call that supports bundling.
-    # @param desc [BundleDescriptor] describes the bundling that
-    #   +a_func+ supports.
-    # @param bundler orchestrates bundling.
-    # @return [Proc] A proc takes the API call's request and returns
-    #   an Event object.
-    def bundleable(desc)
-      proc do |api_call, request, settings, block|
-        return api_call(request, block) unless settings.bundler
-        raise 'Bundling calls cannot accept blocks' if block
-        the_id = Google::Gax.compute_bundle_id(
-          request,
-          desc.request_discriminator_fields
-        )
-        settings.bundler.schedule(api_call, the_id, desc, request)
       end
     end
 
@@ -403,10 +366,10 @@ module Google
       end
     end
 
-    module_function :create_api_call, :bundleable,
+    module_function :create_api_call,
                     :page_streamable, :with_routing_header, :retryable,
                     :add_timeout_arg
-    private_class_method :bundleable, :page_streamable,
+    private_class_method :page_streamable,
                          :with_routing_header, :retryable, :add_timeout_arg
   end
 end
