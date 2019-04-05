@@ -51,15 +51,6 @@ A_CONFIG = {
         }
       },
       'methods' => {
-        # Note that GAX should normalize this to snake case
-        'BundlingMethod' => {
-          'retry_codes_name' => 'foo_retry',
-          'retry_params_name' => 'default',
-          'bundling' => {
-            'element_count_threshold' => 6,
-            'element_count_limit' => 10
-          }
-        },
         'SomeHTTPSPageStreamingMethod' => {
           'retry_codes_name' => 'bar_retry',
           'retry_params_name' => 'default'
@@ -75,10 +66,6 @@ PAGE_DESCRIPTORS = {
   )
 }.freeze
 
-BUNDLE_DESCRIPTORS = {
-  'bundling_method' => Google::Gax::BundleDescriptor.new('bundled_field', [])
-}.freeze
-
 RETRY_DICT = {
   'code_a' => 1,
   'code_b' => 2,
@@ -89,28 +76,12 @@ describe Google::Gax do
   it 'creates settings' do
     defaults = Google::Gax.construct_settings(
       SERVICE_NAME, A_CONFIG, {}, RETRY_DICT, 30,
-      bundle_descriptors: BUNDLE_DESCRIPTORS,
       page_descriptors: PAGE_DESCRIPTORS,
       metadata: { 'key' => 'value' },
       errors: [StandardError]
     )
-    settings = defaults['bundling_method']
-    expect(settings.timeout).to be(30)
-    expect(settings.bundler).to be_nil
-    expect(settings.bundle_descriptor).to be_a(Google::Gax::BundleDescriptor)
-    expect(settings.page_descriptor).to be_nil
-    expect(settings.retry_options).to be_a(Google::Gax::RetryOptions)
-    expect(settings.retry_options.retry_codes).to be_a(Array)
-    expect(settings.retry_options.backoff_settings).to be_a(
-      Google::Gax::BackoffSettings
-    )
-    expect(settings.metadata).to match('key' => 'value')
-    expect(settings.errors).to match_array([StandardError])
-
     settings = defaults['some_https_page_streaming_method']
     expect(settings.timeout).to be(30)
-    expect(settings.bundler).to be_nil
-    expect(settings.bundle_descriptor).to be_nil
     expect(settings.page_descriptor).to be_a(Google::Gax::PageDescriptor)
     expect(settings.retry_options).to be_a(Google::Gax::RetryOptions)
     expect(settings.retry_options.retry_codes).to be_a(Array)
@@ -126,24 +97,15 @@ describe Google::Gax do
       'interfaces' => {
         SERVICE_NAME => {
           'methods' => {
-            'SomeHTTPSPageStreamingMethod' => nil,
-            'BundlingMethod' => {
-              'bundling' => nil
-            }
+            'SomeHTTPSPageStreamingMethod' => nil
           }
         }
       }
     }
     defaults = Google::Gax.construct_settings(
       SERVICE_NAME, A_CONFIG, overrides, RETRY_DICT, 30,
-      bundle_descriptors: BUNDLE_DESCRIPTORS,
       page_descriptors: PAGE_DESCRIPTORS
     )
-
-    settings = defaults['bundling_method']
-    expect(settings.timeout).to be(30)
-    expect(settings.bundler).to be_nil
-    expect(settings.page_descriptor).to be_nil
 
     settings = defaults['some_https_page_streaming_method']
     expect(settings.timeout).to be(30)
@@ -181,18 +143,8 @@ describe Google::Gax do
     }
     defaults = Google::Gax.construct_settings(
       SERVICE_NAME, A_CONFIG, override, RETRY_DICT, 30,
-      bundle_descriptors: BUNDLE_DESCRIPTORS,
       page_descriptors: PAGE_DESCRIPTORS
     )
-
-    settings = defaults['bundling_method']
-    backoff = settings.retry_options.backoff_settings
-    expect(backoff.initial_retry_delay_millis).to be(1000)
-    expect(settings.retry_options.retry_codes).to match_array(
-      [RETRY_DICT['code_a']]
-    )
-    expect(settings.bundler).to be_nil
-    expect(settings.bundle_descriptor).to be_a(Google::Gax::BundleDescriptor)
 
     # some_https_page_streaming_method is unaffected because it's not specified
     # in overrides. 'bar_retry' or 'default' definitions in overrides should
