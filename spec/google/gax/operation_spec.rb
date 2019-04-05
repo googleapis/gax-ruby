@@ -307,10 +307,7 @@ describe Google::Gax::Operation do
     end
 
     it 'should use call_options attribute when reloading' do
-      backoff_settings = Google::Gax::BackoffSettings.new(1, 2, 3, 4, 5, 6, 7)
-      call_options = Google::Gax::CallOptions.new(
-        retry_options: Google::Gax::RetryOptions.new(nil, backoff_settings)
-      )
+      call_options = Google::Gax::CallOptions.new
       called = false
       get_method = proc do |_, options|
         called = true
@@ -404,7 +401,9 @@ describe Google::Gax::Operation do
     end
 
     it 'times out' do
-      backoff_settings = BackoffSettings.new(1, 1, 10, 0, 0, 0, 100)
+      backoff_settings = Google::Gax::BackoffSettings.new(
+        1, 1, 10, 0, 0, 0, 100
+      )
       get_method = proc { GrpcOp.new(done: false) }
       mock_client = MockLroClient.new(get_method: get_method)
       op = create_op(GrpcOp.new(done: false), client: mock_client)
@@ -438,7 +437,7 @@ describe Google::Gax::Operation do
       delay_multiplier = 1.5
       max_delay = 5 * 60 * MILLIS_PER_SECOND
       total_timeout = 60 * 60 * MILLIS_PER_SECOND
-      backoff = BackoffSettings.new(
+      backoff = Google::Gax::BackoffSettings.new(
         initial_delay,
         delay_multiplier,
         max_delay,

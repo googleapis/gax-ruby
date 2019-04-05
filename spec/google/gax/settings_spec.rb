@@ -66,16 +66,10 @@ PAGE_DESCRIPTORS = {
   )
 }.freeze
 
-RETRY_DICT = {
-  'code_a' => 1,
-  'code_b' => 2,
-  'code_c' => 3
-}.freeze
-
 describe Google::Gax do
   it 'creates settings' do
     defaults = Google::Gax.construct_settings(
-      SERVICE_NAME, A_CONFIG, {}, RETRY_DICT, 30,
+      SERVICE_NAME, A_CONFIG, {}, 30,
       page_descriptors: PAGE_DESCRIPTORS,
       metadata: { 'key' => 'value' },
       errors: [StandardError]
@@ -83,11 +77,6 @@ describe Google::Gax do
     settings = defaults['some_https_page_streaming_method']
     expect(settings.timeout).to be(30)
     expect(settings.page_descriptor).to be_a(Google::Gax::PageDescriptor)
-    expect(settings.retry_options).to be_a(Google::Gax::RetryOptions)
-    expect(settings.retry_options.retry_codes).to be_a(Array)
-    expect(settings.retry_options.backoff_settings).to be_a(
-      Google::Gax::BackoffSettings
-    )
     expect(settings.metadata).to match('key' => 'value')
     expect(settings.errors).to match_array([StandardError])
   end
@@ -103,59 +92,12 @@ describe Google::Gax do
       }
     }
     defaults = Google::Gax.construct_settings(
-      SERVICE_NAME, A_CONFIG, overrides, RETRY_DICT, 30,
+      SERVICE_NAME, A_CONFIG, overrides, 30,
       page_descriptors: PAGE_DESCRIPTORS
     )
 
     settings = defaults['some_https_page_streaming_method']
     expect(settings.timeout).to be(30)
     expect(settings.page_descriptor).to be_a(Google::Gax::PageDescriptor)
-    expect(settings.retry_options).to be_nil
-  end
-
-  it 'overrides settings more precisely' do
-    override = {
-      'interfaces' => {
-        SERVICE_NAME => {
-          'retry_codes' => {
-            'bar_retry' => [],
-            'baz_retry' => ['code_a']
-          },
-          'retry_params' => {
-            'default' => {
-              'initial_retry_delay_millis' => 1000,
-              'retry_delay_multiplier' => 1.2,
-              'max_retry_delay_millis' => 10_000,
-              'initial_rpc_timeout_millis' => 3000,
-              'rpc_timeout_multiplier' => 1.3,
-              'max_rpc_timeout_millis' => 30_000,
-              'total_timeout_millis' => 300_000
-            }
-          },
-          'methods' => {
-            'BundlingMethod' => {
-              'retry_params_name' => 'default',
-              'retry_codes_name' => 'baz_retry'
-            }
-          }
-        }
-      }
-    }
-    defaults = Google::Gax.construct_settings(
-      SERVICE_NAME, A_CONFIG, override, RETRY_DICT, 30,
-      page_descriptors: PAGE_DESCRIPTORS
-    )
-
-    # some_https_page_streaming_method is unaffected because it's not specified
-    # in overrides. 'bar_retry' or 'default' definitions in overrides should
-    # not affect the methods which are not in the overrides.
-    settings = defaults['some_https_page_streaming_method']
-    backoff = settings.retry_options.backoff_settings
-    expect(backoff.initial_retry_delay_millis).to be(100)
-    expect(backoff.retry_delay_multiplier).to be(1.2)
-    expect(backoff.max_retry_delay_millis).to be(1000)
-    expect(settings.retry_options.retry_codes).to match_array(
-      [RETRY_DICT['code_c']]
-    )
   end
 end
