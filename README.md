@@ -17,46 +17,45 @@ provide a more convenient and idiomatic API surface to callers.
 [gRPC]: http://grpc.io
 [Google APIs]: https://github.com/googleapis/googleapis/
 
+## 2.0 Under development
 
-Ruby Versions
----------------
+The master branch is currently under development for version 2.0, which will
+break backwards compatibility with the 1.x releases. A list of upcoming changes
+in 2.0 can be seen by viewing [issues using the 2.0
+tag](https://github.com/googleapis/gax-ruby/labels/2.0).
 
-gax-ruby is currently tested with Ruby 2.2.4.
+To view the code for the 1.x releases, see the [1.x
+branch](https://github.com/googleapis/gax-ruby/tree/1.x).
 
+## Documentation
 
-Contributing
-------------
+Detailed documentation for gax-ruby can be seen on
+[rubydoc.info](http://www.rubydoc.info/gems/google-gax).
+
+## Supported Ruby Versions
+
+This library is supported on Ruby 2.3+.
+
+Google provides official support for Ruby versions that are actively supported
+by Ruby Core—that is, Ruby versions that are either in normal maintenance or in
+security maintenance, and not end of life. Currently, this means Ruby 2.3 and
+later. Older versions of Ruby _may_ still work, but are unsupported and not
+recommended. See https://www.ruby-lang.org/en/downloads/branches/ for details
+about the Ruby support schedule.
+
+## Contributing
 
 Contributions to this library are always welcome and highly encouraged.
 
-See the [CONTRIBUTING][] documentation for more information on how to get started.
+See the [Contributing
+Guide](https://github.com/googleapis/gax-ruby/blob/master/CONTRIBUTING.md)
+for more information on how to get started.
 
-[CONTRIBUTING]: https://github.com/googleapis/gax-ruby/blob/master/CONTRIBUTING.md
+## Versioning
 
+This library follows [Semantic Versioning](http://semver.org/).
 
-Versioning
-----------
+## License
 
-This library follows [Semantic Versioning][].
-
-It is currently in major version zero (``0.y.z``), which means that anything
-may change at any time and the public API should not be considered
-stable.
-
-[Semantic Versioning]: http://semver.org/
-
-
-Details
--------
-
-For detailed documentation of the modules in gax-ruby, please watch [DOCUMENTATION][].
-
-[DOCUMENTATION]: http://www.rubydoc.info/gems/google-gax
-
-
-License
--------
-
-BSD - See [LICENSE][] for more information.
-
-[LICENSE]: https://github.com/googleapis/gax-ruby/blob/master/LICENSE
+BSD - See [LICENSE](https://github.com/googleapis/gax-ruby/blob/master/LICENSE)
+for more information.
