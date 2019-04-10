@@ -83,7 +83,9 @@ module Google
 
       # @return true when it has retry codes.
       def retry_codes?
-        @retry_options && @retry_options.retry_codes
+        @retry_options &&
+          @retry_options.retry_codes &&
+          @retry_options.retry_codes.any?
       end
 
       # @return true when it has valid bundler configuration.

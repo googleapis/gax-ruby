@@ -353,7 +353,7 @@ describe Google::Gax do
       my_callable = Google::Gax.create_api_call(
         func, CallSettings.new(timeout: 0, retry_options: retry_options)
       )
-      expect { my_callable.call }.to raise_error(Google::Gax::RetryError)
+      expect { my_callable.call }.to raise_error(CustomException)
       expect(call_count).to eq(1)
     end
 
