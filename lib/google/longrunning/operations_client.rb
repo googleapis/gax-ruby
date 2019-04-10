@@ -101,17 +101,11 @@ module Google
       # @param scopes [Array<String>]
       #   The OAuth scopes for this service. This parameter is ignored if
       #   an updater_proc is supplied.
-      # @param client_config [Hash]
-      #   A Hash for call options for each method. See
-      #   Google::Gax#construct_settings for the structure of
-      #   this data. Falls back to the default config if not specified
-      #   or the specified config is missing data points.
       # @param timeout [Numeric]
       #   The default timeout, in seconds, for calls made through this client.
       def initialize \
           credentials: nil,
           scopes: ALL_SCOPES,
-          client_config: {},
           timeout: DEFAULT_TIMEOUT,
           lib_name: nil,
           lib_version: ""
@@ -139,30 +133,7 @@ module Google
           updater_proc = credentials.updater_proc
         end
 
-        package_version = Gem.loaded_specs['google-gax'].version.version
-
-        google_api_client = "gl-ruby/#{RUBY_VERSION}"
-        google_api_client << " #{lib_name}/#{lib_version}" if lib_name
-        google_api_client << " gapic/#{package_version} gax/#{Google::Gax::VERSION}"
-        google_api_client << " grpc/#{GRPC::VERSION}"
-        google_api_client.freeze
-
-        headers = { :"x-goog-api-client" => google_api_client }
-        client_config_file = Pathname.new(__dir__).join(
-          "operations_client_config.json"
-        )
-        defaults = client_config_file.open do |f|
-          Google::Gax.construct_settings(
-            "google.longrunning.Operations",
-            JSON.parse(f.read),
-            client_config,
-            Google::Gax::Grpc::STATUS_CODE_NAMES,
-            timeout,
-            page_descriptors: PAGE_DESCRIPTORS,
-            errors: Google::Gax::Grpc::API_ERRORS,
-            kwargs: headers
-          )
-        end
+        defaults = default_settings(metadata, lib_name, lib_version)
 
         # Allow overriding the service path/port in subclasses.
         service_path = self.class::SERVICE_ADDRESS
@@ -179,19 +150,19 @@ module Google
 
         @get_operation = Google::Gax.create_api_call(
           @operations_stub.method(:get_operation),
-          defaults["get_operation"]
+          defaults
         )
         @list_operations = Google::Gax.create_api_call(
           @operations_stub.method(:list_operations),
-          defaults["list_operations"]
+          defaults
         )
         @cancel_operation = Google::Gax.create_api_call(
           @operations_stub.method(:cancel_operation),
-          defaults["cancel_operation"]
+          defaults
         )
         @delete_operation = Google::Gax.create_api_call(
           @operations_stub.method(:delete_operation),
-          defaults["delete_operation"]
+          defaults
         )
       end
 
@@ -346,6 +317,24 @@ module Google
         req = Google::Gax::to_proto(req, Google::Longrunning::DeleteOperationRequest)
         @delete_operation.call(req, options)
         nil
+      end
+
+      protected
+
+      def default_settings(metadata, lib_name, lib_version)
+        package_version = Gem.loaded_specs['google-gax'].version.version
+
+        google_api_client = ["gl-ruby/#{RUBY_VERSION}"]
+        google_api_client << "#{lib_name}/#{lib_version}" if lib_name
+        google_api_client << "gapic/#{package_version}"
+        google_api_client << "gax/#{Google::Gax::VERSION}"
+        google_api_client << "grpc/#{GRPC::VERSION}"
+        google_api_client.join " "
+
+        headers = { 'x-goog-api-client' => google_api_client }
+        headers.merge! metadata unless metadata.nil?
+
+        Google::Gax.const_get(:CallSettings).new metadata: headers
       end
     end
   end
