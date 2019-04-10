@@ -47,31 +47,42 @@ module Google
     # same signature as the original.
     #
     # @param func [Proc] used to make a bare rpc call
-    # @param settings [CallSettings] provides the settings for this call
+    # @param timeout [Numeric] client-side timeout for API calls
+    # @param metadata [Hash]  request headers
     # @param params_extractor [Proc] extracts routing header params from the
     #   request
     # @param exception_transformer [Proc] if an API exception occurs this
     #   transformer is given the original exception for custom processing
     #   instead of raising the error directly
-    # @return [Proc] a bound method on a request stub used to make an rpc call
-    def create_api_call(func, settings, params_extractor: nil,
-                        exception_transformer: nil)
-      api_caller = proc do |api_call, request, _settings, block|
-        api_call.call(request, block)
-      end
+    # @return [Proc] A bound method on a request stub used to make an rpc call.
+    #   The argumentd for the bound method are:
+    #
+    #   * request - Request object
+    #   * options - CallOptions object
+    #   * block named argument - Proc object for yielding the operation
+    def create_api_call(func, timeout: 60, metadata: {},
+                        params_extractor: nil, exception_transformer: nil)
+      proc do |request, options = nil, block = nil|
+        options = CallOptions.new if options.nil?
 
-      proc do |request, options = nil, &block|
-        this_settings = settings.merge(options)
+        options.timeout  = timeout  if options.timeout  == :OPTION_INHERIT
+        options.metadata = metadata if options.metadata == :OPTION_INHERIT
+
         if params_extractor
           params = params_extractor.call(request)
-          this_settings = with_routing_header(this_settings, params)
+          routing_header = params.map { |k, v| "#{k}=#{v}" }.join('&')
+          options.metadata['x-goog-request-params'] = routing_header
         end
-        api_call = add_timeout_arg(func, this_settings.timeout,
-                                   this_settings.metadata)
+
         begin
-          api_caller.call(api_call, request, this_settings, block)
-        rescue *settings.errors => e
-          error_class = Google::Gax.from_error(e)
+          op = func.call(request, deadline: Time.now + options.timeout,
+                                  metadata: options.metadata,
+                                  return_op: true)
+          res = op.execute
+          block.call op if block
+          res
+        rescue GRPC::BadStatus => grpc_error
+          error_class = Google::Gax.from_error(grpc_error)
           error = error_class.new('RPC failed')
           raise error if exception_transformer.nil?
           exception_transformer.call error
@@ -82,45 +93,6 @@ module Google
       end
     end
 
-    # Create a new CallSettings with the routing metadata from the request
-    # header params merged with the given settings.
-    #
-    # @param settings [CallSettings] the settings for an API call.
-    # @param params [Hash] the request header params.
-    # @return [CallSettings] a new merged settings.
-    def with_routing_header(settings, params)
-      routing_header = params.map { |k, v| "#{k}=#{v}" }.join('&')
-      options = CallOptions.new(
-        metadata: { 'x-goog-request-params' => routing_header }
-      )
-      settings.merge(options)
-    end
-
-    # Updates +a_func+ so that it gets called with the timeout as its final arg.
-    #
-    # This converts a proc, a_func, into another proc with an additional
-    # positional arg.
-    #
-    # @param a_func [Proc] a proc to be updated
-    # @param timeout [Numeric] to be added to the original proc as it
-    #   final positional arg.
-    # @param metadata [Hash] request metadata headers
-    # @return [Proc] the original proc updated to the timeout arg
-    def add_timeout_arg(a_func, timeout, metadata)
-      proc do |request, block|
-        op = a_func.call(request,
-                         deadline: Time.now + timeout,
-                         metadata: metadata,
-                         return_op: true)
-        res = op.execute
-        block.call op if block
-        res
-      end
-    end
-
-    module_function :create_api_call,
-                    :with_routing_header,
-                    :add_timeout_arg
-    private_class_method :with_routing_header, :add_timeout_arg
+    module_function :create_api_call
   end
 end
