@@ -28,7 +28,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 require 'google/gax/api_callable'
-require 'google/gax/constants'
 require 'google/gax/errors'
 require 'google/gax/settings'
 require 'google/gax/util'

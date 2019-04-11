@@ -30,7 +30,6 @@
 require 'time'
 
 # These must be loaded separate from google/gax to avoid circular dependency.
-require 'google/gax/constants'
 require 'google/gax/settings'
 require 'google/protobuf/well_known_types'
 
@@ -250,23 +249,12 @@ module Google
       #   checking if the operation is done.
       # @yield operation [Google::Gax::Operation] Yields the finished Operation.
       def wait_until_done!(backoff_settings: nil)
-        unless backoff_settings
-          backoff_settings = BackoffSettings.new(
-            10 * MILLIS_PER_SECOND,
-            1.3,
-            5 * 60 * MILLIS_PER_SECOND,
-            0,
-            0,
-            0,
-            60 * 60 * MILLIS_PER_SECOND
-          )
-        end
+        backoff_settings ||= BackoffSettings.new
 
-        delay = backoff_settings.initial_retry_delay_millis / MILLIS_PER_SECOND
-        max_delay = backoff_settings.max_retry_delay_millis / MILLIS_PER_SECOND
+        delay = backoff_settings.initial_retry_delay
+        max_delay = backoff_settings.max_retry_delay
         delay_multiplier = backoff_settings.retry_delay_multiplier
-        total_timeout =
-          backoff_settings.total_timeout_millis / MILLIS_PER_SECOND
+        total_timeout = backoff_settings.total_timeout
         deadline = Time.now + total_timeout
         until done?
           sleep(delay)

@@ -31,7 +31,6 @@ require 'time'
 
 require 'google/gax/operation'
 require 'google/gax/settings'
-require 'google/gax/constants'
 require 'google/protobuf/any_pb'
 require 'google/protobuf/well_known_types'
 require 'google/rpc/status_pb'
@@ -39,8 +38,6 @@ require 'google/longrunning/operations_pb'
 
 GrpcOp = Google::Longrunning::Operation
 GaxOp = Google::Gax::Operation
-
-MILLIS_PER_SECOND = Google::Gax::MILLIS_PER_SECOND
 
 class MockLroClient
   def initialize(get_method: nil, cancel_method: nil, delete_method: nil)
@@ -402,7 +399,13 @@ describe Google::Gax::Operation do
 
     it 'times out' do
       backoff_settings = Google::Gax::BackoffSettings.new(
-        1, 1, 10, 0, 0, 0, 100
+        initial_retry_delay: 1,
+        retry_delay_multiplier: 1,
+        max_retry_delay: 10,
+        initial_rpc_timeout: 0,
+        rpc_timeout_multiplier: 0,
+        max_rpc_timeout: 0,
+        total_timeout: 100
       )
       get_method = proc { GrpcOp.new(done: false) }
       mock_client = MockLroClient.new(get_method: get_method)
@@ -433,25 +436,25 @@ describe Google::Gax::Operation do
       allow(Time).to receive(:now) { time_now }
       allow(op).to receive(:sleep) { |secs| time_now += secs }
 
-      initial_delay = 10 * MILLIS_PER_SECOND
+      initial_delay = 10
       delay_multiplier = 1.5
-      max_delay = 5 * 60 * MILLIS_PER_SECOND
-      total_timeout = 60 * 60 * MILLIS_PER_SECOND
+      max_delay = 5 * 60
+      total_timeout = 60 * 60
       backoff = Google::Gax::BackoffSettings.new(
-        initial_delay,
-        delay_multiplier,
-        max_delay,
-        0,
-        0,
-        0,
-        total_timeout
+        initial_retry_delay: initial_delay,
+        retry_delay_multiplier: delay_multiplier,
+        max_retry_delay: max_delay,
+        initial_rpc_timeout: 0,
+        rpc_timeout_multiplier: 0,
+        max_rpc_timeout: 0,
+        total_timeout: total_timeout
       )
       begin
         op.wait_until_done!(backoff_settings: backoff)
       rescue Google::Gax::RetryError => exc
         expect(exc).to be_a(Google::Gax::RetryError)
       end
-      expect(time_now - start_time).to be >= (total_timeout / MILLIS_PER_SECOND)
+      expect(time_now - start_time).to be >= total_timeout
 
       calls_lower_bound = total_timeout / max_delay
       calls_upper_bound = total_timeout / initial_delay
