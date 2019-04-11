@@ -33,18 +33,16 @@ require 'google/gax/errors'
 
 module Google
   module Gax
-    # Converts an rpc call into an API call governed by the settings.
+    # Converts an RPC call into an API call.
     #
-    # In typical usage, +func+ will be a proc used to make an rpc request.
-    # This will mostly likely be a bound method from a request stub used to make
-    # an rpc call.
+    # In typical usage, +func+ will be a proc used to make an RPC request.
+    # This will mostly likely be a bound method from a request Stub used to make
+    # an RPC call.
     #
     # The result is created by applying a series of function decorators
-    # defined in this module to +func+.  +settings+ is used to determine
-    # which function decorators to apply.
+    # defined in this module to +func+.
     #
-    # The result is another proc which for most values of +settings+ has the
-    # same signature as the original.
+    # The result is another proc which has the same signature as the original.
     #
     # @param func [Proc] used to make a bare rpc call
     # @param timeout [Numeric] client-side timeout for API calls
