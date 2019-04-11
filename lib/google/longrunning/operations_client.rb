@@ -69,15 +69,6 @@ module Google
 
       DEFAULT_TIMEOUT = 30
 
-      PAGE_DESCRIPTORS = {
-        "list_operations" => Google::Gax::PageDescriptor.new(
-          "page_token",
-          "next_page_token",
-          "operations")
-      }.freeze
-
-      private_constant :PAGE_DESCRIPTORS
-
       # The scopes needed to make gRPC calls to all of the methods defined in
       # this service.
       ALL_SCOPES = [

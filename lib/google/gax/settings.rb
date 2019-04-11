@@ -29,41 +29,26 @@
 
 module Google
   module Gax
-    # rubocop:disable Metrics/ParameterLists
-
     # Encapsulates the call settings for an ApiCallable
     # @!attribute [r] timeout
     #   @return [Numeric]
-    # @!attribute [r] page_descriptor
-    #   @return [PageDescriptor]
-    # @!attribute [r] page_token
-    #   @return [Object]
     # @!attribute [r] bundle_descriptor
     #   @return [BundleDescriptor]
     # @!attribute [r] metadata
     #   @return [Hash]
     class CallSettings
-      attr_reader :timeout, :page_descriptor, :page_token,
+      attr_reader :timeout,
                   :metadata, :errors
 
       # @param timeout [Numeric] The client-side timeout for API calls.
-      # @param page_descriptor [PageDescriptor] indicates the structure of page
-      #   streaming to be performed. If set to nil, page streaming is not
-      #   performed.
-      # @param page_token [Object] determines the page token used in the
-      #   page streaming request. If there is no page_descriptor, this has no
-      #   meaning.
       # @param metadata [Hash] the request header params.
       # @param kwargs [Hash]
       #   Deprecated, if set this will be merged with the metadata field.
       # @param errors [Array<Exception>]
       #   Configures the exceptions to wrap with GaxError.
-      def initialize(timeout: 30, page_descriptor: nil,
-                     page_token: nil,
+      def initialize(timeout: 30,
                      metadata: {}, kwargs: {}, errors: [])
         @timeout = timeout
-        @page_descriptor = page_descriptor
-        @page_token = page_token
         @metadata = metadata
         @metadata.merge!(kwargs) if kwargs && metadata
         @errors = errors
@@ -76,8 +61,6 @@ module Google
       def merge(options)
         unless options
           return CallSettings.new(timeout: @timeout,
-                                  page_descriptor: @page_descriptor,
-                                  page_token: @page_token,
                                   metadata: @metadata,
                                   errors: @errors)
         end
@@ -87,18 +70,11 @@ module Google
                   else
                     options.timeout
                   end
-        page_token = if options.page_token == :OPTION_INHERIT
-                       @page_token
-                     else
-                       options.page_token
-                     end
 
         metadata = (metadata.dup if metadata) || {}
         metadata.update(options.metadata) if options.metadata != :OPTION_INHERIT
 
         CallSettings.new(timeout: timeout,
-                         page_descriptor: @page_descriptor,
-                         page_token: page_token,
                          metadata: metadata,
                          errors: @errors)
       end
@@ -109,39 +85,26 @@ module Google
     # Encapsulates the overridable settings for a particular API call
     # @!attribute [r] timeout
     #   @return [Numeric, :OPTION_INHERIT]
-    # @!attribute [r] page_token
-    #   @return [Object, :OPTION_INHERIT, :INITIAL_PAGE]
     # @!attribute [r] metadata
     #   @return [Hash, :OPTION_INHERIT]
     # @!attribute [r] kwargs
     #   @return [Hash, :OPTION_INHERIT] deprecated, use metadata instead
     class CallOptions
-      attr_reader :timeout, :page_token, :metadata
+      attr_reader :timeout, :metadata
       alias kwargs metadata
 
       # @param timeout [Numeric, :OPTION_INHERIT]
       #   The client-side timeout for API calls.
-      # @param page_token [Object, :OPTION_INHERIT]
-      #   If set and the call is configured for page streaming, page streaming
-      #   is starting with this page_token.
       # @param metadata [Hash, :OPTION_INHERIT] the request header params.
       # @param kwargs [Hash, :OPTION_INHERIT]
       #   Deprecated, if set this will be merged with the metadata field.
       def initialize(timeout: :OPTION_INHERIT,
-                     page_token: :OPTION_INHERIT,
                      metadata: :OPTION_INHERIT,
                      kwargs: :OPTION_INHERIT)
         @timeout = timeout
-        @page_token = page_token
         @metadata = metadata
         @metadata.merge!(kwargs) if kwargs.is_a?(Hash) && metadata.is_a?(Hash)
       end
-    end
-
-    # Describes the structure of a page-streaming call.
-    class PageDescriptor < Struct.new(:request_page_token_field,
-                                      :response_page_token_field,
-                                      :resource_field)
     end
 
     # Parameters to the exponential backoff algorithm for retrying.

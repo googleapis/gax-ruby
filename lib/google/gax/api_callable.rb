@@ -222,13 +222,6 @@ module Google
         api_call.call(request, block)
       end
 
-      if settings.page_descriptor
-        page_descriptor = settings.page_descriptor
-        api_caller = page_streamable(page_descriptor.request_page_token_field,
-                                     page_descriptor.response_page_token_field,
-                                     page_descriptor.resource_field)
-      end
-
       proc do |request, options = nil, &block|
         this_settings = settings.merge(options)
         if params_extractor
@@ -249,26 +242,6 @@ module Google
           exception_transformer.call error
         end
       end
-    end
-
-    # Creates a proc that yields an iterable to performs page-streaming.
-    #
-    # @param a_func [Proc] an API call that is page streaming.
-    # @param request_page_token_field [String] The field of the page
-    #   token in the request.
-    # @param response_page_token_field [String] The field of the next
-    #   page token in the response.
-    # @param resource_field [String] The field to be streamed.
-    # @param page_token [Object] The page_token for the first page to be
-    #   streamed, or nil.
-    # @return [Proc] A proc that returns an iterable over the specified field.
-    def page_streamable(request_page_token_field,
-                        response_page_token_field,
-                        resource_field)
-      enumerable = PagedEnumerable.new(request_page_token_field,
-                                       response_page_token_field,
-                                       resource_field)
-      enumerable.method(:start)
     end
 
     # Create a new CallSettings with the routing metadata from the request
@@ -308,9 +281,8 @@ module Google
     end
 
     module_function :create_api_call,
-                    :page_streamable, :with_routing_header,
+                    :with_routing_header,
                     :add_timeout_arg
-    private_class_method :page_streamable,
-                         :with_routing_header, :add_timeout_arg
+    private_class_method :with_routing_header, :add_timeout_arg
   end
 end
