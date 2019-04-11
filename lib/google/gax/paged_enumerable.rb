@@ -29,9 +29,9 @@
 
 module Google
   module Gax
-    # A class to provide the Enumerable interface for page-streaming method.
-    # PagedEnumerable assumes that the API call returns a message for a page
-    # which holds a list of resources and the token to the next page.
+    # A class to provide the Enumerable interface to the response of a
+    # paginated method. PagedEnumerable assumes response message holds a list
+    # of resources and the token to the next page.
     #
     # PagedEnumerable provides the enumerations over the resource data,
     # and also provides the enumerations over the pages themselves.
