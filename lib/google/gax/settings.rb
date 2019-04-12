@@ -29,81 +29,21 @@
 
 module Google
   module Gax
-    # Encapsulates the call settings for an ApiCallable
-    # @!attribute [r] timeout
-    #   @return [Numeric]
-    # @!attribute [r] bundle_descriptor
-    #   @return [BundleDescriptor]
-    # @!attribute [r] metadata
-    #   @return [Hash]
-    class CallSettings
-      attr_reader :timeout,
-                  :metadata, :errors
-
-      # @param timeout [Numeric] The client-side timeout for API calls.
-      # @param metadata [Hash] the request header params.
-      # @param kwargs [Hash]
-      #   Deprecated, if set this will be merged with the metadata field.
-      # @param errors [Array<Exception>]
-      #   Configures the exceptions to wrap with GaxError.
-      def initialize(timeout: 30,
-                     metadata: {}, kwargs: {}, errors: [])
-        @timeout = timeout
-        @metadata = metadata
-        @metadata.merge!(kwargs) if kwargs && metadata
-        @errors = errors
-      end
-
-      # Creates a new CallSetting instance which is based on this but merged
-      # settings from options.
-      # @param options [CallOptions, nil] The overriding call settings.
-      # @return a new merged call settings.
-      def merge(options)
-        unless options
-          return CallSettings.new(timeout: @timeout,
-                                  metadata: @metadata,
-                                  errors: @errors)
-        end
-
-        timeout = if options.timeout == :OPTION_INHERIT
-                    @timeout
-                  else
-                    options.timeout
-                  end
-
-        metadata = (metadata.dup if metadata) || {}
-        metadata.update(options.metadata) if options.metadata != :OPTION_INHERIT
-
-        CallSettings.new(timeout: timeout,
-                         metadata: metadata,
-                         errors: @errors)
-      end
-    end
-
-    private_constant :CallSettings
-
     # Encapsulates the overridable settings for a particular API call
-    # @!attribute [r] timeout
+    # @!attribute [rw] timeout
     #   @return [Numeric, :OPTION_INHERIT]
-    # @!attribute [r] metadata
+    # @!attribute [rw] metadata
     #   @return [Hash, :OPTION_INHERIT]
-    # @!attribute [r] kwargs
-    #   @return [Hash, :OPTION_INHERIT] deprecated, use metadata instead
     class CallOptions
-      attr_reader :timeout, :metadata
-      alias kwargs metadata
+      attr_accessor :timeout, :metadata
 
       # @param timeout [Numeric, :OPTION_INHERIT]
       #   The client-side timeout for API calls.
       # @param metadata [Hash, :OPTION_INHERIT] the request header params.
-      # @param kwargs [Hash, :OPTION_INHERIT]
-      #   Deprecated, if set this will be merged with the metadata field.
       def initialize(timeout: :OPTION_INHERIT,
-                     metadata: :OPTION_INHERIT,
-                     kwargs: :OPTION_INHERIT)
+                     metadata: :OPTION_INHERIT)
         @timeout = timeout
         @metadata = metadata
-        @metadata.merge!(kwargs) if kwargs.is_a?(Hash) && metadata.is_a?(Hash)
       end
     end
 
@@ -146,23 +86,5 @@ module Google
       #     error will be returned, regardless of the retrying
       #     attempts made meanwhile.
     end
-
-    # Port of GRPC::GenericService.underscore that works on frozen strings.
-    # Note that this function often is used on strings inside Hashes, which
-    # are frozen by default, so the GRPC implementation cannot be used directly.
-    #
-    # TODO(geigerj): Consider whether this logic can be factored out into
-    # a shared location that both gRPC and GAX can depend on in order to remove
-    # the additional dependency on gRPC this introduces.
-    def upper_camel_to_lower_underscore(s)
-      s = s.gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
-      s = s.gsub(/([a-z\d])([A-Z])/, '\1_\2')
-      s = s.tr('-', '_')
-      s = s.downcase
-      s
-    end
-
-    module_function :upper_camel_to_lower_underscore
-    private_class_method :upper_camel_to_lower_underscore
   end
 end

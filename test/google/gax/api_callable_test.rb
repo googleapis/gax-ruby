@@ -43,15 +43,6 @@ end
 FAKE_STATUS_CODE_1 = 1
 FAKE_STATUS_CODE_2 = 2
 
-# Google::Gax::CallSettings is private, only accessible in the module context.
-# For testing purpose, this makes a toplevel ::CallSettings point to the same
-# class.
-module Google
-  module Gax
-    ::CallSettings = CallSettings
-  end
-end
-
 class OperationStub
   def initialize(&block)
     @block = block
@@ -65,7 +56,6 @@ end
 describe Google::Gax do
   describe 'create_api_call' do
     it 'calls api call' do
-      settings = CallSettings.new
       deadline_arg = nil
 
       func = proc do |deadline: nil, **_kwargs|
@@ -73,7 +63,7 @@ describe Google::Gax do
         OperationStub.new { 42 }
       end
 
-      my_callable = Google::Gax.create_api_call(func, settings)
+      my_callable = Google::Gax.create_api_call(func)
       _(my_callable.call(nil)).must_equal(42)
       _(deadline_arg).must_be_kind_of(Time)
 
@@ -87,24 +77,21 @@ describe Google::Gax do
   describe 'create_api_call with block options' do
     it 'calls with block' do
       adder = 0
-      settings = CallSettings.new
 
       func = proc do |request, _deadline: nil, **_kwargs|
         _(request).must_equal(3)
         OperationStub.new { 2 + request + adder }
       end
 
-      my_callable = Google::Gax.create_api_call(func, settings)
+      my_callable = Google::Gax.create_api_call(func)
       _(my_callable.call(3)).must_equal(5)
-      _(my_callable.call(3) { adder = 5 }).must_equal(5)
+      _(my_callable.call(3, nil, ->(_) { adder = 5 })).must_equal(5)
       _(my_callable.call(3)).must_equal(10)
     end
   end
 
   describe 'custom exceptions' do
     it 'traps an exception' do
-      settings = CallSettings.new
-
       transformer = proc do |ex|
         _(ex).must_be_kind_of(Google::Gax::RetryError)
         raise CustomException.new('', FAKE_STATUS_CODE_2)
@@ -114,14 +101,12 @@ describe Google::Gax do
         raise Google::Gax::RetryError.new('')
       end
       my_callable = Google::Gax.create_api_call(
-        func, settings, exception_transformer: transformer
+        func, exception_transformer: transformer
       )
       expect { my_callable.call }.must_raise(CustomException)
     end
 
     it 'traps a wrapped exception' do
-      settings = CallSettings.new(errors: [CustomException])
-
       transformer = proc do |ex|
         _(ex).must_be_kind_of(Google::Gax::GaxError)
         raise Exception.new('')
@@ -131,35 +116,33 @@ describe Google::Gax do
         raise CustomException.new('', :FAKE_STATUS_CODE_1)
       end
       my_callable = Google::Gax.create_api_call(
-        func, settings, exception_transformer: transformer
+        func, exception_transformer: transformer
       )
       expect { my_callable.call }.must_raise(Exception)
     end
   end
 
   describe 'failures without retry' do
-    it 'simply fails' do
-      settings = CallSettings.new(errors: [CustomException])
+    it 'wraps grpc errors' do
       deadline_arg = nil
       call_count = 0
       func = proc do |deadline: nil, **_kwargs|
         deadline_arg = deadline
         call_count += 1
-        raise CustomException.new('', FAKE_STATUS_CODE_1)
+        raise GRPC::BadStatus.new(2, 'unknown')
       end
-      my_callable = Google::Gax.create_api_call(func, settings)
+      my_callable = Google::Gax.create_api_call(func)
       begin
         my_callable.call
         _(true).must_be false # should not reach to this line.
       rescue Google::Gax::GaxError => exc
-        _(exc.cause).must_be_kind_of(CustomException)
+        _(exc.cause).must_be_kind_of(GRPC::BadStatus)
       end
       _(deadline_arg).must_be_kind_of(Time)
       _(call_count).must_equal(1)
     end
 
-    it 'does not wrap unknown errors' do
-      settings = CallSettings.new
+    it 'does not wrap non-grpc errors' do
       deadline_arg = nil
       call_count = 0
       func = proc do |deadline: nil, **_kwargs|
@@ -167,7 +150,7 @@ describe Google::Gax do
         call_count += 1
         raise CustomException.new('', FAKE_STATUS_CODE_1)
       end
-      my_callable = Google::Gax.create_api_call(func, settings)
+      my_callable = Google::Gax.create_api_call(func)
       expect { my_callable.call }.must_raise(CustomException)
       _(deadline_arg).must_be_kind_of(Time)
       _(call_count).must_equal(1)
@@ -176,7 +159,6 @@ describe Google::Gax do
 
   describe 'with_routing_header' do
     it 'merges request header params with the existing settings' do
-      settings = CallSettings.new
       metadata_arg = nil
       func = proc do |_, metadata: nil, **_deadline|
         metadata_arg = metadata
@@ -190,7 +172,7 @@ describe Google::Gax do
         { 'name' => request[:name], 'book.read' => request[:book][:read] }
       end
       my_callable = Google::Gax.create_api_call(
-        func2, settings, params_extractor: params_extractor
+        func2, params_extractor: params_extractor
       )
       _(my_callable.call(name: 'foo', book: { read: true })).must_equal(42)
       _(metadata_arg).must_equal(

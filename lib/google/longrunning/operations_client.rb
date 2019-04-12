@@ -124,7 +124,7 @@ module Google
           updater_proc = credentials.updater_proc
         end
 
-        defaults = default_settings(metadata, lib_name, lib_version)
+        metadata = default_gax_client_metadata(lib_name, lib_version)
 
         # Allow overriding the service path/port in subclasses.
         service_path = self.class::SERVICE_ADDRESS
@@ -141,19 +141,19 @@ module Google
 
         @get_operation = Google::Gax.create_api_call(
           @operations_stub.method(:get_operation),
-          defaults
+          timeout: timeout, metadata: metadata
         )
         @list_operations = Google::Gax.create_api_call(
           @operations_stub.method(:list_operations),
-          defaults
+          timeout: timeout, metadata: metadata
         )
         @cancel_operation = Google::Gax.create_api_call(
           @operations_stub.method(:cancel_operation),
-          defaults
+          timeout: timeout, metadata: metadata
         )
         @delete_operation = Google::Gax.create_api_call(
           @operations_stub.method(:delete_operation),
-          defaults
+          timeout: timeout, metadata: metadata
         )
       end
 
@@ -313,7 +313,7 @@ module Google
 
       protected
 
-      def default_settings(metadata, lib_name, lib_version)
+      def default_gax_client_metadata(lib_name, lib_version)
         package_version = Gem.loaded_specs['google-gax'].version.version
 
         google_api_client = ["gl-ruby/#{RUBY_VERSION}"]
@@ -323,10 +323,7 @@ module Google
         google_api_client << "grpc/#{GRPC::VERSION}"
         google_api_client.join " "
 
-        headers = { 'x-goog-api-client' => google_api_client }
-        headers.merge! metadata unless metadata.nil?
-
-        Google::Gax.const_get(:CallSettings).new metadata: headers
+        { 'x-goog-api-client' => google_api_client }
       end
     end
   end
