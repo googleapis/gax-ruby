@@ -9,7 +9,7 @@
 AllCops:
   Exclude:
     - 'lib/google/longrunning/**/*'
-    - 'fixtures/**/*'
+    - 'test/fixtures/**/*'
 
 # Offense count: 1
 Metrics/AbcSize:
@@ -18,11 +18,6 @@ Metrics/AbcSize:
 # Offense count: 1
 Metrics/CyclomaticComplexity:
   Max: 9
-
-# Offense count: 2
-Metrics/LineLength:
-  Exclude:
-    - 'spec/google/gax/credentials_spec.rb'
 
 # Offense count: 8
 # Configuration parameters: CountComments.
@@ -35,14 +30,12 @@ Metrics/PerceivedComplexity:
 
 Metrics/BlockLength:
   Exclude:
-    - "**/*_spec.rb"
     - "**/*_test.rb"
   Max: 28
 
 # Offense count: 3
 Style/Documentation:
   Exclude:
-    - 'spec/**/*'
     - 'test/**/*'
     - 'lib/google/gax/api_callable.rb'
     - 'lib/google/gax/settings.rb'

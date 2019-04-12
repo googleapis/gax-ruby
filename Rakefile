@@ -9,13 +9,6 @@ Rake::TestTask.new do |t|
   t.warning = false
 end
 
-require 'rspec/core'
-require 'rspec/core/rake_task'
-
-RSpec::Core::RakeTask.new(:spec) do |spec|
-  spec.pattern = FileList['spec/**/*_spec.rb']
-end
-
 task :coverage do
   require 'simplecov'
   SimpleCov.start
@@ -26,7 +19,6 @@ task :coverage do
   end
 
   Rake::Task[:test].invoke
-  Rake::Task[:spec].invoke
 end
 
 require 'rubocop/rake_task'

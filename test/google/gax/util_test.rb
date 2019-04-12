@@ -31,7 +31,7 @@ require 'test_helper'
 require 'google/gax'
 require 'google/protobuf/any_pb'
 require 'google/protobuf/timestamp_pb'
-require_relative '../../../fixtures/fixture_pb'
+require_relative '../../../test/fixtures/fixture_pb'
 require 'stringio'
 
 describe Google::Gax do
@@ -114,7 +114,7 @@ describe Google::Gax do
     end
 
     it 'handles IO instances' do
-      file = File.new('fixtures/fixture_file.txt')
+      file = File.new('test/fixtures/fixture_file.txt')
       request_hash = {
         bytes_field: file
       }

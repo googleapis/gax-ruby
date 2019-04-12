@@ -86,18 +86,18 @@ GitHub repo, from which you can submit a pull request.
 Running Tests
 -------------
 
-RSpec is used for the tests of [gax-ruby][]. To run the tests, you
+Minitest is used for the tests of [gax-ruby][]. To run the tests, you
 should run `rake` command with no arguments.
 
 ```bash
 rake
 ```
 
-This runs both RSpec and [rubocop][].
+This runs tests (generating test coverage), and [rubocop][].
 
 [rubocop]: http://batsov.com/rubocop/
 
-To run RSpec only, run `rake rspec`. To run Rubocop style checking only,
+To run tests only, run `rake test`. To run Rubocop style checking only,
 run `rake rubocop`.
 
 To suppress a rubocop style violation, first consider adding a comment line
