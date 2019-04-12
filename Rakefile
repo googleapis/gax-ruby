@@ -16,7 +16,20 @@ RSpec::Core::RakeTask.new(:spec) do |spec|
   spec.pattern = FileList['spec/**/*_spec.rb']
 end
 
+task :coverage do
+  require 'simplecov'
+  SimpleCov.start
+
+  if ENV['CI'] == 'true' || ENV['CODECOV_TOKEN']
+    require 'codecov'
+    SimpleCov.formatter = SimpleCov::Formatter::Codecov
+  end
+
+  Rake::Task[:test].invoke
+  Rake::Task[:spec].invoke
+end
+
 require 'rubocop/rake_task'
 RuboCop::RakeTask.new(:rubocop)
 
-task default: %i[test spec rubocop]
+task default: %i[coverage rubocop]
