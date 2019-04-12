@@ -244,10 +244,7 @@ module Google
         }.delete_if { |_, v| v.nil? }
         req = Google::Gax::to_proto(req, Google::Longrunning::ListOperationsRequest)
         resp = @list_operations.call(req, options)
-        Google::Gax::PagedEnumerable.new(
-          @list_operations, req, resp,
-          options: options, resource_field: "operations"
-        )
+        Google::Gax::PagedEnumerable.new(@list_operations, req, resp, options)
       end
 
       # Starts asynchronous cancellation on a long-running operation.  The server

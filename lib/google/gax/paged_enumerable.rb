@@ -68,13 +68,15 @@ module Google
       #   The name of the field in the response which holds the next page token.
       # @param resource_field [String]
       #   The name of the field in the response which holds the resources.
-      def initialize(api_call, request, response, options: nil,
-                     resource_field: nil)
+      def initialize(api_call, request, response, options)
         @api_call = api_call
         @request = request
         @response = response
         @options = options
-        @resource_field = resource_field || determine_resource_field(response)
+        @resource_field = nil # will be set in verify_response!
+
+        verify_request!
+        verify_response!
 
         @page = Page.new(@response, @resource_field)
       end
@@ -136,17 +138,56 @@ module Google
 
       private
 
-      # This inspects a response object and pulls out the first repeated field.
-      def determine_resource_field(response)
-        # Find the first repeated FieldDescriptor on the response Descriptor
-        # Find uses the order of the FieldDescriptor on the Descriptor
-        field = response.class.descriptor.find { |f| f.label == :repeated }
+      def verify_request!
+        page_token = @request.class.descriptor.find do |f|
+          # Google::Protobuf::FieldDescriptorProto::Type::TYPE_STRING = 9
+          f.name == 'page_token' && f.type == 9
+        end
+        if page_token.nil?
+          raise ArgumentError.new(
+            'request must have a page_token field (String)'
+          )
+        end
 
-        # Raise if a FieldDescriptor was not found
-        raise ArgumentError if field.nil?
+        page_size = @request.class.descriptor.find do |f|
+          # Google::Protobuf::FieldDescriptorProto::Type::TYPE_INT32 = 5
+          f.name == 'page_size' && f.type == 5
+        end
+        return unless page_size.nil?
+        raise ArgumentError.new('request must have a page_size field (Integer)')
+      end
 
-        # Return the field name
-        field.name
+      def verify_response!
+        next_page_token = @response.class.descriptor.find do |f|
+          # Google::Protobuf::FieldDescriptorProto::Type::TYPE_STRING = 9
+          f.name == 'next_page_token' && f.type == 9
+        end
+        if next_page_token.nil?
+          raise ArgumentError.new(
+            'response must have a next_page_token field (String)'
+          )
+        end
+
+        # Find all repeated FieldDescriptors on the response Descriptor
+        fields = @response.class.descriptor.select do |f|
+          # Google::Protobuf::FieldDescriptorProto::Type::TYPE_MESSAGE = 11
+          f.label == :repeated && f.type == 11
+        end
+
+        repeated_field = fields.first
+        if repeated_field.nil?
+          raise ArgumentError.new('response must have one repeated field')
+        end
+
+        min_repeated_field_number = fields.map(&:number).min
+        if min_repeated_field_number != repeated_field.number
+          raise ArgumentError.new(
+            'response must have a repeated field by position and number'
+          )
+        end
+
+        # We have the correct repeated field, save the field's name
+        @resource_field = repeated_field.name
       end
 
       # A class to represent a page in a PagedEnumerable. This also implements
