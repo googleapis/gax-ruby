@@ -1,4 +1,4 @@
-# Copyright 2016, Google Inc.
+# Copyright 2019, Google Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -16,7 +16,7 @@
 # this software without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 # LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
 # A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
 # OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
@@ -27,16 +27,39 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require 'google/gax/api_callable'
+require 'test_helper'
 require 'google/gax/paged_enumerable'
-require 'google/gax/constants'
-require 'google/gax/errors'
 require 'google/gax/settings'
-require 'google/gax/util'
-require 'google/gax/version'
+require_relative '../../../../test/fixtures/fixture_pb'
 
-module Google
-  # Gax defines Google API extensions
-  module Gax
+class PagedEnumerableInvalidRequestTest < Minitest::Test
+  def test_MissingPageTokenRequest
+    api_call = -> {}
+    request = Google::Gax::MissingPageTokenRequest.new
+    response = Google::Gax::GoodPagedResponse.new
+    options = Google::Gax::CallOptions.new
+
+    error = assert_raises ArgumentError do
+      Google::Gax::PagedEnumerable.new(
+        api_call, request, response, options
+      )
+    end
+    exp_msg = "#{request.class} must have a page_token field (String)"
+    assert_equal exp_msg, error.message
+  end
+
+  def test_MissingPageSizeRequest
+    api_call = -> {}
+    request = Google::Gax::MissingPageSizeRequest.new
+    response = Google::Gax::GoodPagedResponse.new
+    options = Google::Gax::CallOptions.new
+
+    error = assert_raises ArgumentError do
+      Google::Gax::PagedEnumerable.new(
+        api_call, request, response, options
+      )
+    end
+    exp_msg = "#{request.class} must have a page_size field (Integer)"
+    assert_equal exp_msg, error.message
   end
 end

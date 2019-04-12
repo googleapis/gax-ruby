@@ -38,3 +38,43 @@ message User {
 message Post {
   string text = 1;
 }
+
+message GoodPagedRequest {
+  string name = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+message Int64PagedRequest {
+  string name = 1;
+  int64 page_size = 2;
+  string page_token = 3;
+}
+message MissingPageTokenRequest {
+  string name = 1;
+  int32 page_size = 2;
+}
+message MissingPageSizeRequest {
+  string name = 1;
+  string page_token = 3;
+}
+
+message GoodPagedResponse {
+  repeated User users = 1;
+  string next_page_token = 2;
+}
+message MissingRepeatedResponse {
+  User user = 1;
+  string next_page_token = 2;
+}
+message MissingMessageResponse {
+  repeated string names = 1;
+  string next_page_token = 2;
+}
+message MissingNextPageTokenResponse {
+  repeated User users = 1;
+}
+message BadMessageOrderResponse {
+  repeated Post posts = 2;
+  repeated User users = 1;
+  string next_page_token = 3;
+}

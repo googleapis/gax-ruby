@@ -47,8 +47,8 @@ describe Google::Gax do
 
     it 'creates a protobuf message from a simple hash' do
       hash = { name: USER_NAME, type: USER_TYPE }
-      user = Google::Gax.to_proto(hash, Google::Protobuf::User)
-      _(user).must_be_kind_of(Google::Protobuf::User)
+      user = Google::Gax.to_proto(hash, Google::Gax::User)
+      _(user).must_be_kind_of(Google::Gax::User)
       _(user.name).must_equal(USER_NAME)
       _(user.type).must_equal(USER_TYPE)
     end
@@ -56,12 +56,12 @@ describe Google::Gax do
     it 'creates a protobuf message from a hash with a nested message' do
       request_hash = {
         name: REQUEST_NAME,
-        user: Google::Protobuf::User.new(name: USER_NAME, type: USER_TYPE)
+        user: Google::Gax::User.new(name: USER_NAME, type: USER_TYPE)
       }
-      request = Google::Gax.to_proto(request_hash, Google::Protobuf::Request)
-      _(request).must_be_kind_of(Google::Protobuf::Request)
+      request = Google::Gax.to_proto(request_hash, Google::Gax::Request)
+      _(request).must_be_kind_of(Google::Gax::Request)
       _(request.name).must_equal(REQUEST_NAME)
-      _(request.user).must_be_kind_of(Google::Protobuf::User)
+      _(request.user).must_be_kind_of(Google::Gax::User)
       _(request.user.name).must_equal(USER_NAME)
       _(request.user.type).must_equal(USER_TYPE)
     end
@@ -71,10 +71,10 @@ describe Google::Gax do
         name: REQUEST_NAME,
         user: { name: USER_NAME, type: USER_TYPE }
       }
-      request = Google::Gax.to_proto(request_hash, Google::Protobuf::Request)
-      _(request).must_be_kind_of(Google::Protobuf::Request)
+      request = Google::Gax.to_proto(request_hash, Google::Gax::Request)
+      _(request).must_be_kind_of(Google::Gax::Request)
       _(request.name).must_equal(REQUEST_NAME)
-      _(request.user).must_be_kind_of(Google::Protobuf::User)
+      _(request.user).must_be_kind_of(Google::Gax::User)
       _(request.user.name).must_equal(USER_NAME)
       _(request.user.type).must_equal(USER_TYPE)
     end
@@ -85,16 +85,16 @@ describe Google::Gax do
         type: USER_TYPE,
         posts: [
           { text: POST_TEXT },
-          Google::Protobuf::Post.new(text: POST_TEXT)
+          Google::Gax::Post.new(text: POST_TEXT)
         ]
       }
-      user = Google::Gax.to_proto(user_hash, Google::Protobuf::User)
-      _(user).must_be_kind_of(Google::Protobuf::User)
+      user = Google::Gax.to_proto(user_hash, Google::Gax::User)
+      _(user).must_be_kind_of(Google::Gax::User)
       _(user.name).must_equal(USER_NAME)
       _(user.type).must_equal(USER_TYPE)
       _(user.posts).must_be_kind_of(Google::Protobuf::RepeatedField)
       user.posts.each do |post|
-        _(post).must_be_kind_of(Google::Protobuf::Post)
+        _(post).must_be_kind_of(Google::Gax::Post)
         _(post.text).must_equal(POST_TEXT)
       end
     end
@@ -104,8 +104,8 @@ describe Google::Gax do
         name: USER_NAME,
         map_field: MAP
       }
-      user = Google::Gax.to_proto(request_hash, Google::Protobuf::User)
-      _(user).must_be_kind_of(Google::Protobuf::User)
+      user = Google::Gax.to_proto(request_hash, Google::Gax::User)
+      _(user).must_be_kind_of(Google::Gax::User)
       _(user.name).must_equal(USER_NAME)
       _(user.map_field).must_be_kind_of(Google::Protobuf::Map)
       user.map_field.each do |k, v|
@@ -118,7 +118,7 @@ describe Google::Gax do
       request_hash = {
         bytes_field: file
       }
-      user = Google::Gax.to_proto(request_hash, Google::Protobuf::User)
+      user = Google::Gax.to_proto(request_hash, Google::Gax::User)
       _(user.bytes_field).must_equal("This is a text file.\n")
     end
 
@@ -128,7 +128,7 @@ describe Google::Gax do
       request_hash = {
         bytes_field: string_io
       }
-      user = Google::Gax.to_proto(request_hash, Google::Protobuf::User)
+      user = Google::Gax.to_proto(request_hash, Google::Gax::User)
       _(user.bytes_field).must_equal(expected)
     end
 
@@ -140,7 +140,7 @@ describe Google::Gax do
       request_hash = {
         timestamp: Time.at(sometime)
       }
-      user = Google::Gax.to_proto(request_hash, Google::Protobuf::User)
+      user = Google::Gax.to_proto(request_hash, Google::Gax::User)
       expected = Google::Protobuf::Timestamp.new(seconds: seconds, nanos: nanos)
       _(user.timestamp).must_equal(expected)
     end
@@ -151,22 +151,22 @@ describe Google::Gax do
         fake_key: 'fake data'
       }
       expect do
-        Google::Gax.to_proto(user_hash, Google::Protobuf::User)
+        Google::Gax.to_proto(user_hash, Google::Gax::User)
       end.must_raise(ArgumentError)
     end
 
     it 'handles proto messages' do
-      user_message = Google::Protobuf::User.new(
+      user_message = Google::Gax::User.new(
         name: USER_NAME, type: USER_TYPE
       )
-      user = Google::Gax.to_proto(user_message, Google::Protobuf::User)
+      user = Google::Gax.to_proto(user_message, Google::Gax::User)
       _(user).must_equal user_message
     end
 
     it 'fails if proto message has unexpected type' do
       user_message = Google::Protobuf::Any
       expect do
-        Google::Gax.to_proto(user_message, Google::Protobuf::User)
+        Google::Gax.to_proto(user_message, Google::Gax::User)
       end.must_raise(ArgumentError)
     end
   end
