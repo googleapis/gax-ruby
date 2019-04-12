@@ -55,12 +55,14 @@ describe Google::Gax::Grpc do
 
   describe '#create_stub' do
     it 'yields constructed channel credentials' do
-      GRPC::Core::ChannelCredentials.stub :new, channel_creds do
-        stub_args = %w[service port]
-        Google::Gax::Grpc.create_stub(*stub_args) do |addr, creds, **kwargs|
-          addr.must_equal 'service:port'
-          creds.must_equal 'composed_channel_creds'
-          kwargs[:interceptors].must_equal []
+      Google::Auth.stub :get_application_default, default_creds do
+        GRPC::Core::ChannelCredentials.stub :new, channel_creds do
+          stub_args = %w[service port]
+          Google::Gax::Grpc.create_stub(*stub_args) do |addr, creds, **kwargs|
+            addr.must_equal 'service:port'
+            creds.must_equal 'composed_channel_creds'
+            kwargs[:interceptors].must_equal []
+          end
         end
       end
     end
