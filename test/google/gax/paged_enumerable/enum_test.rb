@@ -28,9 +28,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 require 'test_helper'
-require 'google/gax/paged_enumerable'
-require 'google/gax/settings'
-require_relative '../../../../test/fixtures/fixture_pb'
 
 describe Google::Gax::PagedEnumerable, :enumerable do
   it 'enumerates all resources' do

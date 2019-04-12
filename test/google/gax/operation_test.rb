@@ -28,12 +28,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 require 'test_helper'
-require 'time'
-
+# require 'time'
+#
 require 'google/gax/operation'
-require 'google/gax/errors'
-require 'google/gax/settings'
-require 'google/gax/constants'
 require 'google/protobuf/any_pb'
 require 'google/protobuf/well_known_types'
 require 'google/rpc/status_pb'

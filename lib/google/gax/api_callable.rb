@@ -30,9 +30,12 @@
 require 'time'
 
 require 'google/gax/errors'
+require 'google/gax/retry_manager'
 
 module Google
   module Gax
+    # rubocop:disable Metrics/ParameterLists
+
     # Converts an RPC call into an API call.
     #
     # In typical usage, +func+ will be a proc used to make an RPC request.
@@ -47,6 +50,8 @@ module Google
     # @param func [Proc] used to make a bare rpc call
     # @param timeout [Numeric] client-side timeout for API calls
     # @param metadata [Hash]  request headers
+    # @param retry_codes [Array<Integer>] The error codes to retry
+    # @param retry_settings [RetrySettings, Array] the error codes to retry.
     # @param params_extractor [Proc] extracts routing header params from the
     #   request
     # @param exception_transformer [Proc] if an API exception occurs this
@@ -58,13 +63,15 @@ module Google
     #   * request - Request object
     #   * options - CallOptions object
     #   * block named argument - Proc object for yielding the operation
-    def create_api_call(func, timeout: 60, metadata: {},
+    def create_api_call(func, timeout: 300, metadata: {},
+                        retry_codes: nil, retry_settings: nil,
                         params_extractor: nil, exception_transformer: nil)
       proc do |request, options = nil, block = nil|
         options = CallOptions.new if options.nil?
 
-        options.timeout  = timeout  if options.timeout  == :OPTION_INHERIT
-        options.metadata = metadata if options.metadata == :OPTION_INHERIT
+        options.merge(timeout: timeout, metadata: metadata,
+                      retry_codes: retry_codes,
+                      retry_settings: retry_settings)
 
         if params_extractor
           params = params_extractor.call(request)
@@ -72,19 +79,25 @@ module Google
           options.metadata['x-goog-request-params'] = routing_header
         end
 
+        retry_manager = RetryManager.new(options)
+
         begin
-          op = func.call(request, deadline: Time.now + options.timeout,
+          op = func.call(request, deadline: retry_manager.deadline,
                                   metadata: options.metadata,
                                   return_op: true)
           res = op.execute
           block.call op if block
           res
-        rescue GRPC::BadStatus => grpc_error
-          error_class = Google::Gax.from_error(grpc_error)
-          error = error_class.new('RPC failed')
-          raise error if exception_transformer.nil?
-          exception_transformer.call error
         rescue StandardError => error
+          if retry_manager.retry?(error)
+            retry_manager.delay!
+            retry
+          end
+
+          if error.is_a? GRPC::BadStatus
+            # if error.respond_to?(:code)
+            error = Google::Gax.from_error(error).new('RPC failed')
+          end
           raise error if exception_transformer.nil?
           exception_transformer.call error
         end

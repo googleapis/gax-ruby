@@ -38,6 +38,7 @@ Style/Documentation:
   Exclude:
     - 'test/**/*'
     - 'lib/google/gax/api_callable.rb'
+    - 'lib/google/gax/retry_manager.rb'
     - 'lib/google/gax/settings.rb'
     - 'lib/google/gax/errors.rb'
 

@@ -28,9 +28,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 require 'test_helper'
-require 'google/gax/paged_enumerable'
-require 'google/gax/settings'
-require_relative '../../../../test/fixtures/fixture_pb'
 
 class PagedEnumerableInvalidResponseTest < Minitest::Test
   def test_MissingRepeatedResponse

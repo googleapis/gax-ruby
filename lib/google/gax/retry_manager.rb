@@ -1,4 +1,4 @@
-# Copyright 2016, Google Inc.
+# Copyright 2019, Google Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,17 +27,46 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require 'google/gax/api_callable'
-require 'google/gax/call_settings'
-require 'google/gax/paged_enumerable'
-require 'google/gax/constants'
-require 'google/gax/errors'
-require 'google/gax/settings'
-require 'google/gax/util'
-require 'google/gax/version'
+require 'google/gax/retry_settings'
 
 module Google
-  # Gax defines Google API extensions
   module Gax
+    class RetryManager
+      def initialize(call_options)
+        @call_options = call_options
+        @call_options.set_default_values_for_internal_use!
+
+        # pull out the retry incremental backoff settings
+        @delay = @call_options.retry_settings.initial_delay
+        @delay_multi = @call_options.retry_settings.delay_multiplier
+        @max_delay = @call_options.retry_settings.max_delay
+      end
+
+      def deadline
+        # CallOptions#timeout is the max total timeout.
+        @deadline ||= Time.now + @call_options.timeout
+      end
+
+      def expired?
+        Time.now > deadline
+      end
+
+      def retry?(error)
+        return false if expired?
+
+        error.respond_to?(:code) &&
+          @call_options.retry_codes.include?(error.code)
+      end
+
+      def delay!
+        # sleep(rand(@delay)) # Why was rand called before?
+
+        # Call Kernel.sleep so we can stub it.
+        Kernel.sleep(@delay)
+
+        # Increment delay
+        @delay = [@delay * @delay_multi, @max_delay].min
+      end
+    end
   end
 end

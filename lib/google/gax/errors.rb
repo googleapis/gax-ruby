@@ -143,7 +143,7 @@ module Google
        PermissionDeniedError, ResourceExhaustedError, FailedPreconditionError,
        AbortedError, OutOfRangeError, UnimplementedError, InternalError,
        UnavailableError, DataLossError,
-       UnauthenticatedError][grpc_error_code] || GaxError
+       UnauthenticatedError][grpc_error_code.to_i] || GaxError
     end
 
     module_function :from_error

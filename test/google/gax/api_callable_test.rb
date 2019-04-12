@@ -28,30 +28,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 require 'test_helper'
-require 'google/gax/api_callable'
-require 'google/gax'
-
-class CustomException < StandardError
-  attr_reader :code
-
-  def initialize(msg, code)
-    super(msg)
-    @code = code
-  end
-end
-
-FAKE_STATUS_CODE_1 = 1
-FAKE_STATUS_CODE_2 = 2
-
-class OperationStub
-  def initialize(&block)
-    @block = block
-  end
-
-  def execute
-    @block.call
-  end
-end
 
 describe Google::Gax do
   describe 'create_api_call' do
@@ -93,17 +69,17 @@ describe Google::Gax do
   describe 'custom exceptions' do
     it 'traps an exception' do
       transformer = proc do |ex|
-        _(ex).must_be_kind_of(Google::Gax::RetryError)
-        raise CustomException.new('', FAKE_STATUS_CODE_2)
+        _(ex).must_be_kind_of(Google::Gax::GaxError)
+        raise CodeError.new('', FAKE_STATUS_CODE_2)
       end
 
       func = proc do
-        raise Google::Gax::RetryError.new('')
+        raise Google::Gax::GaxError.new('')
       end
       my_callable = Google::Gax.create_api_call(
         func, exception_transformer: transformer
       )
-      expect { my_callable.call }.must_raise(CustomException)
+      expect { my_callable.call }.must_raise(CodeError)
     end
 
     it 'traps a wrapped exception' do
@@ -113,7 +89,7 @@ describe Google::Gax do
       end
 
       func = proc do
-        raise CustomException.new('', :FAKE_STATUS_CODE_1)
+        raise CodeError.new('', :FAKE_STATUS_CODE_1)
       end
       my_callable = Google::Gax.create_api_call(
         func, exception_transformer: transformer
@@ -148,10 +124,10 @@ describe Google::Gax do
       func = proc do |deadline: nil, **_kwargs|
         deadline_arg = deadline
         call_count += 1
-        raise CustomException.new('', FAKE_STATUS_CODE_1)
+        raise CodeError.new('', FAKE_STATUS_CODE_1)
       end
       my_callable = Google::Gax.create_api_call(func)
-      expect { my_callable.call }.must_raise(CustomException)
+      expect { my_callable.call }.must_raise(CodeError)
       _(deadline_arg).must_be_kind_of(Time)
       _(call_count).must_equal(1)
     end

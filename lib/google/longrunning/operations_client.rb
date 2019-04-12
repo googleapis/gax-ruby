@@ -141,19 +141,23 @@ module Google
 
         @get_operation = Google::Gax.create_api_call(
           @operations_stub.method(:get_operation),
-          timeout: timeout, metadata: metadata
+          timeout: timeout, metadata: metadata,
+          retry_codes: [14]
         )
         @list_operations = Google::Gax.create_api_call(
           @operations_stub.method(:list_operations),
-          timeout: timeout, metadata: metadata
+          timeout: timeout, metadata: metadata,
+          retry_codes: [14]
         )
         @cancel_operation = Google::Gax.create_api_call(
           @operations_stub.method(:cancel_operation),
-          timeout: timeout, metadata: metadata
+          timeout: timeout, metadata: metadata,
+          retry_codes: [14]
         )
         @delete_operation = Google::Gax.create_api_call(
           @operations_stub.method(:delete_operation),
-          timeout: timeout, metadata: metadata
+          timeout: timeout, metadata: metadata,
+          retry_codes: [14]
         )
       end
 

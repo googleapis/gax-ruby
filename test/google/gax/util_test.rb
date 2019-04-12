@@ -28,10 +28,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 require 'test_helper'
-require 'google/gax'
 require 'google/protobuf/any_pb'
 require 'google/protobuf/timestamp_pb'
-require_relative '../../../test/fixtures/fixture_pb'
 require 'stringio'
 
 describe Google::Gax do
