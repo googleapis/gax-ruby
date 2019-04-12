@@ -151,7 +151,8 @@ module Google
 
         page_size = @request.class.descriptor.find do |f|
           # Google::Protobuf::FieldDescriptorProto::Type::TYPE_INT32 = 5
-          f.name == 'page_size' && f.type == 5
+          # Google::Protobuf::FieldDescriptorProto::Type::TYPE_INT64 = 3
+          f.name == 'page_size' && [3, 5].include?(f.type)
         end
         return unless page_size.nil?
         raise ArgumentError.new('request must have a page_size field (Integer)')
