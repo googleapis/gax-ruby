@@ -75,7 +75,7 @@ module Google
         # Set defaults if missing
         @timeout        ||= 300 # 5 minutes
         @metadata       ||= {}
-        @retry_codes    ||= [14] # always retry on UNAVAILABLE
+        @retry_codes    ||= [GRPC::Core::StatusCodes::UNAVAILABLE]
         @retry_settings ||= RetrySettings.new
         @retry_settings.set_default_values_for_internal_use!
       end

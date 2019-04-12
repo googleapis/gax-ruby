@@ -142,22 +142,22 @@ module Google
         @get_operation = Google::Gax.create_api_call(
           @operations_stub.method(:get_operation),
           timeout: timeout, metadata: metadata,
-          retry_codes: [14]
+          retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE]
         )
         @list_operations = Google::Gax.create_api_call(
           @operations_stub.method(:list_operations),
           timeout: timeout, metadata: metadata,
-          retry_codes: [14]
+          retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE]
         )
         @cancel_operation = Google::Gax.create_api_call(
           @operations_stub.method(:cancel_operation),
           timeout: timeout, metadata: metadata,
-          retry_codes: [14]
+          retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE]
         )
         @delete_operation = Google::Gax.create_api_call(
           @operations_stub.method(:delete_operation),
           timeout: timeout, metadata: metadata,
-          retry_codes: [14]
+          retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE]
         )
       end
 
