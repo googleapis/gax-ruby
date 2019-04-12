@@ -29,7 +29,7 @@
 
 require 'google/gax/errors'
 require 'google/protobuf/any_pb'
-require 'spec/fixtures/fixture_pb'
+require 'fixtures/fixture_pb'
 
 describe Google::Gax::GaxError do
   describe 'without cause' do
