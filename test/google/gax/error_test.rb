@@ -30,7 +30,6 @@
 require 'test_helper'
 require 'google/gax/errors'
 require 'google/protobuf/any_pb'
-require_relative '../../../spec/fixtures/fixture_pb'
 
 describe Google::Gax::GaxError do
   describe 'without cause' do
