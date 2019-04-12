@@ -140,50 +140,50 @@ module Google
 
       def verify_request!
         page_token = @request.class.descriptor.find do |f|
-          # Google::Protobuf::FieldDescriptorProto::Type::TYPE_STRING = 9
-          f.name == 'page_token' && f.type == 9
+          f.name == 'page_token' && f.type == :string
         end
         if page_token.nil?
           raise ArgumentError.new(
-            'request must have a page_token field (String)'
+            "#{@request.class} must have a page_token field (String)"
           )
         end
 
         page_size = @request.class.descriptor.find do |f|
-          # Google::Protobuf::FieldDescriptorProto::Type::TYPE_INT32 = 5
-          # Google::Protobuf::FieldDescriptorProto::Type::TYPE_INT64 = 3
-          f.name == 'page_size' && [3, 5].include?(f.type)
+          f.name == 'page_size' && %i[int32 int64].include?(f.type)
         end
         return unless page_size.nil?
-        raise ArgumentError.new('request must have a page_size field (Integer)')
+        raise ArgumentError.new(
+          "#{@request.class} must have a page_size field (Integer)"
+        )
       end
 
       def verify_response!
         next_page_token = @response.class.descriptor.find do |f|
-          # Google::Protobuf::FieldDescriptorProto::Type::TYPE_STRING = 9
-          f.name == 'next_page_token' && f.type == 9
+          f.name == 'next_page_token' && f.type == :string
         end
         if next_page_token.nil?
           raise ArgumentError.new(
-            'response must have a next_page_token field (String)'
+            "#{@response.class} must have a next_page_token field (String)"
           )
         end
 
         # Find all repeated FieldDescriptors on the response Descriptor
         fields = @response.class.descriptor.select do |f|
-          # Google::Protobuf::FieldDescriptorProto::Type::TYPE_MESSAGE = 11
-          f.label == :repeated && f.type == 11
+          f.label == :repeated && f.type == :message
         end
 
         repeated_field = fields.first
         if repeated_field.nil?
-          raise ArgumentError.new('response must have one repeated field')
+          raise ArgumentError.new(
+            "#{@response.class} must have one repeated field"
+          )
         end
 
         min_repeated_field_number = fields.map(&:number).min
         if min_repeated_field_number != repeated_field.number
           raise ArgumentError.new(
-            'response must have a repeated field by position and number'
+            "#{@response.class} must have one primary repeated field " \
+            'by both position and number'
           )
         end
 
