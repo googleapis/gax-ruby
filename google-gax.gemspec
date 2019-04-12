@@ -28,6 +28,10 @@ Gem::Specification.new do |s|
   s.add_dependency 'google-protobuf', '~> 3.2'
 
   s.add_development_dependency 'codecov', '~> 0.1'
+  s.add_development_dependency 'minitest', '~> 5.10'
+  s.add_development_dependency 'minitest-autotest', '~> 1.0'
+  s.add_development_dependency 'minitest-focus', '~> 1.1'
+  s.add_development_dependency 'minitest-rg', '~> 5.2'
   s.add_development_dependency 'rake', '>= 10.0'
   s.add_development_dependency 'rspec', '~> 3.0'
   s.add_development_dependency 'rubocop', '= 0.49.0'

@@ -1,4 +1,4 @@
-# Copyright 2017, Google Inc.
+# Copyright 2019, Google Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,10 +27,11 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+require 'test_helper'
 require 'google/gax'
 require 'google/protobuf/any_pb'
 require 'google/protobuf/timestamp_pb'
-require 'fixtures/fixture_pb'
+require_relative '../../../fixtures/fixture_pb'
 require 'stringio'
 
 describe Google::Gax do
@@ -47,9 +48,9 @@ describe Google::Gax do
     it 'creates a protobuf message from a simple hash' do
       hash = { name: USER_NAME, type: USER_TYPE }
       user = Google::Gax.to_proto(hash, Google::Protobuf::User)
-      expect(user).to be_an_instance_of(Google::Protobuf::User)
-      expect(user.name).to eq(USER_NAME)
-      expect(user.type).to eq(USER_TYPE)
+      _(user).must_be_kind_of(Google::Protobuf::User)
+      _(user.name).must_equal(USER_NAME)
+      _(user.type).must_equal(USER_TYPE)
     end
 
     it 'creates a protobuf message from a hash with a nested message' do
@@ -58,11 +59,11 @@ describe Google::Gax do
         user: Google::Protobuf::User.new(name: USER_NAME, type: USER_TYPE)
       }
       request = Google::Gax.to_proto(request_hash, Google::Protobuf::Request)
-      expect(request).to be_an_instance_of(Google::Protobuf::Request)
-      expect(request.name).to eq(REQUEST_NAME)
-      expect(request.user).to be_an_instance_of(Google::Protobuf::User)
-      expect(request.user.name).to eq(USER_NAME)
-      expect(request.user.type).to eq(USER_TYPE)
+      _(request).must_be_kind_of(Google::Protobuf::Request)
+      _(request.name).must_equal(REQUEST_NAME)
+      _(request.user).must_be_kind_of(Google::Protobuf::User)
+      _(request.user.name).must_equal(USER_NAME)
+      _(request.user.type).must_equal(USER_TYPE)
     end
 
     it 'creates a protobuf message from a hash with a nested hash' do
@@ -71,11 +72,11 @@ describe Google::Gax do
         user: { name: USER_NAME, type: USER_TYPE }
       }
       request = Google::Gax.to_proto(request_hash, Google::Protobuf::Request)
-      expect(request).to be_an_instance_of(Google::Protobuf::Request)
-      expect(request.name).to eq(REQUEST_NAME)
-      expect(request.user).to be_an_instance_of(Google::Protobuf::User)
-      expect(request.user.name).to eq(USER_NAME)
-      expect(request.user.type).to eq(USER_TYPE)
+      _(request).must_be_kind_of(Google::Protobuf::Request)
+      _(request.name).must_equal(REQUEST_NAME)
+      _(request.user).must_be_kind_of(Google::Protobuf::User)
+      _(request.user.name).must_equal(USER_NAME)
+      _(request.user.type).must_equal(USER_TYPE)
     end
 
     it 'handles nested arrays of both messages and hashes' do
@@ -88,13 +89,13 @@ describe Google::Gax do
         ]
       }
       user = Google::Gax.to_proto(user_hash, Google::Protobuf::User)
-      expect(user).to be_an_instance_of(Google::Protobuf::User)
-      expect(user.name).to eq(USER_NAME)
-      expect(user.type).to eq(USER_TYPE)
-      expect(user.posts).to be_a(Google::Protobuf::RepeatedField)
+      _(user).must_be_kind_of(Google::Protobuf::User)
+      _(user.name).must_equal(USER_NAME)
+      _(user.type).must_equal(USER_TYPE)
+      _(user.posts).must_be_kind_of(Google::Protobuf::RepeatedField)
       user.posts.each do |post|
-        expect(post).to be_an_instance_of(Google::Protobuf::Post)
-        expect(post.text).to eq(POST_TEXT)
+        _(post).must_be_kind_of(Google::Protobuf::Post)
+        _(post.text).must_equal(POST_TEXT)
       end
     end
 
@@ -104,11 +105,11 @@ describe Google::Gax do
         map_field: MAP
       }
       user = Google::Gax.to_proto(request_hash, Google::Protobuf::User)
-      expect(user).to be_an_instance_of(Google::Protobuf::User)
-      expect(user.name).to eq(USER_NAME)
-      expect(user.map_field).to be_an_instance_of(Google::Protobuf::Map)
+      _(user).must_be_kind_of(Google::Protobuf::User)
+      _(user.name).must_equal(USER_NAME)
+      _(user.map_field).must_be_kind_of(Google::Protobuf::Map)
       user.map_field.each do |k, v|
-        expect(MAP[k]).to eq v
+        _(MAP[k]).must_equal v
       end
     end
 
@@ -118,7 +119,7 @@ describe Google::Gax do
         bytes_field: file
       }
       user = Google::Gax.to_proto(request_hash, Google::Protobuf::User)
-      expect(user.bytes_field).to eq("This is a text file.\n")
+      _(user.bytes_field).must_equal("This is a text file.\n")
     end
 
     it 'handles StringIO instances' do
@@ -128,7 +129,7 @@ describe Google::Gax do
         bytes_field: string_io
       }
       user = Google::Gax.to_proto(request_hash, Google::Protobuf::User)
-      expect(user.bytes_field).to eq(expected)
+      _(user.bytes_field).must_equal(expected)
     end
 
     it 'auto-coerces Time' do
@@ -141,7 +142,7 @@ describe Google::Gax do
       }
       user = Google::Gax.to_proto(request_hash, Google::Protobuf::User)
       expected = Google::Protobuf::Timestamp.new(seconds: seconds, nanos: nanos)
-      expect(user.timestamp).to eq(expected)
+      _(user.timestamp).must_equal(expected)
     end
 
     it 'fails if a key does not exist in the target message type' do
@@ -151,7 +152,7 @@ describe Google::Gax do
       }
       expect do
         Google::Gax.to_proto(user_hash, Google::Protobuf::User)
-      end.to raise_error(ArgumentError)
+      end.must_raise(ArgumentError)
     end
 
     it 'handles proto messages' do
@@ -159,14 +160,14 @@ describe Google::Gax do
         name: USER_NAME, type: USER_TYPE
       )
       user = Google::Gax.to_proto(user_message, Google::Protobuf::User)
-      expect(user).to eq user_message
+      _(user).must_equal user_message
     end
 
     it 'fails if proto message has unexpected type' do
       user_message = Google::Protobuf::Any
       expect do
         Google::Gax.to_proto(user_message, Google::Protobuf::User)
-      end.to raise_error(ArgumentError)
+      end.must_raise(ArgumentError)
     end
   end
 
@@ -178,22 +179,22 @@ describe Google::Gax do
       Google::Protobuf::Timestamp.new(seconds: SECONDS, nanos: NANOS)
 
     it 'converts time to timestamp' do
-      expect(Google::Gax.time_to_timestamp(A_TIME)).to eq A_TIMESTAMP
+      _(Google::Gax.time_to_timestamp(A_TIME)).must_equal A_TIMESTAMP
     end
 
     it 'converts timestamp to time' do
-      expect(Google::Gax.timestamp_to_time(A_TIMESTAMP)).to eq A_TIME
+      _(Google::Gax.timestamp_to_time(A_TIMESTAMP)).must_equal A_TIME
     end
 
     it 'is an identity when conversion is a round trip' do
-      expect(
+      _(
         Google::Gax.timestamp_to_time(Google::Gax.time_to_timestamp(A_TIME))
-      ).to eq A_TIME
-      expect(
+      ).must_equal A_TIME
+      _(
         Google::Gax.time_to_timestamp(
           Google::Gax.timestamp_to_time(A_TIMESTAMP)
         )
-      ).to eq A_TIMESTAMP
+      ).must_equal A_TIMESTAMP
     end
   end
 end

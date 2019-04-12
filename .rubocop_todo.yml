@@ -9,7 +9,7 @@
 AllCops:
   Exclude:
     - 'lib/google/longrunning/**/*'
-    - 'spec/fixtures/**/*'
+    - 'fixtures/**/*'
 
 # Offense count: 1
 Metrics/AbcSize:
@@ -36,6 +36,7 @@ Metrics/PerceivedComplexity:
 Metrics/BlockLength:
   Exclude:
     - "**/*_spec.rb"
+    - "**/*_test.rb"
   Max: 28
 
 # Offense count: 3
