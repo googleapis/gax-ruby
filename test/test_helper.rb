@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+require 'simplecov'
+if ENV['CI'] == 'true' || ENV['CODECOV_TOKEN']
+  require 'codecov'
+  SimpleCov.formatter = SimpleCov::Formatter::Codecov
+end
+SimpleCov.start
+
 gem 'minitest'
 require 'minitest/autorun'
 require 'minitest/focus'
