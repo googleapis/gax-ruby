@@ -124,8 +124,7 @@ module Google
           updater_proc = credentials.updater_proc
         end
 
-        _default_timeout = default_timeout
-        _default_metadata = default_metadata(lib_name, lib_version)
+        metadata = default_gax_client_metadata(lib_name, lib_version)
 
         # Allow overriding the service path/port in subclasses.
         service_path = self.class::SERVICE_ADDRESS
@@ -142,19 +141,19 @@ module Google
 
         @get_operation = Google::Gax.create_api_call(
           @operations_stub.method(:get_operation),
-          timeout: _default_timeout, metadata: _default_metadata
+          timeout: timeout, metadata: metadata
         )
         @list_operations = Google::Gax.create_api_call(
           @operations_stub.method(:list_operations),
-          timeout: _default_timeout, metadata: _default_metadata
+          timeout: timeout, metadata: metadata
         )
         @cancel_operation = Google::Gax.create_api_call(
           @operations_stub.method(:cancel_operation),
-          timeout: _default_timeout, metadata: _default_metadata
+          timeout: timeout, metadata: metadata
         )
         @delete_operation = Google::Gax.create_api_call(
           @operations_stub.method(:delete_operation),
-          timeout: _default_timeout, metadata: _default_metadata
+          timeout: timeout, metadata: metadata
         )
       end
 
@@ -314,11 +313,7 @@ module Google
 
       protected
 
-      def default_timeout
-        60
-      end
-
-      def default_metadata(lib_name, lib_version)
+      def default_gax_client_metadata(lib_name, lib_version)
         package_version = Gem.loaded_specs['google-gax'].version.version
 
         google_api_client = ["gl-ruby/#{RUBY_VERSION}"]
