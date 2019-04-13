@@ -38,8 +38,6 @@ require "google/longrunning/operations_pb"
 GrpcOp = Google::Longrunning::Operation
 GaxOp = Google::Gax::Operation
 
-MILLIS_PER_SECOND = Google::Gax::MILLIS_PER_SECOND
-
 class MockLroClient
   def initialize get_method: nil, cancel_method: nil, delete_method: nil
     @get_method = get_method
@@ -371,21 +369,21 @@ describe Google::Gax::Operation do
       mock_client = MockLroClient.new get_method: get_method
       op = create_op GrpcOp.new(done: false), client: mock_client
 
-      mock = Minitest::Mock.new
-      mock.expect :sleep, nil, [10.0]
-      mock.expect :sleep, nil, [13.0]
-      mock.expect :sleep, nil, [16.900000000000002]
-      op.define_singleton_method :sleep do |count|
-        # call the mock to satisfy the expectation
-        mock.sleep count
+      sleep_counts = [10.0, 13.0, 16.900000000000002]
+      sleep_mock = Minitest::Mock.new
+      sleep_counts.each do |sleep_count|
+        sleep_mock.expect :sleep, nil, [sleep_count]
+      end
+      sleep_proc = ->(count) { sleep_mock.sleep count }
+
+      Kernel.stub :sleep, sleep_proc do
+        time_now = Time.now
+        Time.stub :now, time_now do
+          op.wait_until_done!
+        end
       end
 
-      time_now = Time.now
-      Time.stub :now, time_now do
-        op.wait_until_done!
-      end
-
-      mock.verify
+      sleep_mock.verify
 
       _(to_call).must_equal 0
     end
@@ -401,111 +399,89 @@ describe Google::Gax::Operation do
       mock_client = MockLroClient.new get_method: get_method
       op = create_op GrpcOp.new(done: false), client: mock_client
 
-      mock = Minitest::Mock.new
-      mock.expect :sleep, nil, [10.0]
-      mock.expect :sleep, nil, [13.0]
-      mock.expect :sleep, nil, [16.900000000000002]
-      op.define_singleton_method :sleep do |count|
-        # call the mock to satisfy the expectation
-        mock.sleep count
+      sleep_counts = [10.0, 13.0, 16.900000000000002]
+      sleep_mock = Minitest::Mock.new
+      sleep_counts.each do |sleep_count|
+        sleep_mock.expect :sleep, nil, [sleep_count]
+      end
+      sleep_proc = ->(count) { sleep_mock.sleep count }
+
+      Kernel.stub :sleep, sleep_proc do
+        time_now = Time.now
+        Time.stub :now, time_now do
+          op.wait_until_done!
+        end
       end
 
-      time_now = Time.now
-      Time.stub :now, time_now do
-        op.wait_until_done!
-      end
-
-      mock.verify
+      sleep_mock.verify
 
       _(to_call).must_equal 0
     end
 
     it "times out" do
-      backoff_settings = Google::Gax::BackoffSettings.new(
-        1, 1, 10, 0, 0, 0, 100
-      )
       get_method = proc { GrpcOp.new done: false }
       mock_client = MockLroClient.new get_method: get_method
       op = create_op GrpcOp.new(done: false), client: mock_client
 
-      mock = Minitest::Mock.new
-      mock.expect :sleep, nil, [0.001]
-      op.define_singleton_method :sleep do |count|
-        # call the mock to satisfy the expectation
-        mock.sleep count
+      sleep_counts = [10, 20, 40, 80]
+      sleep_mock = Minitest::Mock.new
+      sleep_counts.each do |sleep_count|
+        sleep_mock.expect :sleep, nil, [sleep_count]
+      end
+      sleep_proc = ->(count) { sleep_mock.sleep count }
+
+      Kernel.stub :sleep, sleep_proc do
+        time_now = Time.now
+        start_time = time_now
+        incrementing_time = lambda do
+          delay = sleep_counts.shift || 160
+          time_now += delay
+        end
+        Time.stub :now, incrementing_time do
+          retry_config = { initial_delay: 10, multiplier: 2, max_delay: (5 * 60), timeout: 400 }
+          op.wait_until_done! retry_policy: retry_config
+          op.wont_be :done?
+        end
       end
 
-      time_now = Time.now
-      incrementing_time = lambda do
-        time_now += 1
-      end
-      Time.stub :now, incrementing_time do
-        expect do
-          op.wait_until_done! backoff_settings: backoff_settings
-        end.must_raise Google::Gax::RetryError
-      end
-
-      mock.verify
+      sleep_mock.verify
     end
 
     it "retries with exponential backoff" do
       call_count = 0
       get_method = proc do
         call_count += 1
-        GrpcOp.new done: false, response: RESULT_ANY
+        if call_count >= 10
+          GrpcOp.new done: true, response: RESULT_ANY
+        else
+          GrpcOp.new done: false
+        end
       end
       mock_client = MockLroClient.new get_method: get_method
       op = create_op GrpcOp.new(done: false), client: mock_client
 
-      initial_delay = 10 * MILLIS_PER_SECOND
-      delay_multiplier = 1.5
-      max_delay = 5 * 60 * MILLIS_PER_SECOND
-      total_timeout = 60 * 60 * MILLIS_PER_SECOND
-      backoff = Google::Gax::BackoffSettings.new(
-        initial_delay,
-        delay_multiplier,
-        max_delay,
-        0,
-        0,
-        0,
-        total_timeout
-      )
-
-      incrementing_times = [10.0, 15.0, 22.5, 33.75, 50.625, 75.9375,
-                            113.90625, 170.859375, 256.2890625]
-
-      mock = Minitest::Mock.new
-      incrementing_times.each do |t|
-        mock.expect :sleep, nil, [t]
+      sleep_counts = [10, 20, 40, 80, 160, 300, 300, 300, 300, 300]
+      sleep_mock = Minitest::Mock.new
+      sleep_counts.each do |sleep_count|
+        sleep_mock.expect :sleep, nil, [sleep_count]
       end
-      10.times { mock.expect :sleep, nil, [300.0] }
-      op.define_singleton_method :sleep do |count|
-        # call the mock to satisfy the expectation
-        mock.sleep count
+      sleep_proc = ->(count) { sleep_mock.sleep count }
+
+      Kernel.stub :sleep, sleep_proc do
+        time_now = Time.now
+        start_time = time_now
+        incrementing_time = lambda do
+          delay = sleep_counts.shift || 300
+          time_now += delay
+        end
+        Time.stub :now, incrementing_time do
+          retry_config = { initial_delay: 10, multiplier: 2, max_delay: (5 * 60), timeout: (60 * 60) }
+          op.wait_until_done! retry_policy: retry_config
+          op.must_be :done?
+        end
       end
 
-      time_now = Time.now
-      start_time = time_now
-      incrementing_time = lambda do
-        delay = incrementing_times.shift || 300
-        time_dup = time_now
-        time_now += delay
-        time_dup
-      end
-      Time.stub :now, incrementing_time do
-        expect do
-          op.wait_until_done! backoff_settings: backoff
-        end.must_raise Google::Gax::RetryError
-      end
-
-      mock.verify
-
-      _(time_now - start_time).must_be :>=, (total_timeout / MILLIS_PER_SECOND)
-
-      calls_lower_bound = total_timeout / max_delay
-      calls_upper_bound = total_timeout / initial_delay
-      _(call_count).must_be :>, calls_lower_bound
-      _(call_count).must_be :<, calls_upper_bound
+      sleep_mock.verify
     end
   end
 
