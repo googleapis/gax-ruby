@@ -139,22 +139,22 @@ module Google
           &Google::Longrunning::Operations::Stub.method(:new)
         )
 
-        @get_operation = Google::Gax.create_api_call(
+        @get_operation = Google::Gax::ApiCall.new(
           @operations_stub.method(:get_operation),
           timeout: timeout, metadata: metadata,
           retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE]
         )
-        @list_operations = Google::Gax.create_api_call(
+        @list_operations = Google::Gax::ApiCall.new(
           @operations_stub.method(:list_operations),
           timeout: timeout, metadata: metadata,
           retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE]
         )
-        @cancel_operation = Google::Gax.create_api_call(
+        @cancel_operation = Google::Gax::ApiCall.new(
           @operations_stub.method(:cancel_operation),
           timeout: timeout, metadata: metadata,
           retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE]
         )
-        @delete_operation = Google::Gax.create_api_call(
+        @delete_operation = Google::Gax::ApiCall.new(
           @operations_stub.method(:delete_operation),
           timeout: timeout, metadata: metadata,
           retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE]

@@ -77,8 +77,6 @@ module Google
         end
       end
 
-      # rubocop:disable Metrics/ParameterLists
-
       # Creates a gRPC client stub.
       #
       # @param service_path [String] The domain name of the API remote host.

@@ -16,7 +16,7 @@
 # this software without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 # LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
 # A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
 # OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
@@ -27,46 +27,45 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require 'google/gax/retry_settings'
+require 'test_helper'
 
-module Google
-  module Gax
-    class RetryManager
-      def initialize(call_options)
-        @call_options = call_options
-        @call_options.set_default_values_for_internal_use!
+class ApiCallRetryTest < Minitest::Test
+  def test_retries_with_exponential_backoff
+    time_now = Time.now
+    Time.stub :now, time_now do
+      to_attempt = 5
+      deadline_arg = nil
 
-        # pull out the retry incremental backoff settings
-        @delay = @call_options.retry_settings.initial_delay
-        @delay_multi = @call_options.retry_settings.delay_multiplier
-        @max_delay = @call_options.retry_settings.max_delay
+      inner_stub = proc do |deadline: nil, **_kwargs|
+        deadline_arg = deadline
+        to_attempt -= 1
+        raise CodeError.new('', FAKE_STATUS_CODE_1) if to_attempt > 0
+        1729
       end
 
-      def deadline
-        # CallOptions#timeout is the max total timeout.
-        @deadline ||= Time.now + @call_options.timeout
+      api_meth_stub = proc do |request, **kwargs|
+        OperationStub.new { inner_stub.call(request, **kwargs) }
       end
 
-      def expired?
-        Time.now > deadline
+      api_call = Google::Gax::ApiCall.new(api_meth_stub)
+      options = Google::Gax::CallOptions.new(
+        retry_policy: { retry_codes: [14, 101] }
+      )
+
+      sleep_mock = Minitest::Mock.new
+      sleep_mock.expect :sleep, nil, [1]
+      sleep_mock.expect :sleep, nil, [1 * 1.3]
+      sleep_mock.expect :sleep, nil, [1 * 1.3 * 1.3]
+      sleep_mock.expect :sleep, nil, [1 * 1.3 * 1.3 * 1.3]
+      sleep_proc = ->(count) { sleep_mock.sleep count }
+
+      Kernel.stub :sleep, sleep_proc do
+        assert_equal(1729, api_call.call(Object.new, options: options))
+        assert_equal(0, to_attempt)
+        assert_kind_of(Time, deadline_arg)
       end
 
-      def retry?(error)
-        return false if expired?
-
-        error.respond_to?(:code) &&
-          @call_options.retry_codes.include?(error.code)
-      end
-
-      def delay!
-        # sleep(rand(@delay)) # Why was rand called before?
-
-        # Call Kernel.sleep so we can stub it.
-        Kernel.sleep(@delay)
-
-        # Increment delay
-        @delay = [@delay * @delay_multi, @max_delay].min
-      end
+      sleep_mock.verify
     end
   end
 end
