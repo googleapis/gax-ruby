@@ -28,9 +28,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # These must be loaded separate from google/gax to avoid circular dependency.
-require 'google/gax/constants'
-require 'google/gax/settings'
-require 'google/protobuf/well_known_types'
+require "google/gax/constants"
+require "google/gax/settings"
+require "google/protobuf/well_known_types"
 
 module Google
   module Gax
@@ -109,8 +109,8 @@ module Google
       #   metadata. If not provided the class type will be looked up. Optional.
       # @param call_options [Google::Gax::CallOptions]
       #   The call options that are used when reloading the operation. Optional.
-      def initialize(grpc_op, client, result_type = nil, metadata_type = nil,
-                     call_options: nil)
+      def initialize grpc_op, client, result_type = nil, metadata_type = nil,
+                     call_options: nil
         @grpc_op = grpc_op
         @client = client
         @call_options = call_options
@@ -155,12 +155,12 @@ module Google
       def metadata
         return if @grpc_op.metadata.nil?
 
-        return @grpc_op.metadata.unpack(@metadata_type) if @metadata_type
+        return @grpc_op.metadata.unpack @metadata_type if @metadata_type
 
         descriptor = Google::Protobuf::DescriptorPool.generated_pool.lookup(
           @grpc_op.metadata.type_name
         )
-        return @grpc_op.metadata.unpack(descriptor.msgclass) if descriptor
+        return @grpc_op.metadata.unpack descriptor.msgclass if descriptor
 
         @grpc_op.metadata
       end
@@ -188,12 +188,12 @@ module Google
       def response
         return unless response?
 
-        return @grpc_op.response.unpack(@result_type) if @result_type
+        return @grpc_op.response.unpack @result_type if @result_type
 
         descriptor = Google::Protobuf::DescriptorPool.generated_pool.lookup(
           @grpc_op.response.type_name
         )
-        return @grpc_op.response.unpack(descriptor.msgclass) if descriptor
+        return @grpc_op.response.unpack descriptor.msgclass if descriptor
 
         @grpc_op.response
       end
@@ -217,12 +217,12 @@ module Google
 
       # Cancels the operation.
       def cancel
-        @client.cancel_operation(@grpc_op.name)
+        @client.cancel_operation @grpc_op.name
       end
 
       # Deletes the operation.
       def delete
-        @client.delete_operation(@grpc_op.name)
+        @client.delete_operation @grpc_op.name
       end
 
       # Reloads the operation object.
@@ -230,9 +230,9 @@ module Google
       # @return [Google::Gax::Operation]
       #   Since this method changes internal state, it returns itself.
       def reload!
-        @grpc_op = @client.get_operation(@grpc_op.name, options: @call_options)
+        @grpc_op = @client.get_operation @grpc_op.name, options: @call_options
         if done?
-          @callbacks.each { |proc| proc.call(self) }
+          @callbacks.each { |proc| proc.call self }
           @callbacks.clear
         end
         self
@@ -247,18 +247,16 @@ module Google
       #   The backoff settings used to manipulate how this method retries
       #   checking if the operation is done.
       # @yield operation [Google::Gax::Operation] Yields the finished Operation.
-      def wait_until_done!(backoff_settings: nil)
-        unless backoff_settings
-          backoff_settings = BackoffSettings.new(
-            10 * MILLIS_PER_SECOND,
-            1.3,
-            5 * 60 * MILLIS_PER_SECOND,
-            0,
-            0,
-            0,
-            60 * 60 * MILLIS_PER_SECOND
-          )
-        end
+      def wait_until_done! backoff_settings: nil
+        backoff_settings ||= BackoffSettings.new(
+          10 * MILLIS_PER_SECOND,
+          1.3,
+          5 * 60 * MILLIS_PER_SECOND,
+          0,
+          0,
+          0,
+          60 * 60 * MILLIS_PER_SECOND
+        )
 
         delay = backoff_settings.initial_retry_delay_millis / MILLIS_PER_SECOND
         max_delay = backoff_settings.max_retry_delay_millis / MILLIS_PER_SECOND
@@ -267,14 +265,12 @@ module Google
           backoff_settings.total_timeout_millis / MILLIS_PER_SECOND
         deadline = Time.now + total_timeout
         until done?
-          sleep(delay)
-          if Time.now >= deadline
-            raise RetryError.new('Retry total timeout exceeded with exception')
-          end
+          sleep delay
+          raise RetryError, "Retry total timeout exceeded with exception" if Time.now >= deadline
           delay = [delay * delay_multiplier, max_delay].min
           reload!
         end
-        yield(self) if block_given?
+        yield self if block_given?
       end
 
       # Registers a callback to be run when a refreshed operation is marked
@@ -282,11 +278,11 @@ module Google
       # the callback will be called instead of registered.
       #
       # @yield operation [Google::Gax::Operation] Yields the finished Operation.
-      def on_done(&block)
+      def on_done &block
         if done?
-          yield(self)
+          yield self
         else
-          @callbacks.push(block)
+          @callbacks.push block
         end
       end
     end

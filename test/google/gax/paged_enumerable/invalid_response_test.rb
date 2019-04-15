@@ -27,7 +27,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require 'test_helper'
+require "test_helper"
 
 class PagedEnumerableInvalidResponseTest < Minitest::Test
   def test_MissingRepeatedResponse
@@ -76,7 +76,7 @@ class PagedEnumerableInvalidResponseTest < Minitest::Test
   end
 
   def test_BadMessageOrderResponse
-    skip 'Looks like fields are already sorted by number, not proto order'
+    skip "Looks like fields are already sorted by number, not proto order"
 
     api_call = -> {}
     request = Google::Gax::GoodPagedRequest.new
@@ -89,7 +89,7 @@ class PagedEnumerableInvalidResponseTest < Minitest::Test
       )
     end
     exp_msg = "#{response.class} must have one primary repeated field " \
-      'by both position and number'
+      "by both position and number"
     assert_equal exp_msg, error.message
   end
 end

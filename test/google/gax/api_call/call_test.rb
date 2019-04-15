@@ -27,7 +27,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require 'test_helper'
+require "test_helper"
 
 class ApiCallTest < Minitest::Test
   def test_call
@@ -38,31 +38,31 @@ class ApiCallTest < Minitest::Test
       OperationStub.new { 42 }
     end
 
-    api_call = Google::Gax::ApiCall.new(api_meth_stub)
+    api_call = Google::Gax::ApiCall.new api_meth_stub
 
-    assert_equal(42, api_call.call(Object.new))
-    assert_kind_of(Time, deadline_arg)
+    assert_equal 42, api_call.call(Object.new)
+    assert_kind_of Time, deadline_arg
 
     new_deadline = Time.now + 20
-    options = Google::Gax::CallOptions.new(timeout: 20)
+    options = Google::Gax::CallOptions.new timeout: 20
 
-    assert_equal(42, api_call.call(Object.new, options: options))
-    assert_in_delta(new_deadline, deadline_arg, 0.9)
+    assert_equal 42, api_call.call(Object.new, options: options)
+    assert_in_delta new_deadline, deadline_arg, 0.9
   end
 
   def test_call_with_block
     adder = 0
 
     api_meth_stub = proc do |request, _deadline: nil, **_kwargs|
-      assert_equal(3, request)
+      assert_equal 3, request
       OperationStub.new { 2 + request + adder }
     end
 
-    api_call = Google::Gax::ApiCall.new(api_meth_stub)
+    api_call = Google::Gax::ApiCall.new api_meth_stub
 
-    assert_equal(5, api_call.call(3))
+    assert_equal 5, api_call.call(3)
     assert_equal(5, api_call.call(3, options: nil) { adder = 5 })
-    assert_equal(10, api_call.call(3))
+    assert_equal 10, api_call.call(3)
   end
 
   def test_with_routing_header
@@ -77,16 +77,16 @@ class ApiCallTest < Minitest::Test
     end
 
     params_extractor = proc do |request|
-      { 'name' => request[:name], 'book.read' => request[:book][:read] }
+      { "name" => request[:name], "book.read" => request[:book][:read] }
     end
 
     api_call = Google::Gax::ApiCall.new(
       api_meth_stub, params_extractor: params_extractor
     )
 
-    assert_equal(42, api_call.call(name: 'foo', book: { read: true }))
+    assert_equal(42, api_call.call(name: "foo", book: { read: true }))
     assert_equal(
-      { 'x-goog-request-params' => 'name=foo&book.read=true' },
+      { "x-goog-request-params" => "name=foo&book.read=true" },
       metadata_arg
     )
   end

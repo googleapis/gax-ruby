@@ -37,8 +37,8 @@ module Google
       # Only errors orginating from GRPC will be retried.
       #
       class RetryPolicy
-        def initialize(retry_codes: nil, initial_delay: nil, multiplier: nil,
-                       max_delay: nil)
+        def initialize retry_codes: nil, initial_delay: nil, multiplier: nil,
+                       max_delay: nil
           @retry_codes   = retry_codes
           @initial_delay = initial_delay
           @multiplier    = multiplier
@@ -67,8 +67,8 @@ module Google
           @delay || initial_delay
         end
 
-        def call(error)
-          return false unless retry?(error)
+        def call error
+          return false unless retry? error
 
           delay!
           increment_delay!
@@ -82,7 +82,7 @@ module Google
         #
         # @param settings [Hash] configuration settings to apply to the policy.
         #
-        def merge(settings)
+        def merge settings
           return unless settings.is_a? Hash
 
           @retry_codes   ||= settings[:retry_codes]
@@ -95,13 +95,13 @@ module Google
 
         private
 
-        def retry?(error)
+        def retry? error
           error.is_a?(GRPC::BadStatus) && retry_codes.include?(error.code)
         end
 
         def delay!
           # Call Kernel.sleep so we can stub it.
-          Kernel.sleep(delay)
+          Kernel.sleep delay
         end
 
         ##

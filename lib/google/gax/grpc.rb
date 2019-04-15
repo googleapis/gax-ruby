@@ -27,13 +27,13 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require 'grpc'
-require 'grpc/google_rpc_status_utils'
-require 'googleauth'
-require 'google/gax/errors'
-require 'google/protobuf/well_known_types'
+require "grpc"
+require "grpc/google_rpc_status_utils"
+require "googleauth"
+require "google/gax/errors"
+require "google/protobuf/well_known_types"
 # Required in order to deserialize common error detail proto types
-require 'google/rpc/error_details_pb'
+require "google/rpc/error_details_pb"
 
 module Google
   module Gax
@@ -47,7 +47,7 @@ module Google
 
       API_ERRORS = [GRPC::BadStatus, GRPC::Cancelled].freeze
 
-      def deserialize_error_status_details(error)
+      def deserialize_error_status_details error
         return unless error.is_a? GRPC::BadStatus
         # If error status is malformed, swallow the gRPC error that gets raised.
         begin
@@ -55,9 +55,9 @@ module Google
             GRPC::GoogleRpcStatusUtils.extract_google_rpc_status(
               error.to_status
             ).details
-        rescue
-          return 'Could not parse error details due to a malformed server '\
-                 'response trailer.'
+        rescue StandardError
+          return "Could not parse error details due to a malformed server "\
+                 "response trailer."
         end
         return if details.nil?
         details =
@@ -70,8 +70,8 @@ module Google
             type = Google::Protobuf::DescriptorPool.generated_pool.lookup(
               any.type_name
             )
-            any.unpack(type.msgclass)
-          rescue
+            any.unpack type.msgclass
+          rescue StandardError
             any
           end
         end
@@ -111,46 +111,46 @@ module Google
       #   the generated gRPC method to create a stub.
       #
       # @return A gRPC client stub.
-      def create_stub(service_path,
+      def create_stub service_path,
                       port,
                       channel: nil,
                       chan_creds: nil,
                       updater_proc: nil,
                       scopes: nil,
-                      interceptors: [])
-        verify_params(channel, chan_creds, updater_proc)
+                      interceptors: []
+        verify_params channel, chan_creds, updater_proc
         address = "#{service_path}:#{port}"
         if channel
           yield(address, nil, channel_override: channel,
-                              interceptors: interceptors)
+                              interceptors:     interceptors)
         elsif chan_creds
-          yield(address, chan_creds, interceptors: interceptors)
+          yield address, chan_creds, interceptors: interceptors
         else
           if updater_proc.nil?
-            auth_creds = Google::Auth.get_application_default(scopes)
+            auth_creds = Google::Auth.get_application_default scopes
             updater_proc = auth_creds.updater_proc
           end
-          call_creds = GRPC::Core::CallCredentials.new(updater_proc)
-          chan_creds = GRPC::Core::ChannelCredentials.new.compose(call_creds)
-          yield(address, chan_creds, interceptors: interceptors)
+          call_creds = GRPC::Core::CallCredentials.new updater_proc
+          chan_creds = GRPC::Core::ChannelCredentials.new.compose call_creds
+          yield address, chan_creds, interceptors: interceptors
         end
       end
 
       module_function :create_stub, :deserialize_error_status_details
 
-      def self.verify_params(channel, chan_creds, updater_proc)
+      def self.verify_params channel, chan_creds, updater_proc
         if (channel && chan_creds) ||
            (channel && updater_proc) ||
            (chan_creds && updater_proc)
-          raise ArgumentError.new('Only one of channel, chan_creds, and ' \
-              'updater_proc should be passed into ' \
-              'Google::Gax::Grpc#create_stub.')
+          raise ArgumentError, "Only one of channel, chan_creds, and " \
+              "updater_proc should be passed into " \
+              "Google::Gax::Grpc#create_stub."
         end
       end
 
       # Capitalize all modules except the message class, which is already
       # correctly cased
-      def self.class_case(modules)
+      def self.class_case modules
         message = modules.pop
         modules = modules.map(&:capitalize)
         modules << message

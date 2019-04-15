@@ -68,7 +68,7 @@ module Google
       #   The name of the field in the response which holds the next page token.
       # @param resource_field [String]
       #   The name of the field in the response which holds the resources.
-      def initialize(api_call, request, response, options)
+      def initialize api_call, request, response, options
         @api_call = api_call
         @request = request
         @response = response
@@ -78,7 +78,7 @@ module Google
         verify_request!
         verify_response!
 
-        @page = Page.new(@response, @resource_field)
+        @page = Page.new @response, @resource_field
       end
 
       # Iterate over the resources.
@@ -119,9 +119,9 @@ module Google
 
         next_request = @request.dup
         next_request.page_token = @page.next_page_token
-        next_response = @api_call.call(next_request, @options)
+        next_response = @api_call.call next_request, @options
 
-        @page = Page.new(next_response, @resource_field)
+        @page = Page.new next_response, @resource_field
       end
 
       # The page token to be used for the next API call.
@@ -140,32 +140,22 @@ module Google
 
       def verify_request!
         page_token = @request.class.descriptor.find do |f|
-          f.name == 'page_token' && f.type == :string
+          f.name == "page_token" && f.type == :string
         end
-        if page_token.nil?
-          raise ArgumentError.new(
-            "#{@request.class} must have a page_token field (String)"
-          )
-        end
+        raise ArgumentError, "#{@request.class} must have a page_token field (String)" if page_token.nil?
 
         page_size = @request.class.descriptor.find do |f|
-          f.name == 'page_size' && %i[int32 int64].include?(f.type)
+          f.name == "page_size" && %i[int32 int64].include?(f.type)
         end
         return unless page_size.nil?
-        raise ArgumentError.new(
-          "#{@request.class} must have a page_size field (Integer)"
-        )
+        raise ArgumentError, "#{@request.class} must have a page_size field (Integer)"
       end
 
       def verify_response!
         next_page_token = @response.class.descriptor.find do |f|
-          f.name == 'next_page_token' && f.type == :string
+          f.name == "next_page_token" && f.type == :string
         end
-        if next_page_token.nil?
-          raise ArgumentError.new(
-            "#{@response.class} must have a next_page_token field (String)"
-          )
-        end
+        raise ArgumentError, "#{@response.class} must have a next_page_token field (String)" if next_page_token.nil?
 
         # Find all repeated FieldDescriptors on the response Descriptor
         fields = @response.class.descriptor.select do |f|
@@ -173,18 +163,12 @@ module Google
         end
 
         repeated_field = fields.first
-        if repeated_field.nil?
-          raise ArgumentError.new(
-            "#{@response.class} must have one repeated field"
-          )
-        end
+        raise ArgumentError, "#{@response.class} must have one repeated field" if repeated_field.nil?
 
         min_repeated_field_number = fields.map(&:number).min
         if min_repeated_field_number != repeated_field.number
-          raise ArgumentError.new(
-            "#{@response.class} must have one primary repeated field " \
-            'by both position and number'
-          )
+          raise ArgumentError, "#{@response.class} must have one primary repeated field " \
+            "by both position and number"
         end
 
         # We have the correct repeated field, save the field's name
@@ -206,7 +190,7 @@ module Google
         #   The response object for the page.
         # @param resource_field [String]
         #   The name of the field in response which holds the resources.
-        def initialize(response, resource_field)
+        def initialize response, resource_field
           @response = response
           @resource_field = resource_field
         end

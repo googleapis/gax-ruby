@@ -27,30 +27,30 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require 'test_helper'
+require "test_helper"
 
 class ApiCallRetryTest < Minitest::Test
   def test_no_retry_without_codes
     call_count = 0
     api_meth_stub = proc do
       call_count += 1
-      raise GRPC::Unavailable.new
+      raise GRPC::Unavailable
     end
 
-    api_call = Google::Gax::ApiCall.new(api_meth_stub)
+    api_call = Google::Gax::ApiCall.new api_meth_stub
 
     options = Google::Gax::CallOptions.new # no codes
     assert_raises Google::Gax::GaxError do
       api_call.call Object.new, options: options
     end
-    assert_equal(1, call_count)
+    assert_equal 1, call_count
   end
 
   def test_no_retry_with_mismatched_grpc_error
     api_meth_stub = proc do
-      raise GRPC::Unimplemented.new
+      raise GRPC::Unimplemented
     end
-    api_call = Google::Gax::ApiCall.new(api_meth_stub)
+    api_call = Google::Gax::ApiCall.new api_meth_stub
 
     options = Google::Gax::CallOptions.new(
       retry_policy: { retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE] }
@@ -62,10 +62,10 @@ class ApiCallRetryTest < Minitest::Test
 
   def test_no_retry_with_fake_grpc_error
     api_meth_stub = proc do
-      raise FakeCodeError.new('Not a real GRPC error',
+      raise FakeCodeError.new("Not a real GRPC error",
                               GRPC::Core::StatusCodes::UNAVAILABLE)
     end
-    api_call = Google::Gax::ApiCall.new(api_meth_stub)
+    api_call = Google::Gax::ApiCall.new api_meth_stub
 
     options = Google::Gax::CallOptions.new(
       retry_policy: { retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE] }
@@ -83,10 +83,10 @@ class ApiCallRetryTest < Minitest::Test
     api_meth_stub = proc do |deadline: nil, **_kwargs|
       deadline_arg = deadline
       call_count += 1
-      raise GRPC::Unavailable.new
+      raise GRPC::Unavailable
     end
 
-    api_call = Google::Gax::ApiCall.new(api_meth_stub)
+    api_call = Google::Gax::ApiCall.new api_meth_stub
 
     time_now = Time.now
     time_proc = lambda do
@@ -109,10 +109,10 @@ class ApiCallRetryTest < Minitest::Test
         exc = assert_raises Google::Gax::GaxError do
           api_call.call Object.new, options: options
         end
-        assert_kind_of(GRPC::BadStatus, exc.cause)
+        assert_kind_of GRPC::BadStatus, exc.cause
 
-        assert_equal(time_now, deadline_arg)
-        assert_equal(to_attempt, call_count)
+        assert_equal time_now, deadline_arg
+        assert_equal to_attempt, call_count
       end
     end
 
@@ -127,12 +127,12 @@ class ApiCallRetryTest < Minitest::Test
       raise RuntimeError
     end
 
-    api_call = Google::Gax::ApiCall.new(api_meth_stub)
+    api_call = Google::Gax::ApiCall.new api_meth_stub
 
     assert_raises RuntimeError do
-      api_call.call(Object.new)
+      api_call.call Object.new
     end
-    assert_equal(1, call_count)
+    assert_equal 1, call_count
   end
 
   def test_no_retry_when_no_responses
@@ -142,8 +142,8 @@ class ApiCallRetryTest < Minitest::Test
       OperationStub.new { inner_stub.call(request, **kwargs) }
     end
 
-    api_call = Google::Gax::ApiCall.new(api_meth_stub)
+    api_call = Google::Gax::ApiCall.new api_meth_stub
 
-    assert_nil(api_call.call(Object.new))
+    assert_nil api_call.call(Object.new)
   end
 end

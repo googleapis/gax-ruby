@@ -27,7 +27,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require 'test_helper'
+require "test_helper"
 
 class RetryPolicyCallTest < Minitest::Test
   def test_wont_retry_when_unconfigured
@@ -36,7 +36,7 @@ class RetryPolicyCallTest < Minitest::Test
 
     refute_includes retry_policy.retry_codes, grpc_error.code
 
-    sleep_proc = ->(_count) { raise 'must not call sleep' }
+    sleep_proc = ->(_count) { raise "must not call sleep" }
 
     Kernel.stub :sleep, sleep_proc do
       refute retry_policy.call(grpc_error)
@@ -70,7 +70,7 @@ class RetryPolicyCallTest < Minitest::Test
 
     refute_includes retry_policy.retry_codes, grpc_error.code
 
-    sleep_proc = ->(_count) { raise 'must not call sleep' }
+    sleep_proc = ->(_count) { raise "must not call sleep" }
 
     Kernel.stub :sleep, sleep_proc do
       refute retry_policy.call(grpc_error)
@@ -83,7 +83,7 @@ class RetryPolicyCallTest < Minitest::Test
     )
     other_error = StandardError.new
 
-    sleep_proc = ->(_count) { raise 'must not call sleep' }
+    sleep_proc = ->(_count) { raise "must not call sleep" }
 
     Kernel.stub :sleep, sleep_proc do
       refute retry_policy.call(other_error)

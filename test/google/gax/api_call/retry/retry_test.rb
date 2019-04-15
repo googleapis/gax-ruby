@@ -27,7 +27,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require 'test_helper'
+require "test_helper"
 
 class ApiCallRetryTest < Minitest::Test
   def default_sleep_counts
@@ -42,9 +42,10 @@ class ApiCallRetryTest < Minitest::Test
     inner_attempts = 0
     deadline_arg = nil
 
-    inner_responses = Array.new(4) do
-      GRPC::Unavailable.new('unavailable')
-    end + [1729]
+    inner_responses = Array.new 4 do
+      GRPC::Unavailable.new "unavailable"
+    end
+    inner_responses += [1729]
     inner_stub = proc do |deadline: nil, **_kwargs|
       deadline_arg = deadline
       inner_attempts += 1
@@ -59,7 +60,7 @@ class ApiCallRetryTest < Minitest::Test
       OperationStub.new { inner_stub.call(request, **kwargs) }
     end
 
-    api_call = Google::Gax::ApiCall.new(api_meth_stub)
+    api_call = Google::Gax::ApiCall.new api_meth_stub
     options = Google::Gax::CallOptions.new(
       retry_policy: { retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE] }
     )
@@ -73,9 +74,9 @@ class ApiCallRetryTest < Minitest::Test
     time_now = Time.now
     Time.stub :now, time_now do
       Kernel.stub :sleep, sleep_proc do
-        assert_equal(1729, api_call.call(Object.new, options: options))
-        assert_equal(5, inner_attempts)
-        assert_equal(time_now + 300, deadline_arg)
+        assert_equal 1729, api_call.call(Object.new, options: options)
+        assert_equal 5, inner_attempts
+        assert_equal time_now + 300, deadline_arg
       end
     end
 
@@ -83,9 +84,10 @@ class ApiCallRetryTest < Minitest::Test
   end
 
   def test_retries_with_custom_policy
-    inner_responses = Array.new(4) do
-      GRPC::Unavailable.new('unavailable')
-    end + [1729]
+    inner_responses = Array.new 4 do
+      GRPC::Unavailable.new "unavailable"
+    end
+    inner_responses += [1729]
     inner_stub = proc do |**_kwargs|
       inner_response = inner_responses.shift
 
@@ -98,7 +100,7 @@ class ApiCallRetryTest < Minitest::Test
       OperationStub.new { inner_stub.call(request, **kwargs) }
     end
 
-    api_call = Google::Gax::ApiCall.new(api_meth_stub)
+    api_call = Google::Gax::ApiCall.new api_meth_stub
     custom_policy_count = 0
     custom_policy_sleep = [15, 12, 24, 21]
     custom_policy = lambda do |_error|
@@ -111,7 +113,7 @@ class ApiCallRetryTest < Minitest::Test
         false
       end
     end
-    options = Google::Gax::CallOptions.new(retry_policy: custom_policy)
+    options = Google::Gax::CallOptions.new retry_policy: custom_policy
 
     sleep_mock = Minitest::Mock.new
     custom_policy_sleep.each do |sleep_count|
@@ -120,9 +122,9 @@ class ApiCallRetryTest < Minitest::Test
     sleep_proc = ->(count) { sleep_mock.sleep count }
 
     Kernel.stub :sleep, sleep_proc do
-      assert_equal(1729, api_call.call(Object.new, options: options))
+      assert_equal 1729, api_call.call(Object.new, options: options)
 
-      assert_equal(4, custom_policy_count)
+      assert_equal 4, custom_policy_count
     end
 
     sleep_mock.verify

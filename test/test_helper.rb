@@ -12,33 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'simplecov'
-if ENV['CI'] == 'true' || ENV['CODECOV_TOKEN']
-  require 'codecov'
+require "simplecov"
+if ENV["CI"] == "true" || ENV["CODECOV_TOKEN"]
+  require "codecov"
   SimpleCov.formatter = SimpleCov::Formatter::Codecov
 end
 SimpleCov.start
 
-gem 'minitest'
-require 'minitest/autorun'
-require 'minitest/focus'
-require 'minitest/rg'
+gem "minitest"
+require "minitest/autorun"
+require "minitest/focus"
+require "minitest/rg"
 
-require 'google/gax'
-require 'google/protobuf/any_pb'
-require_relative './fixtures/fixture_pb'
+require "google/gax"
+require "google/protobuf/any_pb"
+require_relative "./fixtures/fixture_pb"
 
 class FakeCodeError < StandardError
   attr_reader :code
 
-  def initialize(msg, code)
-    super(msg)
+  def initialize msg, code
+    super msg
     @code = code
   end
 end
 
 class OperationStub
-  def initialize(&block)
+  def initialize &block
     @block = block
   end
 

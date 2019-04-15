@@ -27,7 +27,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require 'test_helper'
+require "test_helper"
 
 class ApiCallRaiseTest < Minitest::Test
   def test_traps_exception
@@ -46,7 +46,7 @@ class ApiCallRaiseTest < Minitest::Test
 
   def test_traps_wrapped_exception
     api_meth_stub = proc do
-      raise FakeCodeError.new('Not a real GRPC error',
+      raise FakeCodeError.new("Not a real GRPC error",
                               GRPC::Core::StatusCodes::UNAVAILABLE)
     end
 
@@ -66,18 +66,18 @@ class ApiCallRaiseTest < Minitest::Test
     api_meth_stub = proc do |deadline: nil, **_kwargs|
       deadline_arg = deadline
       call_count += 1
-      raise GRPC::BadStatus.new(2, 'unknown')
+      raise GRPC::BadStatus.new(2, "unknown")
     end
 
-    api_call = Google::Gax::ApiCall.new(api_meth_stub)
+    api_call = Google::Gax::ApiCall.new api_meth_stub
 
     exc = assert_raises Google::Gax::GaxError do
       api_call.call Object.new
     end
-    assert_kind_of(GRPC::BadStatus, exc.cause)
+    assert_kind_of GRPC::BadStatus, exc.cause
 
-    assert_kind_of(Time, deadline_arg)
-    assert_equal(1, call_count)
+    assert_kind_of Time, deadline_arg
+    assert_equal 1, call_count
   end
 
   def test_wont_wrap_non_grpc_errors
@@ -87,16 +87,16 @@ class ApiCallRaiseTest < Minitest::Test
     api_meth_stub = proc do |deadline: nil, **_kwargs|
       deadline_arg = deadline
       call_count += 1
-      raise FakeCodeError.new('Not a real GRPC error',
+      raise FakeCodeError.new("Not a real GRPC error",
                               GRPC::Core::StatusCodes::UNAVAILABLE)
     end
 
-    api_call = Google::Gax::ApiCall.new(api_meth_stub)
+    api_call = Google::Gax::ApiCall.new api_meth_stub
 
     assert_raises FakeCodeError do
       api_call.call Object.new
     end
-    assert_kind_of(Time, deadline_arg)
-    assert_equal(1, call_count)
+    assert_kind_of Time, deadline_arg
+    assert_equal 1, call_count
   end
 end
