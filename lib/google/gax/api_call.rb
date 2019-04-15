@@ -48,7 +48,7 @@ module Google
       #
       # @param stub_method [Proc] used to make a bare rpc call
       # @param timeout [Numeric] client-side timeout for API calls
-      # @param metadata [Hash]  request headers
+      # @param metadata [Hash] request headers
       # @param retry_policy [Hash] the settings for error retry, will be merged
       #   to the {CallOptions#retry_policy} object if supported.
       # @param params_extractor [Proc] extracts routing header params from the
