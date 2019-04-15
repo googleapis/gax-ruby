@@ -27,8 +27,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require 'time'
-
 # These must be loaded separate from google/gax to avoid circular dependency.
 require 'google/gax/constants'
 require 'google/gax/settings'

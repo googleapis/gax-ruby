@@ -29,24 +29,6 @@
 
 module Google
   module Gax
-    # Encapsulates the overridable settings for a particular API call
-    # @!attribute [rw] timeout
-    #   @return [Numeric, :OPTION_INHERIT]
-    # @!attribute [rw] metadata
-    #   @return [Hash, :OPTION_INHERIT]
-    class CallOptions
-      attr_accessor :timeout, :metadata
-
-      # @param timeout [Numeric, :OPTION_INHERIT]
-      #   The client-side timeout for API calls.
-      # @param metadata [Hash, :OPTION_INHERIT] the request header params.
-      def initialize(timeout: :OPTION_INHERIT,
-                     metadata: :OPTION_INHERIT)
-        @timeout = timeout
-        @metadata = metadata
-      end
-    end
-
     # Parameters to the exponential backoff algorithm for retrying.
     class BackoffSettings < Struct.new(
       :initial_retry_delay_millis,

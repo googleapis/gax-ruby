@@ -23,3 +23,26 @@ gem 'minitest'
 require 'minitest/autorun'
 require 'minitest/focus'
 require 'minitest/rg'
+
+require 'google/gax'
+require 'google/protobuf/any_pb'
+require_relative './fixtures/fixture_pb'
+
+class FakeCodeError < StandardError
+  attr_reader :code
+
+  def initialize(msg, code)
+    super(msg)
+    @code = code
+  end
+end
+
+class OperationStub
+  def initialize(&block)
+    @block = block
+  end
+
+  def execute
+    @block.call
+  end
+end
