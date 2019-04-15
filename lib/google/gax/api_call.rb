@@ -89,7 +89,7 @@ module Google
           yield op if block
           res
         rescue StandardError => error
-          if retry?(deadline)
+          if check_retry?(deadline)
             retry if options.retry_policy.call(error)
           end
 
@@ -127,7 +127,7 @@ module Google
         Time.now + options.timeout
       end
 
-      def retry?(deadline)
+      def check_retry?(deadline)
         deadline > Time.now
       end
     end
