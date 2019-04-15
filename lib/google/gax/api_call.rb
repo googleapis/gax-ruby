@@ -30,7 +30,6 @@
 require 'google/gax/api_call/retry_policy'
 require 'google/gax/call_options'
 require 'google/gax/errors'
-require 'time'
 
 module Google
   module Gax

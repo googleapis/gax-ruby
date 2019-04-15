@@ -28,8 +28,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 require 'test_helper'
-# require 'time'
-#
+
 require 'google/gax/operation'
 require 'google/protobuf/any_pb'
 require 'google/protobuf/well_known_types'
