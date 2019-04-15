@@ -39,8 +39,6 @@ class ApiCallRetryTest < Minitest::Test
   end
 
   def test_retries_with_exponential_backoff
-    # skip
-    time_now = Time.now
     inner_attempts = 0
     deadline_arg = nil
 
@@ -50,7 +48,7 @@ class ApiCallRetryTest < Minitest::Test
     inner_stub = proc do |deadline: nil, **_kwargs|
       deadline_arg = deadline
       inner_attempts += 1
-      inner_response = inner_responses.shift || 15
+      inner_response = inner_responses.shift
 
       raise inner_response if inner_response.is_a? Exception
 
@@ -72,14 +70,61 @@ class ApiCallRetryTest < Minitest::Test
     end
     sleep_proc = ->(count) { sleep_mock.sleep count }
 
+    time_now = Time.now
     Time.stub :now, time_now do
       Kernel.stub :sleep, sleep_proc do
         assert_equal(1729, api_call.call(Object.new, options: options))
         assert_equal(5, inner_attempts)
-        assert_kind_of(Time, deadline_arg)
+        assert_equal(time_now + 300, deadline_arg)
       end
-
-      sleep_mock.verify
     end
+
+    sleep_mock.verify
+  end
+
+  def test_retries_with_custom_policy
+    inner_responses = Array.new(4) do
+      GRPC::Unavailable.new('unavailable')
+    end + [1729]
+    inner_stub = proc do |**_kwargs|
+      inner_response = inner_responses.shift
+
+      raise inner_response if inner_response.is_a? Exception
+
+      inner_response
+    end
+
+    api_meth_stub = proc do |request, **kwargs|
+      OperationStub.new { inner_stub.call(request, **kwargs) }
+    end
+
+    api_call = Google::Gax::ApiCall.new(api_meth_stub)
+    custom_policy_count = 0
+    custom_policy_sleep = [15, 12, 24, 21]
+    custom_policy = lambda do |_error|
+      custom_policy_count += 1
+      delay = custom_policy_sleep.shift
+      if delay
+        Kernel.sleep delay
+        true
+      else
+        false
+      end
+    end
+    options = Google::Gax::CallOptions.new(retry_policy: custom_policy)
+
+    sleep_mock = Minitest::Mock.new
+    custom_policy_sleep.each do |sleep_count|
+      sleep_mock.expect :sleep, nil, [sleep_count]
+    end
+    sleep_proc = ->(count) { sleep_mock.sleep count }
+
+    Kernel.stub :sleep, sleep_proc do
+      assert_equal(1729, api_call.call(Object.new, options: options))
+
+      assert_equal(4, custom_policy_count)
+    end
+
+    sleep_mock.verify
   end
 end
