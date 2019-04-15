@@ -31,39 +31,30 @@ require 'test_helper'
 
 class ApiCallRaiseTest < Minitest::Test
   def test_traps_exception
-    transformer = proc do |ex|
-      assert_kind_of(Google::Gax::GaxError, ex)
-      raise CodeError.new('', FAKE_STATUS_CODE_2)
-    end
-
-    api_meth_stub = proc do
-      raise Google::Gax::GaxError.new('')
+    api_meth_stub = proc do |*_args|
+      raise Google::Gax::GaxError
     end
 
     api_call = Google::Gax::ApiCall.new(
-      api_meth_stub, exception_transformer: transformer
+      api_meth_stub
     )
 
-    assert_raises CodeError do
+    assert_raises Google::Gax::GaxError do
       api_call.call Object.new
     end
   end
 
   def test_traps_wrapped_exception
-    transformer = proc do |ex|
-      _(ex).must_be_kind_of(Google::Gax::GaxError)
-      raise Exception.new('')
-    end
-
     api_meth_stub = proc do
-      raise CodeError.new('', :FAKE_STATUS_CODE_1)
+      raise FakeCodeError.new('Not a real GRPC error',
+                              GRPC::Core::StatusCodes::UNAVAILABLE)
     end
 
     api_call = Google::Gax::ApiCall.new(
-      api_meth_stub, exception_transformer: transformer
+      api_meth_stub
     )
 
-    assert_raises Exception do
+    assert_raises FakeCodeError do
       api_call.call Object.new
     end
   end
@@ -82,7 +73,6 @@ class ApiCallRaiseTest < Minitest::Test
 
     exc = assert_raises Google::Gax::GaxError do
       api_call.call Object.new
-      raise 'This will never be reached'
     end
     assert_kind_of(GRPC::BadStatus, exc.cause)
 
@@ -97,12 +87,13 @@ class ApiCallRaiseTest < Minitest::Test
     api_meth_stub = proc do |deadline: nil, **_kwargs|
       deadline_arg = deadline
       call_count += 1
-      raise CodeError.new('', FAKE_STATUS_CODE_1)
+      raise FakeCodeError.new('Not a real GRPC error',
+                              GRPC::Core::StatusCodes::UNAVAILABLE)
     end
 
     api_call = Google::Gax::ApiCall.new(api_meth_stub)
 
-    assert_raises CodeError do
+    assert_raises FakeCodeError do
       api_call.call Object.new
     end
     assert_kind_of(Time, deadline_arg)

@@ -437,9 +437,7 @@ describe Google::Gax::Operation do
 
       time_now = Time.now
       incrementing_time = lambda do
-        time_dup = time_now
         time_now += 1
-        time_dup
       end
       Time.stub :now, incrementing_time do
         expect do

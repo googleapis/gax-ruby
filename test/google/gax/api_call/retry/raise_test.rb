@@ -34,28 +34,45 @@ class ApiCallRetryTest < Minitest::Test
     call_count = 0
     api_meth_stub = proc do
       call_count += 1
-      raise GRPC::BadStatus.new(FAKE_STATUS_CODE_1, 'unknown')
+      raise GRPC::Unavailable.new
     end
 
     api_call = Google::Gax::ApiCall.new(api_meth_stub)
 
+    options = Google::Gax::CallOptions.new # no codes
     assert_raises Google::Gax::GaxError do
-      api_call.call Object.new
+      api_call.call Object.new, options: options
     end
     assert_equal(1, call_count)
   end
 
-  def test_aborts_retries
+  def test_no_retry_with_mismatched_grpc_error
     api_meth_stub = proc do
-      raise GRPC::BadStatus.new(FAKE_STATUS_CODE_1, 'unknown')
+      raise GRPC::Unimplemented.new
     end
     api_call = Google::Gax::ApiCall.new(api_meth_stub)
 
-    exc = assert_raises Google::Gax::GaxError do
-      api_call.call Object.new
-      raise 'This will never be reached'
+    options = Google::Gax::CallOptions.new(
+      retry_policy: { retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE] }
+    )
+    assert_raises Google::Gax::GaxError do
+      api_call.call Object.new, options: options
     end
-    assert_kind_of(GRPC::BadStatus, exc.cause)
+  end
+
+  def test_no_retry_with_fake_grpc_error
+    api_meth_stub = proc do
+      raise FakeCodeError.new('Not a real GRPC error',
+                              GRPC::Core::StatusCodes::UNAVAILABLE)
+    end
+    api_call = Google::Gax::ApiCall.new(api_meth_stub)
+
+    options = Google::Gax::CallOptions.new(
+      retry_policy: { retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE] }
+    )
+    assert_raises FakeCodeError do
+      api_call.call Object.new, options: options
+    end
   end
 
   def test_times_out
@@ -66,20 +83,14 @@ class ApiCallRetryTest < Minitest::Test
     api_meth_stub = proc do |deadline: nil, **_kwargs|
       deadline_arg = deadline
       call_count += 1
-      raise GRPC::BadStatus.new(FAKE_STATUS_CODE_1, 'unknown')
+      raise GRPC::Unavailable.new
     end
 
     api_call = Google::Gax::ApiCall.new(api_meth_stub)
-    options = Google::Gax::CallOptions.new(
-      retry_policy: { retry_codes: [14, 101] }
-    )
 
     time_now = Time.now
     time_proc = lambda do
-      delay = 60
-      time_dup = time_now
-      time_now += delay
-      time_dup
+      time_now += 60
     end
 
     sleep_mock = Minitest::Mock.new
@@ -89,15 +100,18 @@ class ApiCallRetryTest < Minitest::Test
     sleep_mock.expect :sleep, nil, [1 * 1.3 * 1.3 * 1.3]
     sleep_proc = ->(count) { sleep_mock.sleep count }
 
+    options = Google::Gax::CallOptions.new(
+      retry_policy: { retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE] }
+    )
+
     Kernel.stub :sleep, sleep_proc do
       Time.stub :now, time_proc do
         exc = assert_raises Google::Gax::GaxError do
           api_call.call Object.new, options: options
-          raise 'This will never be reached'
         end
         assert_kind_of(GRPC::BadStatus, exc.cause)
 
-        assert_equal(time_now - 60, deadline_arg)
+        assert_equal(time_now, deadline_arg)
         assert_equal(to_attempt, call_count)
       end
     end
@@ -110,14 +124,13 @@ class ApiCallRetryTest < Minitest::Test
 
     api_meth_stub = proc do
       call_count += 1
-      raise NonCodeError.new('')
+      raise RuntimeError
     end
 
     api_call = Google::Gax::ApiCall.new(api_meth_stub)
 
-    assert_raises NonCodeError do
+    assert_raises RuntimeError do
       api_call.call(Object.new)
-      raise 'This will never be reached'
     end
     assert_equal(1, call_count)
   end

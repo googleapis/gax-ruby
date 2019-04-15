@@ -38,7 +38,7 @@ module Google
       attr_reader :status_details
 
       # @param msg [String] describes the error that occurred.
-      def initialize(msg)
+      def initialize(msg = nil)
         msg = "GaxError #{msg}"
         msg += ", caused by #{$ERROR_INFO}" if $ERROR_INFO
         super(msg)

@@ -28,7 +28,7 @@ require 'google/gax'
 require 'google/protobuf/any_pb'
 require_relative './fixtures/fixture_pb'
 
-class CodeError < StandardError
+class FakeCodeError < StandardError
   attr_reader :code
 
   def initialize(msg, code)
@@ -36,12 +36,6 @@ class CodeError < StandardError
     @code = code
   end
 end
-
-class NonCodeError < StandardError
-end
-
-FAKE_STATUS_CODE_1 = 101
-FAKE_STATUS_CODE_2 = 102
 
 class OperationStub
   def initialize(&block)

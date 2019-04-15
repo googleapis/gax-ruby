@@ -34,6 +34,8 @@ module Google
       # The policy for retrying failed API calls using an incremental backoff.
       # A new object instance should be used for every ApiCall invocation.
       #
+      # Only errors orginating from GRPC will be retried.
+      #
       class RetryPolicy
         def initialize(retry_codes: nil, initial_delay: nil, multiplier: nil,
                        max_delay: nil)
@@ -94,7 +96,7 @@ module Google
         private
 
         def retry?(error)
-          error.respond_to?(:code) && retry_codes.include?(error.code)
+          error.is_a?(GRPC::BadStatus) && retry_codes.include?(error.code)
         end
 
         def delay!

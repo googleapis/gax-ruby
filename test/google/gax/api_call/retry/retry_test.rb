@@ -30,38 +30,52 @@
 require 'test_helper'
 
 class ApiCallRetryTest < Minitest::Test
+  def default_sleep_counts
+    [
+      1, 1.3, 1.6900000000000002, 2.1970000000000005, 2.856100000000001,
+      3.7129300000000014, 4.826809000000002, 6.274851700000003,
+      8.157307210000004,  10.604499373000007, 13.785849184900009
+    ]
+  end
+
   def test_retries_with_exponential_backoff
+    # skip
     time_now = Time.now
+    inner_attempts = 0
+    deadline_arg = nil
+
+    inner_responses = Array.new(4) do
+      GRPC::Unavailable.new('unavailable')
+    end + [1729]
+    inner_stub = proc do |deadline: nil, **_kwargs|
+      deadline_arg = deadline
+      inner_attempts += 1
+      inner_response = inner_responses.shift || 15
+
+      raise inner_response if inner_response.is_a? Exception
+
+      inner_response
+    end
+
+    api_meth_stub = proc do |request, **kwargs|
+      OperationStub.new { inner_stub.call(request, **kwargs) }
+    end
+
+    api_call = Google::Gax::ApiCall.new(api_meth_stub)
+    options = Google::Gax::CallOptions.new(
+      retry_policy: { retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE] }
+    )
+
+    sleep_mock = Minitest::Mock.new
+    default_sleep_counts[0, 4].each do |sleep_count|
+      sleep_mock.expect :sleep, nil, [sleep_count]
+    end
+    sleep_proc = ->(count) { sleep_mock.sleep count }
+
     Time.stub :now, time_now do
-      to_attempt = 5
-      deadline_arg = nil
-
-      inner_stub = proc do |deadline: nil, **_kwargs|
-        deadline_arg = deadline
-        to_attempt -= 1
-        raise CodeError.new('', FAKE_STATUS_CODE_1) if to_attempt > 0
-        1729
-      end
-
-      api_meth_stub = proc do |request, **kwargs|
-        OperationStub.new { inner_stub.call(request, **kwargs) }
-      end
-
-      api_call = Google::Gax::ApiCall.new(api_meth_stub)
-      options = Google::Gax::CallOptions.new(
-        retry_policy: { retry_codes: [14, 101] }
-      )
-
-      sleep_mock = Minitest::Mock.new
-      sleep_mock.expect :sleep, nil, [1]
-      sleep_mock.expect :sleep, nil, [1 * 1.3]
-      sleep_mock.expect :sleep, nil, [1 * 1.3 * 1.3]
-      sleep_mock.expect :sleep, nil, [1 * 1.3 * 1.3 * 1.3]
-      sleep_proc = ->(count) { sleep_mock.sleep count }
-
       Kernel.stub :sleep, sleep_proc do
         assert_equal(1729, api_call.call(Object.new, options: options))
-        assert_equal(0, to_attempt)
+        assert_equal(5, inner_attempts)
         assert_kind_of(Time, deadline_arg)
       end
 
