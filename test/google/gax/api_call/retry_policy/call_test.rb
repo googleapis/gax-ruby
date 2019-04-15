@@ -30,8 +30,23 @@
 require 'test_helper'
 
 class RetryPolicyCallTest < Minitest::Test
-  def test_retries_grpc_errors
+  def test_wont_retry_when_unconfigured
     retry_policy = Google::Gax::ApiCall::RetryPolicy.new
+    grpc_error = GRPC::Unavailable.new
+
+    refute_includes retry_policy.retry_codes, grpc_error.code
+
+    sleep_proc = ->(_count) { raise 'must not call sleep' }
+
+    Kernel.stub :sleep, sleep_proc do
+      refute retry_policy.call(grpc_error)
+    end
+  end
+
+  def test_retries_configured_grpc_errors
+    retry_policy = Google::Gax::ApiCall::RetryPolicy.new(
+      retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE]
+    )
     grpc_error = GRPC::Unavailable.new
 
     assert_includes retry_policy.retry_codes, grpc_error.code
@@ -48,7 +63,9 @@ class RetryPolicyCallTest < Minitest::Test
   end
 
   def test_wont_retry_unconfigured_grpc_errors
-    retry_policy = Google::Gax::ApiCall::RetryPolicy.new
+    retry_policy = Google::Gax::ApiCall::RetryPolicy.new(
+      retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE]
+    )
     grpc_error = GRPC::Unimplemented.new
 
     refute_includes retry_policy.retry_codes, grpc_error.code
@@ -61,7 +78,9 @@ class RetryPolicyCallTest < Minitest::Test
   end
 
   def test_wont_retry_non_grpc_errors
-    retry_policy = Google::Gax::ApiCall::RetryPolicy.new
+    retry_policy = Google::Gax::ApiCall::RetryPolicy.new(
+      retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE]
+    )
     other_error = StandardError.new
 
     sleep_proc = ->(_count) { raise 'must not call sleep' }
@@ -72,7 +91,9 @@ class RetryPolicyCallTest < Minitest::Test
   end
 
   def test_incremental_backoff
-    retry_policy = Google::Gax::ApiCall::RetryPolicy.new
+    retry_policy = Google::Gax::ApiCall::RetryPolicy.new(
+      retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE]
+    )
     grpc_error = GRPC::Unavailable.new
 
     assert_includes retry_policy.retry_codes, grpc_error.code

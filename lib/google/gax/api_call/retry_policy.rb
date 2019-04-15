@@ -44,7 +44,7 @@ module Google
         end
 
         def retry_codes
-          @retry_codes || [GRPC::Core::StatusCodes::UNAVAILABLE]
+          @retry_codes || []
         end
 
         def initial_delay
