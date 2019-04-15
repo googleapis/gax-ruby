@@ -81,12 +81,6 @@ module Google
         @metadata = metadata.merge(@metadata) if metadata
         @retry_policy.merge(retry_policy) if @retry_policy.respond_to?(:merge)
       end
-
-      ##
-      # @private
-      def set_default_values_for_internal_use!
-        @timeout ||= default_timeout
-      end
     end
   end
 end
