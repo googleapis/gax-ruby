@@ -78,7 +78,6 @@ module Google
         loop do
           request = @queue.pop
           break if request.equal? self
-          raise request if request.is_a? Exception
           yield request
         end
       end
