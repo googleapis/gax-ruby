@@ -50,8 +50,12 @@ module Google
       #
       # @param request [Object]
       #
+      # @return [StreamInput] Returns self.
+      #
       def push request
         @queue.push request
+
+        self
       end
       alias << push
       alias append push
@@ -59,9 +63,12 @@ module Google
       ##
       # Closes the stream.
       #
+      # @return [StreamInput] Returns self.
+      #
       def close
         @queue.push self
-        nil
+
+        self
       end
 
       ##
