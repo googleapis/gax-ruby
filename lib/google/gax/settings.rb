@@ -30,7 +30,36 @@
 module Google
   module Gax
     # Parameters to the exponential backoff algorithm for retrying.
-    class BackoffSettings < Struct.new(
+    #
+    # @!attribute initial_retry_delay_millis
+    #   @return [Numeric] the initial delay time, in milliseconds,
+    #     between the completion of the first failed request and the
+    #     initiation of the first retrying request.
+    # @!attribute retry_delay_multiplier
+    #   @return [Numeric] the multiplier by which to increase the
+    #     delay time between the completion of failed requests, and
+    #     the initiation of the subsequent retrying request.
+    # @!attribute max_retry_delay_millis
+    #   @return [Numeric] the maximum delay time, in milliseconds,
+    #     between requests. When this value is reached,
+    #     +retry_delay_multiplier+ will no longer be used to
+    #     increase delay time.
+    # @!attribute initial_rpc_timeout_millis
+    #   @return [Numeric] the initial timeout parameter to the request.
+    # @!attribute rpc_timeout_multiplier
+    #   @return [Numeric] the multiplier by which to increase the
+    #     timeout parameter between failed requests.
+    # @!attribute max_rpc_timeout_millis
+    #   @return [Numeric] the maximum timeout parameter, in
+    #     milliseconds, for a request. When this value is reached,
+    #     +rpc_timeout_multiplier+ will no longer be used to
+    #     increase the timeout.
+    # @!attribute total_timeout_millis
+    #   @return [Numeric] the total time, in milliseconds, starting
+    #     from when the initial request is sent, after which an
+    #     error will be returned, regardless of the retrying
+    #     attempts made meanwhile.
+    BackoffSettings = Struct.new(
       :initial_retry_delay_millis,
       :retry_delay_multiplier,
       :max_retry_delay_millis,
@@ -39,34 +68,5 @@ module Google
       :max_rpc_timeout_millis,
       :total_timeout_millis
     )
-      # @!attribute initial_retry_delay_millis
-      #   @return [Numeric] the initial delay time, in milliseconds,
-      #     between the completion of the first failed request and the
-      #     initiation of the first retrying request.
-      # @!attribute retry_delay_multiplier
-      #   @return [Numeric] the multiplier by which to increase the
-      #     delay time between the completion of failed requests, and
-      #     the initiation of the subsequent retrying request.
-      # @!attribute max_retry_delay_millis
-      #   @return [Numeric] the maximum delay time, in milliseconds,
-      #     between requests. When this value is reached,
-      #     +retry_delay_multiplier+ will no longer be used to
-      #     increase delay time.
-      # @!attribute initial_rpc_timeout_millis
-      #   @return [Numeric] the initial timeout parameter to the request.
-      # @!attribute rpc_timeout_multiplier
-      #   @return [Numeric] the multiplier by which to increase the
-      #     timeout parameter between failed requests.
-      # @!attribute max_rpc_timeout_millis
-      #   @return [Numeric] the maximum timeout parameter, in
-      #     milliseconds, for a request. When this value is reached,
-      #     +rpc_timeout_multiplier+ will no longer be used to
-      #     increase the timeout.
-      # @!attribute total_timeout_millis
-      #   @return [Numeric] the total time, in milliseconds, starting
-      #     from when the initial request is sent, after which an
-      #     error will be returned, regardless of the retrying
-      #     attempts made meanwhile.
-    end
   end
 end

@@ -27,16 +27,16 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require 'test_helper'
+require "test_helper"
 
 class RetryPolicySettingsTest < Minitest::Test
   def test_defaults
     retry_policy = Google::Gax::ApiCall::RetryPolicy.new
 
-    assert_equal([], retry_policy.retry_codes)
-    assert_equal(1, retry_policy.initial_delay)
-    assert_equal(1.3, retry_policy.multiplier)
-    assert_equal(15, retry_policy.max_delay)
+    assert_equal [], retry_policy.retry_codes
+    assert_equal 1, retry_policy.initial_delay
+    assert_equal 1.3, retry_policy.multiplier
+    assert_equal 15, retry_policy.max_delay
   end
 
   def test_merge_overrides_default_values
@@ -50,9 +50,9 @@ class RetryPolicySettingsTest < Minitest::Test
       [GRPC::Core::StatusCodes::UNAVAILABLE],
       retry_policy.retry_codes
     )
-    assert_equal(4, retry_policy.initial_delay)
-    assert_equal(5, retry_policy.multiplier)
-    assert_equal(6, retry_policy.max_delay)
+    assert_equal 4, retry_policy.initial_delay
+    assert_equal 5, retry_policy.multiplier
+    assert_equal 6, retry_policy.max_delay
   end
 
   def test_overrides_default_values
@@ -65,9 +65,9 @@ class RetryPolicySettingsTest < Minitest::Test
       [GRPC::Core::StatusCodes::UNAVAILABLE],
       retry_policy.retry_codes
     )
-    assert_equal(4, retry_policy.initial_delay)
-    assert_equal(5, retry_policy.multiplier)
-    assert_equal(6, retry_policy.max_delay)
+    assert_equal 4, retry_policy.initial_delay
+    assert_equal 5, retry_policy.multiplier
+    assert_equal 6, retry_policy.max_delay
   end
 
   def test_merge_wont_override_custom_values
@@ -84,8 +84,8 @@ class RetryPolicySettingsTest < Minitest::Test
       [GRPC::Core::StatusCodes::UNIMPLEMENTED],
       retry_policy.retry_codes
     )
-    assert_equal(7, retry_policy.initial_delay)
-    assert_equal(6, retry_policy.multiplier)
-    assert_equal(5, retry_policy.max_delay)
+    assert_equal 7, retry_policy.initial_delay
+    assert_equal 6, retry_policy.multiplier
+    assert_equal 5, retry_policy.max_delay
   end
 end

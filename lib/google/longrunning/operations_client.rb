@@ -71,8 +71,7 @@ module Google
 
       # The scopes needed to make gRPC calls to all of the methods defined in
       # this service.
-      ALL_SCOPES = [
-      ].freeze
+      ALL_SCOPES = []
 
 
       # @param credentials [Google::Auth::Credentials, String, Hash, GRPC::Core::Channel, GRPC::Core::ChannelCredentials, Proc]
@@ -106,25 +105,17 @@ module Google
         require "google/gax/grpc"
         require "google/longrunning/operations_services_pb"
 
-        credentials ||= Google::Auth::Credentials.default(scope: scopes)
+        credentials ||= Google::Auth::Credentials.default scope: scopes
 
         if credentials.is_a?(String) || credentials.is_a?(Hash)
           updater_proc = Google::Auth::Credentials.new(credentials, scope: scopes).updater_proc
         end
-        if credentials.is_a?(GRPC::Core::Channel)
-          channel = credentials
-        end
-        if credentials.is_a?(GRPC::Core::ChannelCredentials)
-          chan_creds = credentials
-        end
-        if credentials.is_a?(Proc)
-          updater_proc = credentials
-        end
-        if credentials.is_a?(Google::Auth::Credentials)
-          updater_proc = credentials.updater_proc
-        end
+        channel = credentials if credentials.is_a? GRPC::Core::Channel
+        chan_creds = credentials if credentials.is_a? GRPC::Core::ChannelCredentials
+        updater_proc = credentials if credentials.is_a? Proc
+        updater_proc = credentials.updater_proc if credentials.is_a? Google::Auth::Credentials
 
-        metadata = default_gax_client_metadata(lib_name, lib_version)
+        metadata = default_gax_client_metadata lib_name, lib_version
 
         # Allow overriding the service path/port in subclasses.
         service_path = self.class::SERVICE_ADDRESS
@@ -132,10 +123,10 @@ module Google
         @operations_stub = Google::Gax::Grpc.create_stub(
           service_path,
           port,
-          chan_creds: chan_creds,
-          channel: channel,
+          chan_creds:   chan_creds,
+          channel:      channel,
           updater_proc: updater_proc,
-          scopes: scopes,
+          scopes:       scopes,
           &Google::Longrunning::Operations::Stub.method(:new)
         )
 
@@ -187,8 +178,8 @@ module Google
         req = {
           name: name
         }.delete_if { |_, v| v.nil? }
-        req = Google::Gax::to_proto(req, Google::Longrunning::GetOperationRequest)
-        @get_operation.call(req, options)
+        req = Google::Gax.to_proto req, Google::Longrunning::GetOperationRequest
+        @get_operation.call req, options
       end
 
       # Lists operations that match the specified filter in the request. If the
@@ -242,13 +233,13 @@ module Google
           page_size: nil,
           options: nil
         req = {
-          name: name,
-          filter: filter,
+          name:      name,
+          filter:    filter,
           page_size: page_size
         }.delete_if { |_, v| v.nil? }
-        req = Google::Gax::to_proto(req, Google::Longrunning::ListOperationsRequest)
-        resp = @list_operations.call(req, options)
-        Google::Gax::PagedEnumerable.new(@list_operations, req, resp, options)
+        req = Google::Gax.to_proto req, Google::Longrunning::ListOperationsRequest
+        resp = @list_operations.call req, options
+        Google::Gax::PagedEnumerable.new @list_operations, req, resp, options
       end
 
       # Starts asynchronous cancellation on a long-running operation.  The server
@@ -281,8 +272,8 @@ module Google
         req = {
           name: name
         }.delete_if { |_, v| v.nil? }
-        req = Google::Gax::to_proto(req, Google::Longrunning::CancelOperationRequest)
-        @cancel_operation.call(req, options)
+        req = Google::Gax.to_proto req, Google::Longrunning::CancelOperationRequest
+        @cancel_operation.call req, options
         nil
       end
 
@@ -310,15 +301,15 @@ module Google
         req = {
           name: name
         }.delete_if { |_, v| v.nil? }
-        req = Google::Gax::to_proto(req, Google::Longrunning::DeleteOperationRequest)
-        @delete_operation.call(req, options)
+        req = Google::Gax.to_proto req, Google::Longrunning::DeleteOperationRequest
+        @delete_operation.call req, options
         nil
       end
 
       protected
 
-      def default_gax_client_metadata(lib_name, lib_version)
-        package_version = Gem.loaded_specs['google-gax'].version.version
+      def default_gax_client_metadata lib_name, lib_version
+        package_version = Gem.loaded_specs["google-gax"].version.version
 
         google_api_client = ["gl-ruby/#{RUBY_VERSION}"]
         google_api_client << "#{lib_name}/#{lib_version}" if lib_name
@@ -327,7 +318,7 @@ module Google
         google_api_client << "grpc/#{GRPC::VERSION}"
         google_api_client.join " "
 
-        { 'x-goog-api-client' => google_api_client }
+        { "x-goog-api-client" => google_api_client }
       end
     end
   end

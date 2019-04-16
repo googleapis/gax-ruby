@@ -27,26 +27,26 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require 'test_helper'
+require "test_helper"
 
 class PagedEnumerableValidRequestResponseTest < Minitest::Test
   def test_GoodPagedRequest_GoodPagedResponse
     api_responses = [
       Google::Gax::GoodPagedResponse.new(
         users: [
-          Google::Gax::User.new(name: 'baz'),
-          Google::Gax::User.new(name: 'bif')
+          Google::Gax::User.new(name: "baz"),
+          Google::Gax::User.new(name: "bif")
         ]
       )
     ]
     api_call = ->(_req, _opt) { api_responses.shift }
     request = Google::Gax::GoodPagedRequest.new
     response = Google::Gax::GoodPagedResponse.new(
-      users: [
-        Google::Gax::User.new(name: 'foo'),
-        Google::Gax::User.new(name: 'bar')
+      users:           [
+        Google::Gax::User.new(name: "foo"),
+        Google::Gax::User.new(name: "bar")
       ],
-      next_page_token: 'next'
+      next_page_token: "next"
     )
     options = Google::Gax::CallOptions.new
     paged_enum = Google::Gax::PagedEnumerable.new(
@@ -60,19 +60,19 @@ class PagedEnumerableValidRequestResponseTest < Minitest::Test
     api_responses = [
       Google::Gax::GoodPagedResponse.new(
         users: [
-          Google::Gax::User.new(name: 'baz'),
-          Google::Gax::User.new(name: 'bif')
+          Google::Gax::User.new(name: "baz"),
+          Google::Gax::User.new(name: "bif")
         ]
       )
     ]
     api_call = ->(_req, _opt) { api_responses.shift }
     request = Google::Gax::Int64PagedRequest.new
     response = Google::Gax::GoodPagedResponse.new(
-      users: [
-        Google::Gax::User.new(name: 'foo'),
-        Google::Gax::User.new(name: 'bar')
+      users:           [
+        Google::Gax::User.new(name: "foo"),
+        Google::Gax::User.new(name: "bar")
       ],
-      next_page_token: 'next'
+      next_page_token: "next"
     )
     options = Google::Gax::CallOptions.new
     paged_enum = Google::Gax::PagedEnumerable.new(

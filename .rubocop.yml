@@ -1,13 +1,14 @@
-inherit_from: .rubocop_todo.yml
+inherit_gem:
+  google-style: google-style.yml
 
-# Prefer compact style, as Ruby runtime overwrites the GAX error message
-# when exploded exception style is used.
-Metrics/ClassLength:
-  Max: 110
-Style/RaiseArgs:
-  EnforcedStyle: compact
-
-Metrics/ParameterLists:
+AllCops:
   Exclude:
-    - 'lib/google/gax/api_call.rb'
-    - 'lib/google/gax/grpc.rb'
+    - "google-gax.gemspec"
+    - "lib/google/longrunning/operations_client.rb"
+    - "test/**/*"
+
+Style/Documentation:
+  Exclude:
+    - "lib/google/gax/api_call.rb"
+    - "lib/google/gax/settings.rb"
+    - "lib/google/gax/errors.rb"

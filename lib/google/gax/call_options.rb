@@ -27,7 +27,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require 'google/gax/api_call/retry_policy'
+require "google/gax/api_call/retry_policy"
 
 module Google
   module Gax
@@ -47,15 +47,12 @@ module Google
       #
       # @param timeout [Numeric] The client-side timeout for API calls.
       # @param metadata [Hash] The request header params.
-      # @param retry_policy [ApiCall::RetryPolicy, Hash, Proc] The policy for
-      #   error retry. A custom proc that takes the error as an argument and
-      #   blocks can also be provided.
+      # @param retry_policy [ApiCall::RetryPolicy, Hash, Proc] The policy for error retry. A custom proc that takes the
+      #   error as an argument and blocks can also be provided.
       #
-      def initialize(timeout: nil, metadata: nil, retry_policy: nil)
-        if retry_policy.respond_to? :to_h
-          # Converts hash and nil to a policy object
-          retry_policy = ApiCall::RetryPolicy.new(retry_policy.to_h)
-        end
+      def initialize timeout: nil, metadata: nil, retry_policy: nil
+        # Converts hash and nil to a policy object
+        retry_policy = ApiCall::RetryPolicy.new retry_policy.to_h if retry_policy.respond_to? :to_h
 
         @timeout = timeout # allow to be nil so it can be overridden
         @metadata = metadata.to_h # Ensure always hash, even for nil
@@ -76,10 +73,10 @@ module Google
       # @param timeout [Numeric] The client-side timeout for API calls.
       # @param metadata [Hash] the request header params.
       # @param retry_policy [Hash] the policy for error retry.
-      def merge(timeout: nil, metadata: nil, retry_policy: nil)
+      def merge timeout: nil, metadata: nil, retry_policy: nil
         @timeout ||= timeout
-        @metadata = metadata.merge(@metadata) if metadata
-        @retry_policy.merge(retry_policy) if @retry_policy.respond_to?(:merge)
+        @metadata = metadata.merge @metadata if metadata
+        @retry_policy.merge retry_policy if @retry_policy.respond_to? :merge
       end
     end
   end

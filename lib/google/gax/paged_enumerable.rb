@@ -29,12 +29,12 @@
 
 module Google
   module Gax
-    # A class to provide the Enumerable interface to the response of a
-    # paginated method. PagedEnumerable assumes response message holds a list
-    # of resources and the token to the next page.
+    ##
+    # A class to provide the Enumerable interface to the response of a paginated method. PagedEnumerable assumes
+    # response message holds a list of resources and the token to the next page.
     #
-    # PagedEnumerable provides the enumerations over the resource data,
-    # and also provides the enumerations over the pages themselves.
+    # PagedEnumerable provides the enumerations over the resource data, and also provides the enumerations over the
+    # pages themselves.
     #
     # @example normal iteration over resources.
     #   paged_enumerable.each { |resource| puts resource }
@@ -58,17 +58,17 @@ module Google
     class PagedEnumerable
       include Enumerable
 
+      ##
       # @attribute [r] page
       #   @return [Page] The current page object.
       attr_reader :page
 
-      # @param request_page_token_field [String]
-      #   The name of the field in request which will have the page token.
-      # @param response_page_token_field [String]
-      #   The name of the field in the response which holds the next page token.
-      # @param resource_field [String]
-      #   The name of the field in the response which holds the resources.
-      def initialize(api_call, request, response, options)
+      ##
+      # @param request_page_token_field [String] The name of the field in request which will have the page token.
+      # @param response_page_token_field [String] The name of the field in the response which holds the next page token.
+      # @param resource_field [String] The name of the field in the response which holds the resources.
+      #
+      def initialize api_call, request, response, options
         @api_call = api_call
         @request = request
         @response = response
@@ -78,12 +78,16 @@ module Google
         verify_request!
         verify_response!
 
-        @page = Page.new(@response, @resource_field)
+        @page = Page.new @response, @resource_field
       end
 
+      ##
       # Iterate over the resources.
+      #
       # @yield [Object] Gives the resource objects in the stream.
+      #
       # @raise [RuntimeError] if it's not started yet.
+      #
       def each
         return enum_for :each unless block_given?
 
@@ -94,44 +98,60 @@ module Google
         end
       end
 
+      ##
       # Iterate over the pages.
+      #
       # @yield [Page] Gives the pages in the stream.
+      #
       # @raise [GaxError] if it's not started yet.
+      #
       def each_page
         return enum_for :each_page unless block_given?
 
         yield @page
+
         loop do
           break unless next_page?
           yield next_page
         end
       end
 
+      ##
       # True if it has the next page.
+      #
       def next_page?
         @page.next_page_token?
       end
 
+      ##
       # Update the response in the current page.
+      #
       # @return [Page] the new page object.
+      #
       def next_page
         return unless next_page?
 
         next_request = @request.dup
         next_request.page_token = @page.next_page_token
-        next_response = @api_call.call(next_request, @options)
+        next_response = @api_call.call next_request, @options
 
-        @page = Page.new(next_response, @resource_field)
+        @page = Page.new next_response, @resource_field
       end
 
+      ##
       # The page token to be used for the next API call.
+      #
       # @return [String]
+      #
       def next_page_token
         @page.next_page_token
       end
 
+      ##
       # The current response object, for the current page.
+      #
       # @return [Object]
+      #
       def response
         @page.response
       end
@@ -140,32 +160,22 @@ module Google
 
       def verify_request!
         page_token = @request.class.descriptor.find do |f|
-          f.name == 'page_token' && f.type == :string
+          f.name == "page_token" && f.type == :string
         end
-        if page_token.nil?
-          raise ArgumentError.new(
-            "#{@request.class} must have a page_token field (String)"
-          )
-        end
+        raise ArgumentError, "#{@request.class} must have a page_token field (String)" if page_token.nil?
 
         page_size = @request.class.descriptor.find do |f|
-          f.name == 'page_size' && %i[int32 int64].include?(f.type)
+          f.name == "page_size" && %i[int32 int64].include?(f.type)
         end
         return unless page_size.nil?
-        raise ArgumentError.new(
-          "#{@request.class} must have a page_size field (Integer)"
-        )
+        raise ArgumentError, "#{@request.class} must have a page_size field (Integer)"
       end
 
       def verify_response!
         next_page_token = @response.class.descriptor.find do |f|
-          f.name == 'next_page_token' && f.type == :string
+          f.name == "next_page_token" && f.type == :string
         end
-        if next_page_token.nil?
-          raise ArgumentError.new(
-            "#{@response.class} must have a next_page_token field (String)"
-          )
-        end
+        raise ArgumentError, "#{@response.class} must have a next_page_token field (String)" if next_page_token.nil?
 
         # Find all repeated FieldDescriptors on the response Descriptor
         fields = @response.class.descriptor.select do |f|
@@ -173,26 +183,21 @@ module Google
         end
 
         repeated_field = fields.first
-        if repeated_field.nil?
-          raise ArgumentError.new(
-            "#{@response.class} must have one repeated field"
-          )
-        end
+        raise ArgumentError, "#{@response.class} must have one repeated field" if repeated_field.nil?
 
         min_repeated_field_number = fields.map(&:number).min
         if min_repeated_field_number != repeated_field.number
-          raise ArgumentError.new(
-            "#{@response.class} must have one primary repeated field " \
-            'by both position and number'
-          )
+          raise ArgumentError, "#{@response.class} must have one primary repeated field " \
+            "by both position and number"
         end
 
         # We have the correct repeated field, save the field's name
         @resource_field = repeated_field.name
       end
 
-      # A class to represent a page in a PagedEnumerable. This also implements
-      # Enumerable, so it can iterate over the resource elements.
+      ##
+      # A class to represent a page in a PagedEnumerable. This also implements Enumerable, so it can iterate over the
+      # resource elements.
       #
       # @attribute [r] response
       #   @return [Object] the actual response object.
@@ -202,17 +207,20 @@ module Google
         include Enumerable
         attr_reader :response
 
-        # @param response [Object]
-        #   The response object for the page.
-        # @param resource_field [String]
-        #   The name of the field in response which holds the resources.
-        def initialize(response, resource_field)
+        ##
+        # @param response [Object] The response object for the page.
+        # @param resource_field [String] The name of the field in response which holds the resources.
+        #
+        def initialize response, resource_field
           @response = response
           @resource_field = resource_field
         end
 
+        ##
         # Iterate over the resources.
+        #
         # @yield [Object] Gives the resource objects in the page.
+        #
         def each
           return enum_for :each unless block_given?
 
