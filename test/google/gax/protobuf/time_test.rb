@@ -1,4 +1,4 @@
-# Copyright 2016, Google Inc.
+# Copyright 2019, Google Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -16,7 +16,7 @@
 # this software without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 # LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
 # A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
 # OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
@@ -27,16 +27,34 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require "google/gax/api_call"
-require "google/gax/paged_enumerable"
-require "google/gax/errors"
-require "google/gax/operation"
-require "google/gax/protobuf"
-require "google/gax/stream_input"
-require "google/gax/version"
+require "test_helper"
+require "google/protobuf/any_pb"
+require "google/protobuf/timestamp_pb"
+require "stringio"
 
-module Google
-  # Gax defines Google API extensions
-  module Gax
+class ProtobufTimeTest < Minitest::Spec
+  SECONDS = 271_828_182
+  NANOS = 845_904_523
+  A_TIME = Time.at SECONDS + NANOS * 10**-9
+  A_TIMESTAMP =
+    Google::Protobuf::Timestamp.new seconds: SECONDS, nanos: NANOS
+
+  it "converts time to timestamp" do
+    _(Google::Gax::Protobuf.time_to_timestamp(A_TIME)).must_equal A_TIMESTAMP
+  end
+
+  it "converts timestamp to time" do
+    _(Google::Gax::Protobuf.timestamp_to_time(A_TIMESTAMP)).must_equal A_TIME
+  end
+
+  it "is an identity when conversion is a round trip" do
+    _(
+      Google::Gax::Protobuf.timestamp_to_time(Google::Gax::Protobuf.time_to_timestamp(A_TIME))
+    ).must_equal A_TIME
+    _(
+      Google::Gax::Protobuf.time_to_timestamp(
+        Google::Gax::Protobuf.timestamp_to_time(A_TIMESTAMP)
+      )
+    ).must_equal A_TIMESTAMP
   end
 end
