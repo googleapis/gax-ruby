@@ -31,14 +31,13 @@ module Google
   module Gax
     class ApiCall
       ##
-      # The policy for retrying failed API calls using an incremental backoff.
-      # A new object instance should be used for every ApiCall invocation.
+      # The policy for retrying failed API calls using an incremental backoff. A new object instance should be used for
+      # every ApiCall invocation.
       #
       # Only errors orginating from GRPC will be retried.
       #
       class RetryPolicy
-        def initialize retry_codes: nil, initial_delay: nil, multiplier: nil,
-                       max_delay: nil
+        def initialize retry_codes: nil, initial_delay: nil, multiplier: nil, max_delay: nil
           @retry_codes   = retry_codes
           @initial_delay = initial_delay
           @multiplier    = multiplier
@@ -77,8 +76,8 @@ module Google
         end
 
         ##
-        # @private Though not part of the public API, if the retry policy object
-        # responds to merge ApiCall will pass a Hash of confiuration settings.
+        # @private Though not part of the public API, if the retry policy object responds to merge ApiCall will pass a
+        # Hash of configuration settings.
         #
         # @param settings [Hash] configuration settings to apply to the policy.
         #

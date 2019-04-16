@@ -37,27 +37,23 @@ module Google
       ##
       # Converts an RPC call into an API call.
       #
-      # In typical usage, `stub_method` will be a proc used to make an RPC
-      # request. This will mostly likely be a bound method from a request Stub
-      # used to make an RPC call.
+      # In typical usage, `stub_method` will be a proc used to make an RPC request. This will mostly likely be a bound
+      # method from a request Stub used to make an RPC call.
       #
-      # The result is created by applying a series of function decorators
-      # defined in this module to `stub_method`.
+      # The result is created by applying a series of function decorators defined in this module to `stub_method`.
       #
       # The result is another proc which has the same signature as the original.
       #
-      # @param stub_method [Proc] used to make a bare rpc call
-      # @param timeout [Numeric] client-side timeout for API calls
-      # @param metadata [Hash] request headers
-      # @param retry_policy [Hash] the settings for error retry, will be merged
-      #   to the {CallOptions#retry_policy} object if supported.
-      # @param params_extractor [Proc] extracts routing header params from the
-      #   request
-      # @param exception_transformer [Proc] if an API exception occurs this
-      #   transformer is given the original exception for custom processing
-      #   instead of raising the error directly
-      def initialize stub_method, timeout: nil, metadata: nil,
-                     retry_policy: nil, params_extractor: nil,
+      # @param stub_method [Proc] Used to make a bare rpc call.
+      # @param timeout [Numeric] client-side Timeout for API calls.
+      # @param metadata [Hash] Request headers.
+      # @param retry_policy [Hash] The settings for error retry, will be merged to the {CallOptions#retry_policy} object
+      #   if supported.
+      # @param params_extractor [Proc] Extracts routing header params from the request.
+      # @param exception_transformer [Proc] If an API exception occurs this transformer is given the original exception
+      #   for custom processing instead of raising the error directly.
+      #
+      def initialize stub_method, timeout: nil, metadata: nil, retry_policy: nil, params_extractor: nil,
                      exception_transformer: nil
         @stub_method           = stub_method
         @timeout               = timeout
@@ -82,9 +78,8 @@ module Google
         deadline = calculate_deadline options
 
         begin
-          op = @stub_method.call(request, deadline:  deadline,
-                                          metadata:  options.metadata,
-                                          return_op: true)
+          op = @stub_method.call request, deadline: deadline, metadata: options.metadata, return_op: true
+
           res = op.execute
           yield op if block
           res
@@ -104,8 +99,7 @@ module Google
 
       def init_call_options options
         options = CallOptions.new options.to_h if options.respond_to? :to_h
-        options.merge(timeout: @timeout, metadata: @metadata,
-                      retry_policy: @retry_policy)
+        options.merge timeout: @timeout, metadata: @metadata, retry_policy: @retry_policy
         options
       end
 

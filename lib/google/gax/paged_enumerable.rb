@@ -29,12 +29,12 @@
 
 module Google
   module Gax
-    # A class to provide the Enumerable interface to the response of a
-    # paginated method. PagedEnumerable assumes response message holds a list
-    # of resources and the token to the next page.
+    ##
+    # A class to provide the Enumerable interface to the response of a paginated method. PagedEnumerable assumes
+    # response message holds a list of resources and the token to the next page.
     #
-    # PagedEnumerable provides the enumerations over the resource data,
-    # and also provides the enumerations over the pages themselves.
+    # PagedEnumerable provides the enumerations over the resource data, and also provides the enumerations over the
+    # pages themselves.
     #
     # @example normal iteration over resources.
     #   paged_enumerable.each { |resource| puts resource }
@@ -58,16 +58,16 @@ module Google
     class PagedEnumerable
       include Enumerable
 
+      ##
       # @attribute [r] page
       #   @return [Page] The current page object.
       attr_reader :page
 
-      # @param request_page_token_field [String]
-      #   The name of the field in request which will have the page token.
-      # @param response_page_token_field [String]
-      #   The name of the field in the response which holds the next page token.
-      # @param resource_field [String]
-      #   The name of the field in the response which holds the resources.
+      ##
+      # @param request_page_token_field [String] The name of the field in request which will have the page token.
+      # @param response_page_token_field [String] The name of the field in the response which holds the next page token.
+      # @param resource_field [String] The name of the field in the response which holds the resources.
+      #
       def initialize api_call, request, response, options
         @api_call = api_call
         @request = request
@@ -81,9 +81,13 @@ module Google
         @page = Page.new @response, @resource_field
       end
 
+      ##
       # Iterate over the resources.
+      #
       # @yield [Object] Gives the resource objects in the stream.
+      #
       # @raise [RuntimeError] if it's not started yet.
+      #
       def each
         return enum_for :each unless block_given?
 
@@ -94,26 +98,36 @@ module Google
         end
       end
 
+      ##
       # Iterate over the pages.
+      #
       # @yield [Page] Gives the pages in the stream.
+      #
       # @raise [GaxError] if it's not started yet.
+      #
       def each_page
         return enum_for :each_page unless block_given?
 
         yield @page
+
         loop do
           break unless next_page?
           yield next_page
         end
       end
 
+      ##
       # True if it has the next page.
+      #
       def next_page?
         @page.next_page_token?
       end
 
+      ##
       # Update the response in the current page.
+      #
       # @return [Page] the new page object.
+      #
       def next_page
         return unless next_page?
 
@@ -124,14 +138,20 @@ module Google
         @page = Page.new next_response, @resource_field
       end
 
+      ##
       # The page token to be used for the next API call.
+      #
       # @return [String]
+      #
       def next_page_token
         @page.next_page_token
       end
 
+      ##
       # The current response object, for the current page.
+      #
       # @return [Object]
+      #
       def response
         @page.response
       end
@@ -175,8 +195,9 @@ module Google
         @resource_field = repeated_field.name
       end
 
-      # A class to represent a page in a PagedEnumerable. This also implements
-      # Enumerable, so it can iterate over the resource elements.
+      ##
+      # A class to represent a page in a PagedEnumerable. This also implements Enumerable, so it can iterate over the
+      # resource elements.
       #
       # @attribute [r] response
       #   @return [Object] the actual response object.
@@ -186,17 +207,20 @@ module Google
         include Enumerable
         attr_reader :response
 
-        # @param response [Object]
-        #   The response object for the page.
-        # @param resource_field [String]
-        #   The name of the field in response which holds the resources.
+        ##
+        # @param response [Object] The response object for the page.
+        # @param resource_field [String] The name of the field in response which holds the resources.
+        #
         def initialize response, resource_field
           @response = response
           @resource_field = resource_field
         end
 
+        ##
         # Iterate over the resources.
+        #
         # @yield [Object] Gives the resource objects in the page.
+        #
         def each
           return enum_for :each unless block_given?
 
