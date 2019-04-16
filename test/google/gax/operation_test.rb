@@ -51,12 +51,12 @@ class MockLroClient
     @get_method.call grpc_method, options
   end
 
-  def cancel_operation name
-    @cancel_method.call name
+  def cancel_operation name, options: nil
+    @cancel_method.call name, options: options
   end
 
-  def delete_operation name
-    @delete_method.call name
+  def delete_operation name, options: nil
+    @delete_method.call name, options: options
   end
 end
 
@@ -86,13 +86,12 @@ end
 DONE_ON_GET_CLIENT = MockLroClient.new get_method: DONE_GET_METHOD
 
 def create_op operation, client: nil, result_type: Google::Rpc::Status,
-              metadata_type: Google::Rpc::Status, call_options: nil
+              metadata_type: Google::Rpc::Status
   GaxOp.new(
     operation,
     client || DONE_ON_GET_CLIENT,
     result_type,
-    metadata_type,
-    call_options: call_options
+    metadata_type
   )
 end
 
@@ -280,8 +279,9 @@ describe Google::Gax::Operation do
     it "should call the clients delete_operation" do
       op_name = "test_name"
       called = false
-      delete_method = proc do |name|
+      delete_method = proc do |name, options: options|
         _(name).must_equal op_name
+        _(options).must_be_kind_of Google::Gax::ApiCall::Options
         called = true
       end
       mock_client = MockLroClient.new delete_method: delete_method
@@ -304,25 +304,24 @@ describe Google::Gax::Operation do
       _(called).must_equal true
     end
 
-    it "should use call_options attribute when reloading" do
-      skip "Removed for now, will revisit in the future"
-      call_options = Google::Gax::ApiCall::Options.new
+    it "should use options attribute when reloading" do
+      options = Google::Gax::ApiCall::Options.new
       called = false
-      get_method = proc do |_, options|
+      get_method = proc do |name, options|
         called = true
+        _(name).must_equal "name"
         _(options).must_be_kind_of Google::Gax::ApiCall::Options
-        _(options).must_equal call_options
+        _(options).must_equal options
         GrpcOp.new done: true, response: RESULT_ANY
       end
       mock_client = MockLroClient.new get_method: get_method
 
       op = create_op(
         GrpcOp.new(done: false, name: "name"),
-        client:       mock_client,
-        call_options: call_options
+        client:       mock_client
       )
       _(called).must_equal false
-      op.reload!
+      op.reload! options: options
       _(called).must_equal true
     end
 

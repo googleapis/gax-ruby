@@ -101,14 +101,10 @@ module Google
       #   looked up. Optional.
       # @param metadata_type [Class] The class type to be unpacked from the metadata. If not provided the class type
       #   will be looked up. Optional.
-      # @param call_options [Google::Gax::ApiCall::Options] The call options that are used when reloading the operation.
-      #   Optional.
       #
-      def initialize grpc_op, client, result_type = nil, metadata_type = nil,
-                     call_options: nil
+      def initialize grpc_op, client, result_type = nil, metadata_type = nil
         @grpc_op = grpc_op
         @client = client
-        @call_options = call_options
         @result_type = result_type
         @metadata_type = metadata_type
         @callbacks = []
@@ -213,24 +209,42 @@ module Google
       ##
       # Cancels the operation.
       #
-      def cancel
-        @client.cancel_operation @grpc_op.name
+      # @param options [ApiCall::Options, Hash] The options for making the API call. A Hash can be provided to customize
+      #   the options object, using keys that match the arguments for {ApiCall::Options.new}.
+      #
+      def cancel options: nil
+        # Converts hash and nil to an options object
+        options = ApiCall::Options.new options.to_h if options.respond_to? :to_h
+
+        @client.cancel_operation @grpc_op.name, options: options
       end
 
       ##
       # Deletes the operation.
       #
-      def delete
-        @client.delete_operation @grpc_op.name
+      # @param options [ApiCall::Options, Hash] The options for making the API call. A Hash can be provided to customize
+      #   the options object, using keys that match the arguments for {ApiCall::Options.new}.
+      #
+      def delete options: nil
+        # Converts hash and nil to an options object
+        options = ApiCall::Options.new options.to_h if options.respond_to? :to_h
+
+        @client.delete_operation @grpc_op.name, options: options
       end
 
       ##
       # Reloads the operation object.
       #
+      # @param options [ApiCall::Options, Hash] The options for making the API call. A Hash can be provided to customize
+      #   the options object, using keys that match the arguments for {ApiCall::Options.new}.
+      #
       # @return [Google::Gax::Operation] Since this method changes internal state, it returns itself.
       #
-      def reload!
-        @grpc_op = @client.get_operation @grpc_op.name
+      def reload! options: nil
+        # Converts hash and nil to an options object
+        options = ApiCall::Options.new options.to_h if options.respond_to? :to_h
+
+        @grpc_op = @client.get_operation @grpc_op.name, options: options
 
         if done?
           @callbacks.each { |proc| proc.call self }
