@@ -61,7 +61,7 @@ class ApiCallRetryTest < Minitest::Test
     end
 
     api_call = Google::Gax::ApiCall.new api_meth_stub
-    options = Google::Gax::CallOptions.new(
+    options = Google::Gax::ApiCall::Options.new(
       retry_policy: { retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE] }
     )
 
@@ -113,7 +113,7 @@ class ApiCallRetryTest < Minitest::Test
         false
       end
     end
-    options = Google::Gax::CallOptions.new retry_policy: custom_policy
+    options = Google::Gax::ApiCall::Options.new retry_policy: custom_policy
 
     sleep_mock = Minitest::Mock.new
     custom_policy_sleep.each do |sleep_count|

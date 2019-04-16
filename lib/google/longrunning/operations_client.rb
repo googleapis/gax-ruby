@@ -160,7 +160,7 @@ module Google
       #
       # @param name [String]
       #   The name of the operation resource.
-      # @param options [Google::Gax::CallOptions]
+      # @param options [Google::Gax::ApiCall::Options]
       #   Overrides the default settings for this call, e.g, timeout,
       #   retries, etc.
       # @return [Google::Longrunning::Operation]
@@ -198,7 +198,7 @@ module Google
       #   parameter does not affect the return value. If page streaming is
       #   performed per-page, this determines the maximum number of
       #   resources in a page.
-      # @param options [Google::Gax::CallOptions]
+      # @param options [Google::Gax::ApiCall::Options]
       #   Overrides the default settings for this call, e.g, timeout,
       #   retries, etc.
       # @return [Google::Gax::PagedEnumerable<Google::Longrunning::Operation>]
@@ -255,7 +255,7 @@ module Google
       #
       # @param name [String]
       #   The name of the operation resource to be cancelled.
-      # @param options [Google::Gax::CallOptions]
+      # @param options [Google::Gax::ApiCall::Options]
       #   Overrides the default settings for this call, e.g, timeout,
       #   retries, etc.
       # @raise [Google::Gax::GaxError] if the RPC is aborted.
@@ -284,7 +284,7 @@ module Google
       #
       # @param name [String]
       #   The name of the operation resource to be deleted.
-      # @param options [Google::Gax::CallOptions]
+      # @param options [Google::Gax::ApiCall::Options]
       #   Overrides the default settings for this call, e.g, timeout,
       #   retries, etc.
       # @raise [Google::Gax::GaxError] if the RPC is aborted.

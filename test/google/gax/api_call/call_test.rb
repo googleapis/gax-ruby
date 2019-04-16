@@ -44,7 +44,7 @@ class ApiCallTest < Minitest::Test
     assert_kind_of Time, deadline_arg
 
     new_deadline = Time.now + 20
-    options = Google::Gax::CallOptions.new timeout: 20
+    options = Google::Gax::ApiCall::Options.new timeout: 20
 
     assert_equal 42, api_call.call(Object.new, options: options)
     assert_in_delta new_deadline, deadline_arg, 0.9
@@ -63,31 +63,5 @@ class ApiCallTest < Minitest::Test
     assert_equal 5, api_call.call(3)
     assert_equal(5, api_call.call(3, options: nil) { adder = 5 })
     assert_equal 10, api_call.call(3)
-  end
-
-  def test_with_routing_header
-    metadata_arg = nil
-    inner_stub = proc do |_, metadata: nil, **_deadline|
-      metadata_arg = metadata
-      42
-    end
-
-    api_meth_stub = proc do |request, **kwargs|
-      OperationStub.new { inner_stub.call request, **kwargs }
-    end
-
-    params_extractor = proc do |request|
-      { "name" => request[:name], "book.read" => request[:book][:read] }
-    end
-
-    api_call = Google::Gax::ApiCall.new(
-      api_meth_stub, params_extractor: params_extractor
-    )
-
-    assert_equal(42, api_call.call(name: "foo", book: { read: true }))
-    assert_equal(
-      { "x-goog-request-params" => "name=foo&book.read=true" },
-      metadata_arg
-    )
   end
 end

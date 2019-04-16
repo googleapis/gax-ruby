@@ -34,7 +34,7 @@ class PagedEnumerableInvalidRequestTest < Minitest::Test
     api_call = -> {}
     request = Google::Gax::MissingPageTokenRequest.new
     response = Google::Gax::GoodPagedResponse.new
-    options = Google::Gax::CallOptions.new
+    options = Google::Gax::ApiCall::Options.new
 
     error = assert_raises ArgumentError do
       Google::Gax::PagedEnumerable.new(
@@ -49,7 +49,7 @@ class PagedEnumerableInvalidRequestTest < Minitest::Test
     api_call = -> {}
     request = Google::Gax::MissingPageSizeRequest.new
     response = Google::Gax::GoodPagedResponse.new
-    options = Google::Gax::CallOptions.new
+    options = Google::Gax::ApiCall::Options.new
 
     error = assert_raises ArgumentError do
       Google::Gax::PagedEnumerable.new(

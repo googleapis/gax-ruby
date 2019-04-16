@@ -91,13 +91,8 @@ module Google
     # @attribute [r] grpc_op
     #   @return [Google::Longrunning::Operation] The wrapped grpc
     #     operation object.
-    # @attribute [rw] call_options
-    #   @return [Google::Gax::CallOptions] The call options used when reloading
-    #     the operation.
     class Operation
       attr_reader :grpc_op
-
-      attr_accessor :call_options
 
       ##
       # @param grpc_op [Google::Longrunning::Operation] The inital longrunning operation.
@@ -106,7 +101,7 @@ module Google
       #   looked up. Optional.
       # @param metadata_type [Class] The class type to be unpacked from the metadata. If not provided the class type
       #   will be looked up. Optional.
-      # @param call_options [Google::Gax::CallOptions] The call options that are used when reloading the operation.
+      # @param call_options [Google::Gax::ApiCall::Options] The call options that are used when reloading the operation.
       #   Optional.
       #
       def initialize grpc_op, client, result_type = nil, metadata_type = nil,
@@ -235,7 +230,7 @@ module Google
       # @return [Google::Gax::Operation] Since this method changes internal state, it returns itself.
       #
       def reload!
-        @grpc_op = @client.get_operation @grpc_op.name, options: @call_options
+        @grpc_op = @client.get_operation @grpc_op.name
 
         if done?
           @callbacks.each { |proc| proc.call self }
