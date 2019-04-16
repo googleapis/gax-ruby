@@ -1,4 +1,4 @@
-# Copyright 2016, Google Inc.
+# Copyright 2019, Google Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,18 +27,61 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require "google/gax/api_call"
-require "google/gax/call_options"
-require "google/gax/paged_enumerable"
-require "google/gax/constants"
-require "google/gax/errors"
-require "google/gax/settings"
-require "google/gax/stream_input"
-require "google/gax/util"
-require "google/gax/version"
-
 module Google
-  # Gax defines Google API extensions
   module Gax
+    ##
+    # Adds requests to a stream and holds the stream open until {#close} is
+    # called.
+    class StreamInput
+      ##
+      # dfdf
+      #
+      # @param requests [Object]
+      #
+      def initialize *requests
+        @queue = Queue.new
+
+        # Push initial requests into the queue
+        requests.each { |request| @queue.push request }
+      end
+
+      ##
+      # Adds a request object to the stream.
+      #
+      # @param request [Object]
+      #
+      def push request
+        @queue.push request
+      end
+      alias << push
+      alias append push
+
+      ##
+      # Closes the stream.
+      #
+      def close
+        @queue.push self
+        nil
+      end
+
+      ##
+      # @private
+      # Iterates the requests given to the stream.
+      #
+      # @yield [request] The block for accessing each request.
+      # @yieldparam [Object] request The request object.
+      #
+      # @return [Enumerator] An Enumerator is returned if no block is given.
+      #
+      def to_enum
+        return enum_for :to_enum unless block_given?
+        loop do
+          request = @queue.pop
+          break if request.equal? self
+          raise request if request.is_a? Exception
+          yield request
+        end
+      end
+    end
   end
 end
