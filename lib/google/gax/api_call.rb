@@ -58,20 +58,33 @@ module Google
       # @param options [ApiCall::Options, Hash] The options for making the API call. A Hash can be provided to customize
       #   the options object, using keys that match the arguments for {ApiCall::Options.new}. This object should only be
       #   used once.
+      # @param on_response [Proc] A Proc object to format the response object. The Proc should accept response as an
+      #   argument, and return a formatted response object. Optional.
+      # @param on_operation [Proc] A Proc object to provide a callback of the response and operation objects. The Proc
+      #   will be called with both the response and operation objects. Optional.
+      # @param on_stream [Proc] A Proc object to provide a callback for every streamed response received. The Proc will
+      #   be called with the response object. Should only be used on Bidi and Server streaming RPC calls. Optional.
       #
-      # @return [Object, Thread] The response object.
+      # @return [Object, Thread] The response object. Or, when `on_stream` is provided, a thread running the callback
+      #   on streamed response is returned.
       #
-      def call request, options: nil
+      def call request, options: nil, on_response: nil, on_operation: nil, on_stream: nil
         # Converts hash and nil to an options object
         options = ApiCall::Options.new options.to_h if options.respond_to? :to_h
+        block = compose_stream_proc on_stream: on_stream, on_response: on_response
         deadline = calculate_deadline options
 
         begin
-          operation = stub_method.call request, deadline: deadline, metadata: options.metadata, return_op: true
+          operation = stub_method.call request, deadline: deadline, metadata: options.metadata, return_op: true, &block
 
-          response = operation.execute
-          yield response, operation if block_given?
-          response
+          if on_stream
+            Thread.new { operation.execute }
+          else
+            response = operation.execute
+            response = on_response.call response if on_response
+            on_operation&.call response, operation
+            response
+          end
         rescue StandardError => error
           if check_retry? deadline
             retry if options.retry_policy.call error
@@ -84,6 +97,13 @@ module Google
       end
 
       private
+
+      def compose_stream_proc on_stream: nil, on_response: nil
+        return unless on_stream
+        return on_stream unless on_response
+
+        proc { |response| on_stream.call on_response.call response }
+      end
 
       def calculate_deadline options
         Time.now + options.timeout

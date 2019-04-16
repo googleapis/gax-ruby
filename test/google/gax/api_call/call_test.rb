@@ -50,18 +50,146 @@ class ApiCallTest < Minitest::Test
     assert_in_delta new_deadline, deadline_arg, 0.9
   end
 
-  def test_call_with_block
+  def test_call_with_on_response
+    api_meth_stub = proc do |request, **_kwargs|
+      assert_equal 3, request
+      OperationStub.new { 2 + request }
+    end
+
+    format_response = ->(response) { response.to_s }
+    api_call = Google::Gax::ApiCall.new api_meth_stub
+
+    assert_equal 5, api_call.call(3)
+    assert_equal "5", api_call.call(3, on_response: format_response)
+    assert_equal 5, api_call.call(3)
+  end
+
+  def test_call_with_on_operation
     adder = 0
 
-    api_meth_stub = proc do |request, _deadline: nil, **_kwargs|
+    api_meth_stub = proc do |request, **_kwargs|
       assert_equal 3, request
       OperationStub.new { 2 + request + adder }
     end
 
+    increment_addr = ->(*args) { adder = 5 }
     api_call = Google::Gax::ApiCall.new api_meth_stub
 
     assert_equal 5, api_call.call(3)
-    assert_equal(5, api_call.call(3, options: nil) { adder = 5 })
+    assert_equal 5, api_call.call(3, on_operation: increment_addr)
     assert_equal 10, api_call.call(3)
+  end
+
+  def test_call_with_on_response_and_on_operation
+    adder = 0
+
+    api_meth_stub = proc do |request, **_kwargs|
+      assert_equal 3, request
+      OperationStub.new { 2 + request + adder }
+    end
+
+    format_response = ->(response) { response.to_s }
+    increment_addr = ->(*args) { adder = 5 }
+    api_call = Google::Gax::ApiCall.new api_meth_stub
+
+    assert_equal 5, api_call.call(3)
+    assert_equal "5", api_call.call(3, on_response: format_response, on_operation: increment_addr)
+    assert_equal 10, api_call.call(3)
+    assert_equal "10", api_call.call(3, on_response: format_response, on_operation: increment_addr)
+    assert_equal 10, api_call.call(3)
+  end
+
+  def test_call_with_on_stream
+    all_responses = []
+
+    api_meth_stub = proc do |requests, **_kwargs, &block|
+      assert_kind_of Enumerable, requests
+      OperationStub.new { requests.each(&block) }
+    end
+
+    collect_response = ->(response) { all_responses << response }
+    api_call = Google::Gax::ApiCall.new api_meth_stub
+
+    api_call.call([:foo, :bar, :baz].to_enum, on_stream: collect_response)
+    wait_until { all_responses == [:foo, :bar, :baz] }
+    assert_equal [:foo, :bar, :baz], all_responses
+    api_call.call([:qux, :quux, :quuz].to_enum, on_stream: collect_response)
+    wait_until { all_responses == [:foo, :bar, :baz, :qux, :quux, :quuz] }
+    assert_equal [:foo, :bar, :baz, :qux, :quux, :quuz], all_responses
+  end
+
+  def test_call_with_on_stream_and_on_response
+    all_responses = []
+
+    api_meth_stub = proc do |requests, **_kwargs, &block|
+      assert_kind_of Enumerable, requests
+      OperationStub.new { requests.each(&block) }
+    end
+
+    collect_response = ->(response) { all_responses << response }
+    format_response = ->(response) { response.to_s }
+    api_call = Google::Gax::ApiCall.new api_meth_stub
+
+    api_call.call([:foo, :bar, :baz].to_enum, on_stream: collect_response)
+    wait_until { all_responses == [:foo, :bar, :baz] }
+    assert_equal [:foo, :bar, :baz], all_responses
+    api_call.call([:qux, :quux, :quuz].to_enum, on_stream: collect_response, on_response: format_response)
+    wait_until { all_responses == [:foo, :bar, :baz, "qux", "quux", "quuz"] }
+    assert_equal [:foo, :bar, :baz, "qux", "quux", "quuz"], all_responses
+  end
+
+  def test_stream_without_on_stream_and_on_response
+    all_responses = []
+
+    api_meth_stub = proc do |requests, **_kwargs, &block|
+      assert_kind_of Enumerable, requests
+      OperationStub.new { requests.each(&block) }
+    end
+
+    api_call = Google::Gax::ApiCall.new api_meth_stub
+
+    responses = api_call.call [:foo, :bar, :baz].to_enum
+    assert_kind_of Enumerable, responses
+    all_responses += responses.to_a
+    assert_equal [:foo, :bar, :baz], all_responses
+
+    responses = api_call.call [:qux, :quux, :quuz].to_enum
+    assert_kind_of Enumerable, responses
+    all_responses += responses.to_a
+    assert_equal [:foo, :bar, :baz, :qux, :quux, :quuz], all_responses
+  end
+
+  def test_stream_without_on_stream_but_on_response
+    all_responses = []
+
+    api_meth_stub = proc do |requests, **_kwargs, &block|
+      assert_kind_of Enumerable, requests
+      OperationStub.new { requests.each(&block) }
+    end
+
+    format_responses = ->(responses) { responses.lazy.map(&:to_s) }
+    api_call = Google::Gax::ApiCall.new api_meth_stub
+
+    responses = api_call.call [:foo, :bar, :baz].to_enum
+    assert_kind_of Enumerable, responses
+    all_responses += responses.to_a
+    assert_equal [:foo, :bar, :baz], all_responses
+
+    responses = api_call.call [:qux, :quux, :quuz].to_enum, on_response: format_responses
+    assert_kind_of Enumerable, responses
+    all_responses += responses.to_a
+    assert_equal [:foo, :bar, :baz, "qux", "quux", "quuz"], all_responses
+  end
+
+  ##
+  # This is an ugly way to block on concurrent criteria, but it works...
+  def wait_until iterations = 100
+    count = 0
+    loop do
+      raise "criteria not met" if count >= iterations
+      break if yield
+      sleep 0.0001
+      count += 1
+    end
   end
 end
