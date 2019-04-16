@@ -30,11 +30,11 @@
 module Google
   module Gax
     ##
-    # Adds requests to a stream and holds the stream open until {#close} is
-    # called.
+    # Manages requests for an input stream and holds the stream open until {#close} is called.
+    #
     class StreamInput
       ##
-      # dfdf
+      # Create a new input stream object to manage streaming requests and hold the stream open until {#close} is called.
       #
       # @param requests [Object]
       #
