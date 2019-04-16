@@ -34,23 +34,12 @@ module Google
   module Gax
     # Common base class for exceptions raised by GAX.
     class GaxError < StandardError
-      attr_reader :status_details
-
       # @param msg [String] describes the error that occurred.
       def initialize msg = nil
         msg = "GaxError #{msg}"
         msg += ", caused by #{$ERROR_INFO}" if $ERROR_INFO
-        super msg
-        @cause = $ERROR_INFO
-        @status_details = \
-          Google::Gax::Grpc.deserialize_error_status_details @cause
-      end
 
-      # cause is a new method introduced in 2.1.0, bring this method if it does not exist.
-      unless respond_to? :cause
-        define_method :cause do
-          @cause
-        end
+        super
       end
 
       def code

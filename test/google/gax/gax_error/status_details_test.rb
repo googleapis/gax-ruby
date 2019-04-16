@@ -1,4 +1,4 @@
-# Copyright 2016, Google Inc.
+# Copyright 2019, Google Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -16,7 +16,7 @@
 # this software without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 # LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
 # A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
 # OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
@@ -27,6 +27,50 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require "grpc"
-require "google/gax/grpc/stub"
-require "google/gax/grpc/status_details"
+require "test_helper"
+
+class GaxErrorStatusDetailsTest < Minitest::Spec
+  def test_deserializes_known_type
+    expected_error = Google::Rpc::DebugInfo.new detail: "shoes are untied"
+
+    any = Google::Protobuf::Any.new
+    any.pack expected_error
+    status = Google::Rpc::Status.new details: [any]
+    encoded = Google::Rpc::Status.encode status
+    metadata = {
+      "grpc-status-details-bin" => encoded
+    }
+    error = GRPC::BadStatus.new 1, "", metadata
+    gax_error = wrap_error error
+
+    assert_equal [expected_error], gax_error.status_details
+  end
+
+  def test_wont_deserialize_unknown_type
+    expected_error = Random.new.bytes 8
+
+    any = Google::Protobuf::Any.new(
+      type_url: "unknown-type", value: expected_error
+    )
+    status = Google::Rpc::Status.new details: [any]
+    encoded = Google::Rpc::Status.encode status
+    metadata = {
+      "grpc-status-details-bin" => encoded
+    }
+    error = GRPC::BadStatus.new 1, "", metadata
+    gax_error = wrap_error error
+
+    assert_equal [any], gax_error.status_details
+  end
+
+  def wrap_error error
+    raise error
+  rescue => raised_error
+    begin
+      klass = Google::Gax.from_error raised_error
+      raise klass, raised_error.message
+    rescue Google::Gax::GaxError => gax_err
+      gax_err
+    end
+  end
+end

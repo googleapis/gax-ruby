@@ -70,10 +70,7 @@ describe Google::Gax::GaxError do
       _(error.code).must_equal 3
       _(error.details).must_equal "invalid"
       _(error.metadata).must_equal({})
-      _(error.status_details).must_equal(
-        "Could not parse error details due to a " \
-        "malformed server response trailer."
-      )
+      _(error.status_details).must_be_nil
 
       _(error.cause).must_be_kind_of GRPC::BadStatus
       _(error.cause.message).must_equal "3:invalid"

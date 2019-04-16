@@ -1,4 +1,4 @@
-# Copyright 2019, Google Inc.
+# Copyright 2016, Google Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -16,7 +16,7 @@
 # this software without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 # LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
 # A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
 # OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
@@ -27,42 +27,34 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require "test_helper"
-require "google/gax/grpc"
+require "grpc"
+require "grpc/google_rpc_status_utils"
+require "google/gax/errors"
+require "google/protobuf/well_known_types"
+# Required in order to deserialize common error detail proto types
+require "google/rpc/error_details_pb"
 
-describe Google::Gax::Grpc do
-  describe "#deserialize_error_status_details" do
-    it "deserializes a known error type" do
-      expected_error = Google::Rpc::DebugInfo.new detail: "shoes are untied"
+module Google
+  module Gax
+    class GaxError < StandardError
+      def status_details
+        return unless cause.is_a? GRPC::BadStatus
 
-      any = Google::Protobuf::Any.new
-      any.pack expected_error
-      status = Google::Rpc::Status.new details: [any]
-      encoded = Google::Rpc::Status.encode status
-      metadata = {
-        "grpc-status-details-bin" => encoded
-      }
-      error = GRPC::BadStatus.new 1, "", metadata
+        rpc_status = GRPC::GoogleRpcStatusUtils.extract_google_rpc_status cause.to_status
 
-      error_details = Google::Gax::Grpc.deserialize_error_status_details error
-      _(error_details).must_equal [expected_error]
-    end
+        return if rpc_status.nil?
 
-    it "does not deserialize an unknown error type" do
-      expected_error = Random.new.bytes 8
-
-      any = Google::Protobuf::Any.new(
-        type_url: "unknown-type", value: expected_error
-      )
-      status = Google::Rpc::Status.new details: [any]
-      encoded = Google::Rpc::Status.encode status
-      metadata = {
-        "grpc-status-details-bin" => encoded
-      }
-      error = GRPC::BadStatus.new 1, "", metadata
-
-      error_details = Google::Gax::Grpc.deserialize_error_status_details error
-      _(error_details).must_equal [any]
+        rpc_status.details.map do |detail|
+          begin
+            detail_type = Google::Protobuf::DescriptorPool.generated_pool.lookup detail.type_name
+            detail.unpack detail_type.msgclass
+          rescue StandardError
+            detail
+          end
+        end
+      rescue StandardError
+        nil
+      end
     end
   end
 end
