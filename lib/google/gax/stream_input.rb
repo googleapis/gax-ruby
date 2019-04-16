@@ -1,4 +1,4 @@
-# Copyright 2016, Google Inc.
+# Copyright 2019, Google Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,18 +27,67 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require "google/gax/api_call"
-require "google/gax/call_options"
-require "google/gax/paged_enumerable"
-require "google/gax/constants"
-require "google/gax/errors"
-require "google/gax/settings"
-require "google/gax/stream_input"
-require "google/gax/util"
-require "google/gax/version"
-
 module Google
-  # Gax defines Google API extensions
   module Gax
+    ##
+    # Manages requests for an input stream and holds the stream open until {#close} is called.
+    #
+    class StreamInput
+      ##
+      # Create a new input stream object to manage streaming requests and hold the stream open until {#close} is called.
+      #
+      # @param requests [Object]
+      #
+      def initialize *requests
+        @queue = Queue.new
+
+        # Push initial requests into the queue
+        requests.each { |request| @queue.push request }
+      end
+
+      ##
+      # Adds a request object to the stream.
+      #
+      # @param request [Object]
+      #
+      # @return [StreamInput] Returns self.
+      #
+      def push request
+        @queue.push request
+
+        self
+      end
+      alias << push
+      alias append push
+
+      ##
+      # Closes the stream.
+      #
+      # @return [StreamInput] Returns self.
+      #
+      def close
+        @queue.push self
+
+        self
+      end
+
+      ##
+      # @private
+      # Iterates the requests given to the stream.
+      #
+      # @yield [request] The block for accessing each request.
+      # @yieldparam [Object] request The request object.
+      #
+      # @return [Enumerator] An Enumerator is returned if no block is given.
+      #
+      def to_enum
+        return enum_for :to_enum unless block_given?
+        loop do
+          request = @queue.pop
+          break if request.equal? self
+          yield request
+        end
+      end
+    end
   end
 end
