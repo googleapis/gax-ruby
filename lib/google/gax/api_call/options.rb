@@ -85,7 +85,7 @@ module Google
         def apply_defaults timeout: nil, metadata: nil, retry_policy: nil
           @timeout ||= timeout
           @metadata = metadata.merge @metadata if metadata
-          @retry_policy.merge retry_policy if @retry_policy.respond_to? :merge
+          @retry_policy.apply_defaults retry_policy if @retry_policy.respond_to? :apply_defaults
         end
       end
     end

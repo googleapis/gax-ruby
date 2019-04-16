@@ -39,9 +39,9 @@ class RetryPolicySettingsTest < Minitest::Test
     assert_equal 15, retry_policy.max_delay
   end
 
-  def test_merge_overrides_default_values
+  def test_apply_defaults_overrides_default_values
     retry_policy = Google::Gax::ApiCall::RetryPolicy.new
-    retry_policy.merge(
+    retry_policy.apply_defaults(
       retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE],
       initial_delay: 4, multiplier: 5, max_delay: 6
     )
@@ -70,12 +70,12 @@ class RetryPolicySettingsTest < Minitest::Test
     assert_equal 6, retry_policy.max_delay
   end
 
-  def test_merge_wont_override_custom_values
+  def test_apply_defaults_wont_override_custom_values
     retry_policy = Google::Gax::ApiCall::RetryPolicy.new(
       retry_codes: [GRPC::Core::StatusCodes::UNIMPLEMENTED],
       initial_delay: 7, multiplier: 6, max_delay: 5
     )
-    retry_policy.merge(
+    retry_policy.apply_defaults(
       retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE],
       initial_delay: 4, multiplier: 5, max_delay: 6
     )

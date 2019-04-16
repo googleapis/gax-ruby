@@ -76,18 +76,19 @@ module Google
         end
 
         ##
-        # @private Though not part of the public API, if the retry policy object responds to merge ApiCall will pass a
-        # Hash of configuration settings.
+        # @private
+        # Apply default values to the policy object. This does not replace user-provided values, it only overrides empty
+        # values.
         #
-        # @param settings [Hash] configuration settings to apply to the policy.
-        #
-        def merge settings
-          return unless settings.is_a? Hash
+        # @param retry_policy [Hash] The policy for error retry. keys must match the arguments for
+        #   {ApiCall::RetryPolicy.new}.
+        def apply_defaults retry_policy
+          return unless retry_policy.is_a? Hash
 
-          @retry_codes   ||= settings[:retry_codes]
-          @initial_delay ||= settings[:initial_delay]
-          @multiplier    ||= settings[:multiplier]
-          @max_delay     ||= settings[:max_delay]
+          @retry_codes   ||= retry_policy[:retry_codes]
+          @initial_delay ||= retry_policy[:initial_delay]
+          @multiplier    ||= retry_policy[:multiplier]
+          @max_delay     ||= retry_policy[:max_delay]
 
           self
         end
