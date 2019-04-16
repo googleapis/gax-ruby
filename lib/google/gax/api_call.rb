@@ -49,17 +49,14 @@ module Google
       # @param metadata [Hash] Request headers.
       # @param retry_policy [Hash] The settings for error retry, will be merged to the {CallOptions#retry_policy} object
       #   if supported.
-      # @param params_extractor [Proc] Extracts routing header params from the request.
       # @param exception_transformer [Proc] If an API exception occurs this transformer is given the original exception
       #   for custom processing instead of raising the error directly.
       #
-      def initialize stub_method, timeout: nil, metadata: nil, retry_policy: nil, params_extractor: nil,
-                     exception_transformer: nil
+      def initialize stub_method, timeout: nil, metadata: nil, retry_policy: nil, exception_transformer: nil
         @stub_method           = stub_method
         @timeout               = timeout
         @metadata              = metadata
         @retry_policy          = retry_policy
-        @params_extractor      = params_extractor
         @exception_transformer = exception_transformer
       end
 
@@ -72,8 +69,6 @@ module Google
       #
       def call request, options: nil, &block
         options = init_call_options options
-
-        apply_params_extractor! request, options
 
         deadline = calculate_deadline options
 
@@ -101,18 +96,6 @@ module Google
         options = CallOptions.new options.to_h if options.respond_to? :to_h
         options.merge timeout: @timeout, metadata: @metadata, retry_policy: @retry_policy
         options
-      end
-
-      def apply_params_extractor! request, options
-        return if @params_extractor.nil?
-
-        routing_header = calculate_routing_header request, @params_extractor
-        options.metadata["x-goog-request-params"] = routing_header
-      end
-
-      def calculate_routing_header request, params_extractor
-        params = params_extractor.call request
-        params.map { |k, v| "#{k}=#{v}" }.join("&")
       end
 
       def calculate_deadline options
