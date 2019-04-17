@@ -74,13 +74,14 @@ module Google
       def call request, options: nil, format_response: nil, operation_callback: nil, stream_callback: nil
         # Converts hash and nil to an options object
         options = ApiCall::Options.new options.to_h if options.respond_to? :to_h
-        block = compose_stream_proc stream_callback: stream_callback, format_response: format_response
+        stream_proc = compose_stream_proc stream_callback: stream_callback, format_response: format_response
         deadline = calculate_deadline options
+        metadata = options.metadata
 
         begin
-          operation = stub_method.call request, deadline: deadline, metadata: options.metadata, return_op: true, &block
+          operation = stub_method.call request, deadline: deadline, metadata: metadata, return_op: true, &stream_proc
 
-          if block
+          if stream_proc
             Thread.new { operation.execute }
           else
             response = operation.execute
