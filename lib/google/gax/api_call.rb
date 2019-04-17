@@ -60,6 +60,9 @@ module Google
       #   used once.
       # @param format_response [Proc] A Proc object to format the response object. The Proc should accept response as an
       #   argument, and return a formatted response object. Optional.
+      #
+      #   If `stream_callback` is also provided, the response argument will be an Enumerable of the responses. Returning
+      #   a lazy enumerable that adds the desired formatting is recommended.
       # @param operation_callback [Proc] A Proc object to provide a callback of the response and operation objects. The
       #   response will be formatted with `format_response` if that is also provided. Optional.
       # @param stream_callback [Proc] A Proc object to provide a callback for every streamed response received. The Proc
