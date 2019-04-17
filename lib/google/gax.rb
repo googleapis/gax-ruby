@@ -28,11 +28,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 require "google/gax/api_call"
-require "google/gax/call_options"
 require "google/gax/paged_enumerable"
-require "google/gax/constants"
 require "google/gax/errors"
-require "google/gax/settings"
+require "google/gax/operation"
 require "google/gax/stream_input"
 require "google/gax/util"
 require "google/gax/version"

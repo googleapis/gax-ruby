@@ -27,15 +27,16 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require "google/gax/api_call/retry_policy"
-require "google/gax/call_options"
+require "google/gax/api_call/options"
 require "google/gax/errors"
 
 module Google
   module Gax
     class ApiCall
+      attr_reader :stub_method
+
       ##
-      # Converts an RPC call into an API call.
+      # Creates an API object for making a single RPC call.
       #
       # In typical usage, `stub_method` will be a proc used to make an RPC request. This will mostly likely be a bound
       # method from a request Stub used to make an RPC call.
@@ -45,44 +46,113 @@ module Google
       # The result is another proc which has the same signature as the original.
       #
       # @param stub_method [Proc] Used to make a bare rpc call.
-      # @param timeout [Numeric] client-side Timeout for API calls.
-      # @param metadata [Hash] Request headers.
-      # @param retry_policy [Hash] The settings for error retry, will be merged to the {CallOptions#retry_policy} object
-      #   if supported.
-      # @param params_extractor [Proc] Extracts routing header params from the request.
-      # @param exception_transformer [Proc] If an API exception occurs this transformer is given the original exception
-      #   for custom processing instead of raising the error directly.
       #
-      def initialize stub_method, timeout: nil, metadata: nil, retry_policy: nil, params_extractor: nil,
-                     exception_transformer: nil
-        @stub_method           = stub_method
-        @timeout               = timeout
-        @metadata              = metadata
-        @retry_policy          = retry_policy
-        @params_extractor      = params_extractor
-        @exception_transformer = exception_transformer
+      def initialize stub_method
+        @stub_method = stub_method
       end
 
       ##
       # Invoke the API call.
       #
       # @param request [Object] The request object.
-      # @param options [CallOption, Hash] The options for making the API call.
-      # @param block [Proc] The proc to call when the API call is made.
+      # @param options [ApiCall::Options, Hash] The options for making the API call. A Hash can be provided to customize
+      #   the options object, using keys that match the arguments for {ApiCall::Options.new}. This object should only be
+      #   used once.
+      # @param format_response [Proc] A Proc object to format the response object. The Proc should accept response as an
+      #   argument, and return a formatted response object. Optional.
       #
-      def call request, options: nil, &block
-        options = init_call_options options
-
-        apply_params_extractor! request, options
-
+      #   If `stream_callback` is also provided, the response argument will be an Enumerable of the responses. Returning
+      #   a lazy enumerable that adds the desired formatting is recommended.
+      # @param operation_callback [Proc] A Proc object to provide a callback of the response and operation objects. The
+      #   response will be formatted with `format_response` if that is also provided. Optional.
+      # @param stream_callback [Proc] A Proc object to provide a callback for every streamed response received. The Proc
+      #   will be called with the response object. Should only be used on Bidi and Server streaming RPC calls. Optional.
+      #
+      # @return [Object, Thread] The response object. Or, when `stream_callback` is provided, a thread running the
+      #   callback for every streamed response is returned.
+      #
+      # @example
+      #   require "google/showcase/v1alpha3/echo_pb"
+      #   require "google/showcase/v1alpha3/echo_services_pb"
+      #   require "google/gax"
+      #   require "google/gax/grpc"
+      #
+      #   echo_channel = GRPC::Core::Channel.new(
+      #     "localhost:7469", nil, :this_channel_is_insecure
+      #   )
+      #   echo_stub = Google::Gax::Grpc.create_stub(
+      #     "localhost", 7469, channel: echo_channel,
+      #     &Google::Showcase::V1alpha3::Echo::Stub.method(:new)
+      #   )
+      #   echo_call = Google::Gax::ApiCall.new echo_stub.method :echo
+      #
+      #   request = Google::Showcase::V1alpha3::EchoRequest.new
+      #   response = echo_call.call request
+      #
+      # @example Using custom call options:
+      #   require "google/showcase/v1alpha3/echo_pb"
+      #   require "google/showcase/v1alpha3/echo_services_pb"
+      #   require "google/gax"
+      #   require "google/gax/grpc"
+      #
+      #   echo_channel = GRPC::Core::Channel.new(
+      #     "localhost:7469", nil, :this_channel_is_insecure
+      #   )
+      #   echo_stub = Google::Gax::Grpc.create_stub(
+      #     "localhost", 7469, channel: echo_channel,
+      #     &Google::Showcase::V1alpha3::Echo::Stub.method(:new)
+      #   )
+      #   echo_call = Google::Gax::ApiCall.new echo_stub.method :echo
+      #
+      #   request = Google::Showcase::V1alpha3::EchoRequest.new
+      #   options = Google::Gax::ApiCall::Options.new(
+      #     retry_policy = {
+      #       retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE]
+      #     }
+      #   )
+      #   response = echo_call.call request, options: options
+      #
+      # @example Formatting the response in the call:
+      #   require "google/showcase/v1alpha3/echo_pb"
+      #   require "google/showcase/v1alpha3/echo_services_pb"
+      #   require "google/gax"
+      #   require "google/gax/grpc"
+      #
+      #   echo_channel = GRPC::Core::Channel.new(
+      #     "localhost:7469", nil, :this_channel_is_insecure
+      #   )
+      #   echo_stub = Google::Gax::Grpc.create_stub(
+      #     "localhost", 7469, channel: echo_channel,
+      #     &Google::Showcase::V1alpha3::Echo::Stub.method(:new)
+      #   )
+      #   echo_call = Google::Gax::ApiCall.new echo_stub.method :echo
+      #
+      #   request = Google::Showcase::V1alpha3::EchoRequest.new
+      #   content_upcaser = proc do |response|
+      #     format_response = response.dup
+      #     format_response.content.upcase!
+      #     format_response
+      #   end
+      #   response = echo_call.call request, format_response: content_upcaser
+      #
+      def call request, options: nil, format_response: nil, operation_callback: nil, stream_callback: nil
+        # Converts hash and nil to an options object
+        options = ApiCall::Options.new options.to_h if options.respond_to? :to_h
+        stream_proc = compose_stream_proc stream_callback: stream_callback, format_response: format_response
         deadline = calculate_deadline options
+        metadata = options.metadata
 
         begin
-          op = @stub_method.call request, deadline: deadline, metadata: options.metadata, return_op: true
+          operation = stub_method.call request, deadline: deadline, metadata: metadata, return_op: true, &stream_proc
 
-          res = op.execute
-          yield op if block
-          res
+          if stream_proc
+            Thread.new { operation.execute }
+          else
+            response = operation.execute
+            response = format_response.call response if format_response
+            operation_callback&.call response, operation
+            response
+          end
         rescue StandardError => error
           if check_retry? deadline
             retry if options.retry_policy.call error
@@ -90,29 +160,17 @@ module Google
 
           error = Google::Gax.from_error(error).new "RPC failed" if error.is_a? GRPC::BadStatus
 
-          raise error if @exception_transformer.nil?
-          @exception_transformer.call error
+          raise error
         end
       end
 
       private
 
-      def init_call_options options
-        options = CallOptions.new options.to_h if options.respond_to? :to_h
-        options.merge timeout: @timeout, metadata: @metadata, retry_policy: @retry_policy
-        options
-      end
+      def compose_stream_proc stream_callback: nil, format_response: nil
+        return unless stream_callback
+        return stream_callback unless format_response
 
-      def apply_params_extractor! request, options
-        return if @params_extractor.nil?
-
-        routing_header = calculate_routing_header request, @params_extractor
-        options.metadata["x-goog-request-params"] = routing_header
-      end
-
-      def calculate_routing_header request, params_extractor
-        params = params_extractor.call request
-        params.map { |k, v| "#{k}=#{v}" }.join("&")
+        proc { |response| stream_callback.call format_response.call response }
       end
 
       def calculate_deadline options

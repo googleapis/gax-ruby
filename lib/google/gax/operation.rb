@@ -27,9 +27,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# These must be loaded separate from google/gax to avoid circular dependency.
-require "google/gax/constants"
-require "google/gax/settings"
+require "google/gax/operation/retry_policy"
 require "google/protobuf/well_known_types"
 
 module Google
@@ -38,8 +36,8 @@ module Google
     # status of an Operation
     #
     # @example Checking Operation status
-    #   require 'google/gax/operation'
-    #   require 'google/longrunning/operations_client'
+    #   require "google/gax/operation"
+    #   require "google/longrunning/operations_client"
     #
     #   operations_client = Google::Longrunning::OperationsClient.new
     #   op = Google::Gax::Operation.new(
@@ -59,8 +57,8 @@ module Google
     #   end
     #
     # @example Working with callbacks
-    #   require 'google/gax/operation'
-    #   require 'google/longrunning/operations_client'
+    #   require "google/gax/operation"
+    #   require "google/longrunning/operations_client"
     #
     #   operations_client = Google::Longrunning::OperationsClient.new
     #   op = Google::Gax::Operation.new(
@@ -91,13 +89,8 @@ module Google
     # @attribute [r] grpc_op
     #   @return [Google::Longrunning::Operation] The wrapped grpc
     #     operation object.
-    # @attribute [rw] call_options
-    #   @return [Google::Gax::CallOptions] The call options used when reloading
-    #     the operation.
     class Operation
       attr_reader :grpc_op
-
-      attr_accessor :call_options
 
       ##
       # @param grpc_op [Google::Longrunning::Operation] The inital longrunning operation.
@@ -106,25 +99,21 @@ module Google
       #   looked up. Optional.
       # @param metadata_type [Class] The class type to be unpacked from the metadata. If not provided the class type
       #   will be looked up. Optional.
-      # @param call_options [Google::Gax::CallOptions] The call options that are used when reloading the operation.
-      #   Optional.
       #
-      def initialize grpc_op, client, result_type = nil, metadata_type = nil,
-                     call_options: nil
+      def initialize grpc_op, client, result_type = nil, metadata_type = nil
         @grpc_op = grpc_op
         @client = client
-        @call_options = call_options
         @result_type = result_type
         @metadata_type = metadata_type
-        @callbacks = []
+        @on_done_callbacks = []
       end
 
       ##
       # If the operation is done, returns the response. If the operation response is an error, the error will be
       # returned. Otherwise returns nil.
       #
-      # @return [Object, Google::Rpc::Status, nil] The result of the operation. If it is an error a Google::Rpc::Status
-      #   will be returned.
+      # @return [Object, Google::Rpc::Status, nil] The result of the operation. If it is an error a
+      #   {Google::Rpc::Status} will be returned.
       def results
         return error if error?
         return response if response?
@@ -144,7 +133,7 @@ module Google
       # Returns the metadata of an operation. If a type is provided, the metadata will be unpacked using the type
       # provided; returning nil if the metadata is not of the type provided. If the type is not of provided, the
       # metadata will be unpacked using the metadata's type_url if the type_url is found in the
-      # Google::Protobuf::DescriptorPool.generated_pool. If the type cannot be found the raw metadata is retuned.
+      # {Google::Protobuf::DescriptorPool.generated_pool}. If the type cannot be found the raw metadata is retuned.
       #
       # @return [Object, nil] The metadata of the operation. Can be nil.
       #
@@ -218,28 +207,46 @@ module Google
       ##
       # Cancels the operation.
       #
-      def cancel
-        @client.cancel_operation @grpc_op.name
+      # @param options [ApiCall::Options, Hash] The options for making the API call. A Hash can be provided to customize
+      #   the options object, using keys that match the arguments for {ApiCall::Options.new}.
+      #
+      def cancel options: nil
+        # Converts hash and nil to an options object
+        options = ApiCall::Options.new options.to_h if options.respond_to? :to_h
+
+        @client.cancel_operation @grpc_op.name, options: options
       end
 
       ##
       # Deletes the operation.
       #
-      def delete
-        @client.delete_operation @grpc_op.name
+      # @param options [ApiCall::Options, Hash] The options for making the API call. A Hash can be provided to customize
+      #   the options object, using keys that match the arguments for {ApiCall::Options.new}.
+      #
+      def delete options: nil
+        # Converts hash and nil to an options object
+        options = ApiCall::Options.new options.to_h if options.respond_to? :to_h
+
+        @client.delete_operation @grpc_op.name, options: options
       end
 
       ##
       # Reloads the operation object.
       #
+      # @param options [ApiCall::Options, Hash] The options for making the API call. A Hash can be provided to customize
+      #   the options object, using keys that match the arguments for {ApiCall::Options.new}.
+      #
       # @return [Google::Gax::Operation] Since this method changes internal state, it returns itself.
       #
-      def reload!
-        @grpc_op = @client.get_operation @grpc_op.name, options: @call_options
+      def reload! options: nil
+        # Converts hash and nil to an options object
+        options = ApiCall::Options.new options.to_h if options.respond_to? :to_h
+
+        @grpc_op = @client.get_operation @grpc_op.name, options: options
 
         if done?
-          @callbacks.each { |proc| proc.call self }
-          @callbacks.clear
+          @on_done_callbacks.each { |proc| proc.call self }
+          @on_done_callbacks.clear
         end
 
         self
@@ -250,34 +257,23 @@ module Google
       # Blocking method to wait until the operation has completed or the maximum timeout has been reached. Upon
       # completion, registered callbacks will be called, then - if a block is given - the block will be called.
       #
-      # @param backoff_settings [Google::Gax::BackoffSettings] The backoff settings used to manipulate how this method
-      #   retries checking if the operation is done.
+      # @param retry_policy [RetryPolicy, Hash, Proc] The policy for retry. A custom proc that takes the error as an
+      #   argument and blocks can also be provided.
       #
       # @yield operation [Google::Gax::Operation] Yields the finished Operation.
       #
-      def wait_until_done! backoff_settings: nil
-        backoff_settings ||= BackoffSettings.new(
-          10 * MILLIS_PER_SECOND,
-          1.3,
-          5 * 60 * MILLIS_PER_SECOND,
-          0,
-          0,
-          0,
-          60 * 60 * MILLIS_PER_SECOND
-        )
+      def wait_until_done! retry_policy: nil
+        retry_policy = RetryPolicy.new retry_policy if retry_policy.is_a? Hash
+        retry_policy ||= RetryPolicy.new
 
-        delay = backoff_settings.initial_retry_delay_millis / MILLIS_PER_SECOND
-        max_delay = backoff_settings.max_retry_delay_millis / MILLIS_PER_SECOND
-        delay_multiplier = backoff_settings.retry_delay_multiplier
-        total_timeout = backoff_settings.total_timeout_millis / MILLIS_PER_SECOND
-        deadline = Time.now + total_timeout
         until done?
-          sleep delay
-          raise RetryError, "Retry total timeout exceeded with exception" if Time.now >= deadline
-          delay = [delay * delay_multiplier, max_delay].min
           reload!
+          break unless retry_policy.call
         end
+
         yield self if block_given?
+
+        self
       end
 
       ##
@@ -290,7 +286,7 @@ module Google
         if done?
           yield self
         else
-          @callbacks.push block
+          @on_done_callbacks.push block
         end
       end
     end

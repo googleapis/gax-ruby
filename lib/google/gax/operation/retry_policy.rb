@@ -29,34 +29,29 @@
 
 module Google
   module Gax
-    class ApiCall
+    class Operation
       ##
-      # The policy for retrying failed API calls using an incremental backoff. A new object instance should be used for
-      # every ApiCall invocation.
-      #
-      # Only errors orginating from GRPC will be retried.
+      # The policy for retrying operation reloads using an incremental backoff. A new object instance should be used for
+      # every Operation invocation.
       #
       class RetryPolicy
         ##
-        # Create new API Call RetryPolicy.
+        # Create new Operation RetryPolicy.
         #
         # @param initial_delay [Numeric] client-side timeout
         # @param multiplier [Numeric] client-side timeout
         # @param max_delay [Numeric] client-side timeout
+        # @param timeout [Numeric] client-side timeout
         #
-        def initialize retry_codes: nil, initial_delay: nil, multiplier: nil, max_delay: nil
-          @retry_codes   = retry_codes
+        def initialize initial_delay: nil, multiplier: nil, max_delay: nil, timeout: nil
           @initial_delay = initial_delay
           @multiplier    = multiplier
           @max_delay     = max_delay
-        end
-
-        def retry_codes
-          @retry_codes || []
+          @timeout       = timeout
         end
 
         def initial_delay
-          @initial_delay || 1
+          @initial_delay || 10
         end
 
         def multiplier
@@ -64,17 +59,15 @@ module Google
         end
 
         def max_delay
-          @max_delay || 15
+          @max_delay || 300 # Five minutes
         end
 
-        ##
-        # The current delay value.
-        def delay
-          @delay || initial_delay
+        def timeout
+          @timeout || 3600 # One hour
         end
 
-        def call error
-          return false unless retry? error
+        def call
+          return unless retry?
 
           delay!
           increment_delay!
@@ -82,28 +75,21 @@ module Google
           true
         end
 
-        ##
-        # @private
-        # Apply default values to the policy object. This does not replace user-provided values, it only overrides empty
-        # values.
-        #
-        # @param retry_policy [Hash] The policy for error retry. keys must match the arguments for
-        #   {ApiCall::RetryPolicy.new}.
-        def apply_defaults retry_policy
-          return unless retry_policy.is_a? Hash
-
-          @retry_codes   ||= retry_policy[:retry_codes]
-          @initial_delay ||= retry_policy[:initial_delay]
-          @multiplier    ||= retry_policy[:multiplier]
-          @max_delay     ||= retry_policy[:max_delay]
-
-          self
-        end
-
         private
 
-        def retry? error
-          error.is_a?(GRPC::BadStatus) && retry_codes.include?(error.code)
+        def deadline
+          # memoize the deadline
+          @deadline ||= Time.now + timeout
+        end
+
+        def retry?
+          deadline > Time.now
+        end
+
+        ##
+        # The current delay value.
+        def delay
+          @delay || initial_delay
         end
 
         def delay!

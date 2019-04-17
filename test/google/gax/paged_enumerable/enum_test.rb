@@ -48,7 +48,7 @@ describe Google::Gax::PagedEnumerable, :enumerable do
       ],
       next_page_token: "next"
     )
-    options = Google::Gax::CallOptions.new
+    options = Google::Gax::ApiCall::Options.new
     paged_enum = Google::Gax::PagedEnumerable.new(
       api_call, request, response, options
     )
@@ -74,7 +74,7 @@ describe Google::Gax::PagedEnumerable, :enumerable do
       ],
       next_page_token: "next"
     )
-    options = Google::Gax::CallOptions.new
+    options = Google::Gax::ApiCall::Options.new
     paged_enum = Google::Gax::PagedEnumerable.new(
       api_call, request, response, options
     )

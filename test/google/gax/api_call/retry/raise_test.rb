@@ -39,7 +39,7 @@ class ApiCallRetryTest < Minitest::Test
 
     api_call = Google::Gax::ApiCall.new api_meth_stub
 
-    options = Google::Gax::CallOptions.new # no codes
+    options = Google::Gax::ApiCall::Options.new # no codes
     assert_raises Google::Gax::GaxError do
       api_call.call Object.new, options: options
     end
@@ -52,7 +52,7 @@ class ApiCallRetryTest < Minitest::Test
     end
     api_call = Google::Gax::ApiCall.new api_meth_stub
 
-    options = Google::Gax::CallOptions.new(
+    options = Google::Gax::ApiCall::Options.new(
       retry_policy: { retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE] }
     )
     assert_raises Google::Gax::GaxError do
@@ -67,7 +67,7 @@ class ApiCallRetryTest < Minitest::Test
     end
     api_call = Google::Gax::ApiCall.new api_meth_stub
 
-    options = Google::Gax::CallOptions.new(
+    options = Google::Gax::ApiCall::Options.new(
       retry_policy: { retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE] }
     )
     assert_raises FakeCodeError do
@@ -100,7 +100,7 @@ class ApiCallRetryTest < Minitest::Test
     sleep_mock.expect :sleep, nil, [1 * 1.3 * 1.3 * 1.3]
     sleep_proc = ->(count) { sleep_mock.sleep count }
 
-    options = Google::Gax::CallOptions.new(
+    options = Google::Gax::ApiCall::Options.new(
       retry_policy: { retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE] }
     )
 

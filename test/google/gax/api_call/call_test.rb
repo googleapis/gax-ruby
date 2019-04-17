@@ -44,50 +44,152 @@ class ApiCallTest < Minitest::Test
     assert_kind_of Time, deadline_arg
 
     new_deadline = Time.now + 20
-    options = Google::Gax::CallOptions.new timeout: 20
+    options = Google::Gax::ApiCall::Options.new timeout: 20
 
     assert_equal 42, api_call.call(Object.new, options: options)
     assert_in_delta new_deadline, deadline_arg, 0.9
   end
 
-  def test_call_with_block
+  def test_call_with_format_response
+    api_meth_stub = proc do |request, **_kwargs|
+      assert_equal 3, request
+      OperationStub.new { 2 + request }
+    end
+
+    format_response = ->(response) { response.to_s }
+    api_call = Google::Gax::ApiCall.new api_meth_stub
+
+    assert_equal 5, api_call.call(3)
+    assert_equal "5", api_call.call(3, format_response: format_response)
+    assert_equal 5, api_call.call(3)
+  end
+
+  def test_call_with_operation_callback
     adder = 0
 
-    api_meth_stub = proc do |request, _deadline: nil, **_kwargs|
+    api_meth_stub = proc do |request, **_kwargs|
       assert_equal 3, request
       OperationStub.new { 2 + request + adder }
     end
 
+    increment_addr = ->(*args) { adder = 5 }
     api_call = Google::Gax::ApiCall.new api_meth_stub
 
     assert_equal 5, api_call.call(3)
-    assert_equal(5, api_call.call(3, options: nil) { adder = 5 })
+    assert_equal 5, api_call.call(3, operation_callback: increment_addr)
     assert_equal 10, api_call.call(3)
   end
 
-  def test_with_routing_header
-    metadata_arg = nil
-    inner_stub = proc do |_, metadata: nil, **_deadline|
-      metadata_arg = metadata
-      42
+  def test_call_with_format_response_and_operation_callback
+    adder = 0
+
+    api_meth_stub = proc do |request, **_kwargs|
+      assert_equal 3, request
+      OperationStub.new { 2 + request + adder }
     end
 
-    api_meth_stub = proc do |request, **kwargs|
-      OperationStub.new { inner_stub.call request, **kwargs }
+    format_response = ->(response) { response.to_s }
+    increment_addr = ->(*args) { adder = 5 }
+    api_call = Google::Gax::ApiCall.new api_meth_stub
+
+    assert_equal 5, api_call.call(3)
+    assert_equal "5", api_call.call(3, format_response: format_response, operation_callback: increment_addr)
+    assert_equal 10, api_call.call(3)
+    assert_equal "10", api_call.call(3, format_response: format_response, operation_callback: increment_addr)
+    assert_equal 10, api_call.call(3)
+  end
+
+  def test_call_with_stream_callback
+    all_responses = []
+
+    api_meth_stub = proc do |requests, **_kwargs, &block|
+      assert_kind_of Enumerable, requests
+      OperationStub.new { requests.each(&block) }
     end
 
-    params_extractor = proc do |request|
-      { "name" => request[:name], "book.read" => request[:book][:read] }
+    collect_response = ->(response) { all_responses << response }
+    api_call = Google::Gax::ApiCall.new api_meth_stub
+
+    api_call.call([:foo, :bar, :baz].to_enum, stream_callback: collect_response)
+    wait_until { all_responses == [:foo, :bar, :baz] }
+    assert_equal [:foo, :bar, :baz], all_responses
+    api_call.call([:qux, :quux, :quuz].to_enum, stream_callback: collect_response)
+    wait_until { all_responses == [:foo, :bar, :baz, :qux, :quux, :quuz] }
+    assert_equal [:foo, :bar, :baz, :qux, :quux, :quuz], all_responses
+  end
+
+  def test_call_with_stream_callback_and_format_response
+    all_responses = []
+
+    api_meth_stub = proc do |requests, **_kwargs, &block|
+      assert_kind_of Enumerable, requests
+      OperationStub.new { requests.each(&block) }
     end
 
-    api_call = Google::Gax::ApiCall.new(
-      api_meth_stub, params_extractor: params_extractor
-    )
+    collect_response = ->(response) { all_responses << response }
+    format_response = ->(response) { response.to_s }
+    api_call = Google::Gax::ApiCall.new api_meth_stub
 
-    assert_equal(42, api_call.call(name: "foo", book: { read: true }))
-    assert_equal(
-      { "x-goog-request-params" => "name=foo&book.read=true" },
-      metadata_arg
-    )
+    api_call.call([:foo, :bar, :baz].to_enum, stream_callback: collect_response)
+    wait_until { all_responses == [:foo, :bar, :baz] }
+    assert_equal [:foo, :bar, :baz], all_responses
+    api_call.call([:qux, :quux, :quuz].to_enum, stream_callback: collect_response, format_response: format_response)
+    wait_until { all_responses == [:foo, :bar, :baz, "qux", "quux", "quuz"] }
+    assert_equal [:foo, :bar, :baz, "qux", "quux", "quuz"], all_responses
+  end
+
+  def test_stream_without_stream_callback_and_format_response
+    all_responses = []
+
+    api_meth_stub = proc do |requests, **_kwargs, &block|
+      assert_kind_of Enumerable, requests
+      OperationStub.new { requests.each(&block) }
+    end
+
+    api_call = Google::Gax::ApiCall.new api_meth_stub
+
+    responses = api_call.call [:foo, :bar, :baz].to_enum
+    assert_kind_of Enumerable, responses
+    all_responses += responses.to_a
+    assert_equal [:foo, :bar, :baz], all_responses
+
+    responses = api_call.call [:qux, :quux, :quuz].to_enum
+    assert_kind_of Enumerable, responses
+    all_responses += responses.to_a
+    assert_equal [:foo, :bar, :baz, :qux, :quux, :quuz], all_responses
+  end
+
+  def test_stream_without_stream_callback_but_format_response
+    all_responses = []
+
+    api_meth_stub = proc do |requests, **_kwargs, &block|
+      assert_kind_of Enumerable, requests
+      OperationStub.new { requests.each(&block) }
+    end
+
+    format_responses = ->(responses) { responses.lazy.map(&:to_s) }
+    api_call = Google::Gax::ApiCall.new api_meth_stub
+
+    responses = api_call.call [:foo, :bar, :baz].to_enum
+    assert_kind_of Enumerable, responses
+    all_responses += responses.to_a
+    assert_equal [:foo, :bar, :baz], all_responses
+
+    responses = api_call.call [:qux, :quux, :quuz].to_enum, format_response: format_responses
+    assert_kind_of Enumerable, responses
+    all_responses += responses.to_a
+    assert_equal [:foo, :bar, :baz, "qux", "quux", "quuz"], all_responses
+  end
+
+  ##
+  # This is an ugly way to block on concurrent criteria, but it works...
+  def wait_until iterations = 100
+    count = 0
+    loop do
+      raise "criteria not met" if count >= iterations
+      break if yield
+      sleep 0.0001
+      count += 1
+    end
   end
 end
