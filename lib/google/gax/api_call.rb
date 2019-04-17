@@ -61,7 +61,7 @@ module Google
       # @param format_response [Proc] A Proc object to format the response object. The Proc should accept response as an
       #   argument, and return a formatted response object. Optional.
       # @param operation_callback [Proc] A Proc object to provide a callback of the response and operation objects. The
-      #   Proc will be called with both the response and operation objects. Optional.
+      #   response will be formatted with `format_response` if that is also provided. Optional.
       # @param stream_callback [Proc] A Proc object to provide a callback for every streamed response received. The Proc
       #   will be called with the response object. Should only be used on Bidi and Server streaming RPC calls. Optional.
       #
