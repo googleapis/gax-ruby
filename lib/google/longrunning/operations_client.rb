@@ -97,6 +97,7 @@ module Google
           credentials: nil,
           scopes: ALL_SCOPES,
           timeout: DEFAULT_TIMEOUT,
+          metadata: nil,
           lib_name: nil,
           lib_version: ""
         # These require statements are intentionally placed here to initialize
@@ -105,55 +106,21 @@ module Google
         require "google/gax/grpc"
         require "google/longrunning/operations_services_pb"
 
+        if credentials.is_a?(String) || credentials.is_a?(Hash)
+          credentials = Google::Auth::Credentials.new credentials, scope: scopes
+        end
         credentials ||= Google::Auth::Credentials.default scope: scopes
 
-        if credentials.is_a?(String) || credentials.is_a?(Hash)
-          updater_proc = Google::Auth::Credentials.new(credentials, scope: scopes).updater_proc
-        end
-        channel = credentials if credentials.is_a? GRPC::Core::Channel
-        chan_creds = credentials if credentials.is_a? GRPC::Core::ChannelCredentials
-        updater_proc = credentials if credentials.is_a? Proc
-        updater_proc = credentials.updater_proc if credentials.is_a? Google::Auth::Credentials
+        @operations_stub = create_stub credentials, scopes
 
-        metadata = default_gax_client_metadata lib_name, lib_version
-
-        # Allow overriding the service path/port in subclasses.
-        service_path = self.class::SERVICE_ADDRESS
-        port = self.class::DEFAULT_SERVICE_PORT
-        @operations_stub = Google::Gax::Grpc.create_stub(
-          service_path,
-          port,
-          chan_creds:   chan_creds,
-          channel:      channel,
-          updater_proc: updater_proc,
-          scopes:       scopes,
-          &Google::Longrunning::Operations::Stub.method(:new)
-        )
-
-        @get_operation = Google::Gax::ApiCall.new(
-          @operations_stub.method(:get_operation),
-          timeout: timeout, metadata: metadata,
-          retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE]
-        )
-        @list_operations = Google::Gax::ApiCall.new(
-          @operations_stub.method(:list_operations),
-          timeout: timeout, metadata: metadata,
-          retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE]
-        )
-        @cancel_operation = Google::Gax::ApiCall.new(
-          @operations_stub.method(:cancel_operation),
-          timeout: timeout, metadata: metadata,
-          retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE]
-        )
-        @delete_operation = Google::Gax::ApiCall.new(
-          @operations_stub.method(:delete_operation),
-          timeout: timeout, metadata: metadata,
-          retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE]
-        )
+        @timeout = timeout
+        @metadata = metadata.to_h
+        @metadata["x-goog-api-client"] ||= x_goog_api_client_header lib_name, lib_version
       end
 
       # Service calls
 
+      ##
       # Gets the latest state of a long-running operation.  Clients can use this
       # method to poll the operation result at intervals as recommended by the API
       # service.
@@ -172,14 +139,21 @@ module Google
       #   name = ''
       #   response = operations_client.get_operation(name)
 
-      def get_operation \
-          name,
-          options: nil
-        req = {
-          name: name
-        }.delete_if { |_, v| v.nil? }
-        req = Google::Gax.to_proto req, Google::Longrunning::GetOperationRequest
-        @get_operation.call req, options
+      def get_operation request = nil, options: nil, **request_fields, &block
+        raise ArgumentError, "request must be provided" if request.nil? && request_fields.empty?
+        if !request.nil? && !request_fields.empty?
+          raise ArgumentError, "cannot pass both request object and named arguments"
+        end
+
+        request ||= request_fields
+        request = Google::Gax.to_proto request, Google::Longrunning::GetOperationRequest
+
+        # Converts hash and nil to an options object
+        options = Google::Gax::ApiCall::Options.new options.to_h if options.respond_to? :to_h
+        options.apply_defaults timeout: @timeout
+
+        @echo ||= Google::Gax::ApiCall.new @operations_stub.method :echo
+        @echo.call request, options: options, on_operation: block
       end
 
       # Lists operations that match the specified filter in the request. If the
@@ -227,19 +201,23 @@ module Google
       #     end
       #   end
 
-      def list_operations \
-          name,
-          filter,
-          page_size: nil,
-          options: nil
-        req = {
-          name:      name,
-          filter:    filter,
-          page_size: page_size
-        }.delete_if { |_, v| v.nil? }
-        req = Google::Gax.to_proto req, Google::Longrunning::ListOperationsRequest
-        resp = @list_operations.call req, options
-        Google::Gax::PagedEnumerable.new @list_operations, req, resp, options
+      def list_operations request = nil, options: nil, **request_fields, &block
+        raise ArgumentError, "request must be provided" if request.nil? && request_fields.empty?
+        if !request.nil? && !request_fields.empty?
+          raise ArgumentError, "cannot pass both request object and named arguments"
+        end
+
+        request ||= request_fields
+        request = Google::Gax.to_proto request, Google::Longrunning::ListOperationsRequest
+
+        # Converts hash and nil to an options object
+        options = Google::Gax::ApiCall::Options.new options.to_h if options.respond_to? :to_h
+        options.apply_defaults timeout: @timeout
+
+        on_response = ->(response) { Google::Gax::PagedEnumerable response }
+
+        @echo ||= Google::Gax::ApiCall.new @operations_stub.method :echo
+        @echo.call request, options: options, on_operation: block, on_response: on_response
       end
 
       # Starts asynchronous cancellation on a long-running operation.  The server
@@ -266,15 +244,21 @@ module Google
       #   name = ''
       #   operations_client.cancel_operation(name)
 
-      def cancel_operation \
-          name,
-          options: nil
-        req = {
-          name: name
-        }.delete_if { |_, v| v.nil? }
-        req = Google::Gax.to_proto req, Google::Longrunning::CancelOperationRequest
-        @cancel_operation.call req, options
-        nil
+      def cancel_operation request = nil, options: nil, **request_fields, &block
+        raise ArgumentError, "request must be provided" if request.nil? && request_fields.empty?
+        if !request.nil? && !request_fields.empty?
+          raise ArgumentError, "cannot pass both request object and named arguments"
+        end
+
+        request ||= request_fields
+        request = Google::Gax.to_proto request, Google::Longrunning::CancelOperationRequest
+
+        # Converts hash and nil to an options object
+        options = Google::Gax::ApiCall::Options.new options.to_h if options.respond_to? :to_h
+        options.apply_defaults timeout: @timeout
+
+        @echo ||= Google::Gax::ApiCall.new @operations_stub.method :echo
+        @echo.call request, options: options, on_operation: block
       end
 
       # Deletes a long-running operation. This method indicates that the client is
@@ -295,30 +279,60 @@ module Google
       #   name = ''
       #   operations_client.delete_operation(name)
 
-      def delete_operation \
-          name,
-          options: nil
-        req = {
-          name: name
-        }.delete_if { |_, v| v.nil? }
-        req = Google::Gax.to_proto req, Google::Longrunning::DeleteOperationRequest
-        @delete_operation.call req, options
-        nil
+      def delete_operation request = nil, options: nil, **request_fields, &block
+        raise ArgumentError, "request must be provided" if request.nil? && request_fields.empty?
+        if !request.nil? && !request_fields.empty?
+          raise ArgumentError, "cannot pass both request object and named arguments"
+        end
+
+        request ||= request_fields
+        request = Google::Gax.to_proto request, Google::Longrunning::DeleteOperationRequest
+
+        # Converts hash and nil to an options object
+        options = Google::Gax::ApiCall::Options.new options.to_h if options.respond_to? :to_h
+        options.apply_defaults timeout: @timeout
+
+        @echo ||= Google::Gax::ApiCall.new @operations_stub.method :echo
+        @echo.call request, options: options, on_operation: block
       end
 
       protected
 
-      def default_gax_client_metadata lib_name, lib_version
-        package_version = Gem.loaded_specs["google-gax"].version.version
+      def create_stub credentials, scopes
+        if credentials.is_a?(String) || credentials.is_a?(Hash)
+          updater_proc = Google::Auth::Credentials.new(credentials).updater_proc
+        elsif credentials.is_a? GRPC::Core::Channel
+          channel = credentials
+        elsif credentials.is_a? GRPC::Core::ChannelCredentials
+          chan_creds = credentials
+        elsif credentials.is_a? Proc
+          updater_proc = credentials
+        elsif credentials.is_a? Google::Auth::Credentials
+          updater_proc = credentials.updater_proc
+        end
 
-        google_api_client = ["gl-ruby/#{RUBY_VERSION}"]
-        google_api_client << "#{lib_name}/#{lib_version}" if lib_name
-        google_api_client << "gapic/#{package_version}"
-        google_api_client << "gax/#{Google::Gax::VERSION}"
-        google_api_client << "grpc/#{GRPC::VERSION}"
-        google_api_client.join " "
+        # Allow overriding the service path/port in subclasses.
+        service_path = self.class::SERVICE_ADDRESS
+        port = self.class::DEFAULT_SERVICE_PORT
+        interceptors = self.class::GRPC_INTERCEPTORS
+        Google::Gax::Grpc.create_stub(
+          service_path,
+          port,
+          chan_creds:   chan_creds,
+          channel:      channel,
+          updater_proc: updater_proc,
+          scopes:       scopes,
+          interceptors: interceptors,
+          &Google::Longrunning::Operations::Stub.method(:new)
+        )
+      end
 
-        { "x-goog-api-client" => google_api_client }
+      def x_goog_api_client_header lib_name, lib_version
+        x_goog_api_client_header = ["gl-ruby/#{RUBY_VERSION}"]
+        x_goog_api_client_header << "#{lib_name}/#{lib_version}" if lib_name
+        x_goog_api_client_header << "gax/#{Google::Gax::VERSION}"
+        x_goog_api_client_header << "grpc/#{GRPC::VERSION}"
+        x_goog_api_client_header.join " "
       end
     end
   end
