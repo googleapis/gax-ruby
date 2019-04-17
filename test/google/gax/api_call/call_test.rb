@@ -50,7 +50,7 @@ class ApiCallTest < Minitest::Test
     assert_in_delta new_deadline, deadline_arg, 0.9
   end
 
-  def test_call_with_on_response
+  def test_call_with_format_response
     api_meth_stub = proc do |request, **_kwargs|
       assert_equal 3, request
       OperationStub.new { 2 + request }
@@ -60,11 +60,11 @@ class ApiCallTest < Minitest::Test
     api_call = Google::Gax::ApiCall.new api_meth_stub
 
     assert_equal 5, api_call.call(3)
-    assert_equal "5", api_call.call(3, on_response: format_response)
+    assert_equal "5", api_call.call(3, format_response: format_response)
     assert_equal 5, api_call.call(3)
   end
 
-  def test_call_with_on_operation
+  def test_call_with_operation_callback
     adder = 0
 
     api_meth_stub = proc do |request, **_kwargs|
@@ -76,11 +76,11 @@ class ApiCallTest < Minitest::Test
     api_call = Google::Gax::ApiCall.new api_meth_stub
 
     assert_equal 5, api_call.call(3)
-    assert_equal 5, api_call.call(3, on_operation: increment_addr)
+    assert_equal 5, api_call.call(3, operation_callback: increment_addr)
     assert_equal 10, api_call.call(3)
   end
 
-  def test_call_with_on_response_and_on_operation
+  def test_call_with_format_response_and_operation_callback
     adder = 0
 
     api_meth_stub = proc do |request, **_kwargs|
@@ -93,13 +93,13 @@ class ApiCallTest < Minitest::Test
     api_call = Google::Gax::ApiCall.new api_meth_stub
 
     assert_equal 5, api_call.call(3)
-    assert_equal "5", api_call.call(3, on_response: format_response, on_operation: increment_addr)
+    assert_equal "5", api_call.call(3, format_response: format_response, operation_callback: increment_addr)
     assert_equal 10, api_call.call(3)
-    assert_equal "10", api_call.call(3, on_response: format_response, on_operation: increment_addr)
+    assert_equal "10", api_call.call(3, format_response: format_response, operation_callback: increment_addr)
     assert_equal 10, api_call.call(3)
   end
 
-  def test_call_with_on_stream
+  def test_call_with_stream_callback
     all_responses = []
 
     api_meth_stub = proc do |requests, **_kwargs, &block|
@@ -110,15 +110,15 @@ class ApiCallTest < Minitest::Test
     collect_response = ->(response) { all_responses << response }
     api_call = Google::Gax::ApiCall.new api_meth_stub
 
-    api_call.call([:foo, :bar, :baz].to_enum, on_stream: collect_response)
+    api_call.call([:foo, :bar, :baz].to_enum, stream_callback: collect_response)
     wait_until { all_responses == [:foo, :bar, :baz] }
     assert_equal [:foo, :bar, :baz], all_responses
-    api_call.call([:qux, :quux, :quuz].to_enum, on_stream: collect_response)
+    api_call.call([:qux, :quux, :quuz].to_enum, stream_callback: collect_response)
     wait_until { all_responses == [:foo, :bar, :baz, :qux, :quux, :quuz] }
     assert_equal [:foo, :bar, :baz, :qux, :quux, :quuz], all_responses
   end
 
-  def test_call_with_on_stream_and_on_response
+  def test_call_with_stream_callback_and_format_response
     all_responses = []
 
     api_meth_stub = proc do |requests, **_kwargs, &block|
@@ -130,15 +130,15 @@ class ApiCallTest < Minitest::Test
     format_response = ->(response) { response.to_s }
     api_call = Google::Gax::ApiCall.new api_meth_stub
 
-    api_call.call([:foo, :bar, :baz].to_enum, on_stream: collect_response)
+    api_call.call([:foo, :bar, :baz].to_enum, stream_callback: collect_response)
     wait_until { all_responses == [:foo, :bar, :baz] }
     assert_equal [:foo, :bar, :baz], all_responses
-    api_call.call([:qux, :quux, :quuz].to_enum, on_stream: collect_response, on_response: format_response)
+    api_call.call([:qux, :quux, :quuz].to_enum, stream_callback: collect_response, format_response: format_response)
     wait_until { all_responses == [:foo, :bar, :baz, "qux", "quux", "quuz"] }
     assert_equal [:foo, :bar, :baz, "qux", "quux", "quuz"], all_responses
   end
 
-  def test_stream_without_on_stream_and_on_response
+  def test_stream_without_stream_callback_and_format_response
     all_responses = []
 
     api_meth_stub = proc do |requests, **_kwargs, &block|
@@ -159,7 +159,7 @@ class ApiCallTest < Minitest::Test
     assert_equal [:foo, :bar, :baz, :qux, :quux, :quuz], all_responses
   end
 
-  def test_stream_without_on_stream_but_on_response
+  def test_stream_without_stream_callback_but_format_response
     all_responses = []
 
     api_meth_stub = proc do |requests, **_kwargs, &block|
@@ -175,7 +175,7 @@ class ApiCallTest < Minitest::Test
     all_responses += responses.to_a
     assert_equal [:foo, :bar, :baz], all_responses
 
-    responses = api_call.call [:qux, :quux, :quuz].to_enum, on_response: format_responses
+    responses = api_call.call [:qux, :quux, :quuz].to_enum, format_response: format_responses
     assert_kind_of Enumerable, responses
     all_responses += responses.to_a
     assert_equal [:foo, :bar, :baz, "qux", "quux", "quuz"], all_responses
