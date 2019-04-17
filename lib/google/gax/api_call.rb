@@ -77,7 +77,7 @@ module Google
         begin
           operation = stub_method.call request, deadline: deadline, metadata: options.metadata, return_op: true, &block
 
-          if stream_callback
+          if block
             Thread.new { operation.execute }
           else
             response = operation.execute
