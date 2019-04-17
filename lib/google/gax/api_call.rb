@@ -71,6 +71,70 @@ module Google
       # @return [Object, Thread] The response object. Or, when `stream_callback` is provided, a thread running the
       #   callback for every streamed response is returned.
       #
+      # @example
+      #   require "google/showcase/v1alpha3/echo_pb"
+      #   require "google/showcase/v1alpha3/echo_services_pb"
+      #   require "google/gax"
+      #   require "google/gax/grpc"
+      #
+      #   echo_channel = GRPC::Core::Channel.new(
+      #     "localhost:7469", nil, :this_channel_is_insecure
+      #   )
+      #   echo_stub = Google::Gax::Grpc.create_stub(
+      #     "localhost", 7469, channel: echo_channel,
+      #     &Google::Showcase::V1alpha3::Echo::Stub.method(:new)
+      #   )
+      #   echo_call = Google::Gax::ApiCall.new echo_stub.method :echo
+      #
+      #   request = Google::Showcase::V1alpha3::EchoRequest.new
+      #   response = echo_call.call request
+      #
+      # @example Using custom call options:
+      #   require "google/showcase/v1alpha3/echo_pb"
+      #   require "google/showcase/v1alpha3/echo_services_pb"
+      #   require "google/gax"
+      #   require "google/gax/grpc"
+      #
+      #   echo_channel = GRPC::Core::Channel.new(
+      #     "localhost:7469", nil, :this_channel_is_insecure
+      #   )
+      #   echo_stub = Google::Gax::Grpc.create_stub(
+      #     "localhost", 7469, channel: echo_channel,
+      #     &Google::Showcase::V1alpha3::Echo::Stub.method(:new)
+      #   )
+      #   echo_call = Google::Gax::ApiCall.new echo_stub.method :echo
+      #
+      #   request = Google::Showcase::V1alpha3::EchoRequest.new
+      #   options = Google::Gax::ApiCall::Options.new(
+      #     retry_policy = {
+      #       retry_codes: [GRPC::Core::StatusCodes::UNAVAILABLE]
+      #     }
+      #   )
+      #   response = echo_call.call request, options: options
+      #
+      # @example Formatting the response in the call:
+      #   require "google/showcase/v1alpha3/echo_pb"
+      #   require "google/showcase/v1alpha3/echo_services_pb"
+      #   require "google/gax"
+      #   require "google/gax/grpc"
+      #
+      #   echo_channel = GRPC::Core::Channel.new(
+      #     "localhost:7469", nil, :this_channel_is_insecure
+      #   )
+      #   echo_stub = Google::Gax::Grpc.create_stub(
+      #     "localhost", 7469, channel: echo_channel,
+      #     &Google::Showcase::V1alpha3::Echo::Stub.method(:new)
+      #   )
+      #   echo_call = Google::Gax::ApiCall.new echo_stub.method :echo
+      #
+      #   request = Google::Showcase::V1alpha3::EchoRequest.new
+      #   content_upcaser = proc do |response|
+      #     format_response = response.dup
+      #     format_response.content.upcase!
+      #     format_response
+      #   end
+      #   response = echo_call.call request, format_response: content_upcaser
+      #
       def call request, options: nil, format_response: nil, operation_callback: nil, stream_callback: nil
         # Converts hash and nil to an options object
         options = ApiCall::Options.new options.to_h if options.respond_to? :to_h
