@@ -28,8 +28,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 require "grpc"
+require "google/gax/grpc/stub"
 require "grpc/google_rpc_status_utils"
-require "googleauth"
 require "google/gax/errors"
 require "google/protobuf/well_known_types"
 # Required in order to deserialize common error detail proto types
@@ -47,7 +47,7 @@ module Google
 
       API_ERRORS = [GRPC::BadStatus, GRPC::Cancelled].freeze
 
-      def deserialize_error_status_details error
+      def self.deserialize_error_status_details error
         return unless error.is_a? GRPC::BadStatus
         # If error status is malformed, swallow the gRPC error that gets raised.
         begin
@@ -76,63 +76,6 @@ module Google
           end
         end
       end
-
-      # Creates a gRPC client stub.
-      #
-      # @param service_path [String] The domain name of the API remote host.
-      # @param port [Fixnum] The port on which to connect to the remote host.
-      # @param channel [Object] A Channel object through which to make calls. If nil, a secure channel is constructed.
-      # @param chan_creds [Grpc::Core::ChannelCredentials] A ChannelCredentials object for use with an SSL-enabled
-      #   Channel. If nil, credentials are pulled from a default location.
-      # @param updater_proc [Proc] A function that transforms the metadata for requests, e.g., to give OAuth
-      #   credentials.
-      # @param scopes [Array<String>] The OAuth scopes for this service. This parameter is ignored if a custom
-      #   metadata_transformer is supplied.
-      # @param interceptors [Array<GRPC::ClientInterceptor>] An array of GRPC::ClientInterceptor objects that will be
-      #   used for intercepting calls before they are executed Interceptors are an EXPERIMENTAL API.
-      #
-      # @raise [ArgumentError] if a combination channel, chan_creds, and updater_proc are passed.
-      #
-      # @yield [address, creds, channel_override, interceptors] the generated gRPC method to create a stub.
-      #
-      # @return A gRPC client stub.
-      #
-      def create_stub service_path, port, channel: nil, chan_creds: nil, updater_proc: nil, scopes: nil,
-                      interceptors: []
-        verify_params channel, chan_creds, updater_proc
-        address = "#{service_path}:#{port}"
-        if channel
-          yield address, nil, channel_override: channel, interceptors: interceptors
-        elsif chan_creds
-          yield address, chan_creds, interceptors: interceptors
-        else
-          if updater_proc.nil?
-            auth_creds = Google::Auth.get_application_default scopes
-            updater_proc = auth_creds.updater_proc
-          end
-          call_creds = GRPC::Core::CallCredentials.new updater_proc
-          chan_creds = GRPC::Core::ChannelCredentials.new.compose call_creds
-          yield address, chan_creds, interceptors: interceptors
-        end
-      end
-
-      module_function :create_stub, :deserialize_error_status_details
-
-      def self.verify_params channel, chan_creds, updater_proc
-        return unless (channel && chan_creds) || (channel && updater_proc) || (chan_creds && updater_proc)
-
-        raise ArgumentError, "Only one of channel, chan_creds, and updater_proc should be passed into " \
-                             "Google::Gax::Grpc#create_stub."
-      end
-
-      # Capitalize all modules except the message class, which is already correctly cased
-      def self.class_case modules
-        message = modules.pop
-        modules = modules.map(&:capitalize)
-        modules << message
-      end
-
-      private_class_method :verify_params, :class_case
     end
   end
 end
