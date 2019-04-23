@@ -80,9 +80,9 @@ module Google
       #   echo_channel = GRPC::Core::Channel.new(
       #     "localhost:7469", nil, :this_channel_is_insecure
       #   )
-      #   echo_stub = Google::Gax::Grpc.create_stub(
-      #     "localhost", 7469, channel: echo_channel,
-      #     &Google::Showcase::V1alpha3::Echo::Stub.method(:new)
+      #   echo_stub = Google::Gax::Grpc::Stub.new(
+      #     Google::Showcase::V1alpha3::Echo::Stub,
+      #     host: "localhost", port: 7469, credentials: echo_channel
       #   )
       #   echo_call = Google::Gax::ApiCall.new echo_stub.method :echo
       #
@@ -98,9 +98,9 @@ module Google
       #   echo_channel = GRPC::Core::Channel.new(
       #     "localhost:7469", nil, :this_channel_is_insecure
       #   )
-      #   echo_stub = Google::Gax::Grpc.create_stub(
-      #     "localhost", 7469, channel: echo_channel,
-      #     &Google::Showcase::V1alpha3::Echo::Stub.method(:new)
+      #   echo_stub = Google::Gax::Grpc::Stub.new(
+      #     Google::Showcase::V1alpha3::Echo::Stub,
+      #     host: "localhost", port: 7469, credentials: echo_channel
       #   )
       #   echo_call = Google::Gax::ApiCall.new echo_stub.method :echo
       #
@@ -121,9 +121,9 @@ module Google
       #   echo_channel = GRPC::Core::Channel.new(
       #     "localhost:7469", nil, :this_channel_is_insecure
       #   )
-      #   echo_stub = Google::Gax::Grpc.create_stub(
-      #     "localhost", 7469, channel: echo_channel,
-      #     &Google::Showcase::V1alpha3::Echo::Stub.method(:new)
+      #   echo_stub = Google::Gax::Grpc::Stub.new(
+      #     Google::Showcase::V1alpha3::Echo::Stub,
+      #     host: "localhost", port: 7469, credentials: echo_channel
       #   )
       #   echo_call = Google::Gax::ApiCall.new echo_stub.method :echo
       #
