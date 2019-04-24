@@ -133,7 +133,7 @@ module Google
 
         next_request = @request.dup
         next_request.page_token = @page.next_page_token
-        next_response = @api_call.call next_request, @options
+        next_response = @api_call.call next_request, options: @options
 
         @page = Page.new next_response, @resource_field
       end
