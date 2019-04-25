@@ -158,7 +158,7 @@ module Google
             retry if options.retry_policy.call error
           end
 
-          error = Google::Gax.from_error(error).new "RPC failed" if wrap_error? error
+          error = Google::Gax.from_error(error).new "RPC failed: #{error.message}" if wrap_error? error
 
           raise error
         end
