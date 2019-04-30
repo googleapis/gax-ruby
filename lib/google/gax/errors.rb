@@ -62,10 +62,6 @@ module Google
       end
     end
 
-    # Indicates an error during automatic GAX retrying.
-    class RetryError < GaxError
-    end
-
     # Errors corresponding to standard HTTP/gRPC statuses.
     class CanceledError < GaxError
     end
