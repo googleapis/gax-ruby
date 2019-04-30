@@ -47,7 +47,7 @@ module Google
           rpc_status = nil
         end
 
-        return if rpc_status.nil?
+        return nil if rpc_status.nil?
 
         rpc_status.details.map do |detail|
           begin

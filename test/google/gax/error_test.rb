@@ -36,9 +36,9 @@ describe Google::Gax::GaxError do
 
       _(error).must_be_kind_of Google::Gax::GaxError
       _(error.message).must_equal "GaxError no cause"
-      _(error.code).must_be_nil
-      _(error.details).must_be_nil
-      _(error.metadata).must_be_nil
+      _(error.code).must_equal 0
+      _(error.details).must_be_empty
+      _(error.metadata).must_be_empty
       _(error.status_details).must_be_nil
 
       _(error.cause).must_be_nil
@@ -51,9 +51,9 @@ describe Google::Gax::GaxError do
 
       _(error).must_be_kind_of Google::Gax::GaxError
       _(error.message).must_equal "GaxError not allowed, caused by not allowed"
-      _(error.code).must_be_nil
-      _(error.details).must_be_nil
-      _(error.metadata).must_be_nil
+      _(error.code).must_equal 0
+      _(error.details).must_be_empty
+      _(error.metadata).must_be_empty
       _(error.status_details).must_be_nil
 
       _(error.cause).must_be_kind_of RuntimeError

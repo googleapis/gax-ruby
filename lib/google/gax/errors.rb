@@ -42,18 +42,23 @@ module Google
       end
 
       def code
-        return nil unless cause&.respond_to? :code
+        return nil.to_i unless cause&.respond_to? :code
         cause.code
       end
 
       def details
-        return nil unless cause&.respond_to? :details
+        return nil.to_s unless cause&.respond_to? :details
         cause.details
       end
 
       def metadata
-        return nil unless cause&.respond_to? :metadata
+        return nil.to_h unless cause&.respond_to? :metadata
         cause.metadata
+      end
+
+      def to_status
+        return nil unless cause&.respond_to? :to_status
+        cause.to_status
       end
     end
 
