@@ -38,7 +38,7 @@ module Google
   module Gax
     class GaxError < StandardError
       def status_details
-        return unless cause.is_a? GRPC::BadStatus
+        return nil.to_a unless cause.is_a? GRPC::BadStatus
 
         # TODO: The begin and rescue can be removed once BadStatus#to_rpc_status is released.
         begin
@@ -47,7 +47,7 @@ module Google
           rpc_status = nil
         end
 
-        return nil if rpc_status.nil?
+        return nil.to_a if rpc_status.nil?
 
         rpc_status.details.map do |detail|
           begin

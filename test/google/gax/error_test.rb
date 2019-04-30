@@ -39,7 +39,7 @@ describe Google::Gax::GaxError do
       _(error.code).must_equal 0
       _(error.details).must_be_empty
       _(error.metadata).must_be_empty
-      _(error.status_details).must_be_nil
+      _(error.status_details).must_be_empty
 
       _(error.cause).must_be_nil
     end
@@ -54,7 +54,7 @@ describe Google::Gax::GaxError do
       _(error.code).must_equal 0
       _(error.details).must_be_empty
       _(error.metadata).must_be_empty
-      _(error.status_details).must_be_nil
+      _(error.status_details).must_be_empty
 
       _(error.cause).must_be_kind_of RuntimeError
       _(error.cause.message).must_equal "not allowed"
@@ -70,7 +70,7 @@ describe Google::Gax::GaxError do
       _(error.code).must_equal 3
       _(error.details).must_equal "invalid"
       _(error.metadata).must_equal({})
-      _(error.status_details).must_be_nil
+      _(error.status_details).must_be_empty
 
       _(error.cause).must_be_kind_of GRPC::BadStatus
       _(error.cause.message).must_equal "3:invalid"
