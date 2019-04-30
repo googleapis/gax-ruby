@@ -40,7 +40,11 @@ module Google
       def status_details
         return unless cause.is_a? GRPC::BadStatus
 
-        rpc_status = GRPC::GoogleRpcStatusUtils.extract_google_rpc_status cause.to_status
+        begin
+          rpc_status = GRPC::GoogleRpcStatusUtils.extract_google_rpc_status cause.to_status
+        rescue Google::Protobuf::ParseError
+          rpc_status = nil
+        end
 
         return if rpc_status.nil?
 
