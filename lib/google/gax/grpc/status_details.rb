@@ -40,6 +40,7 @@ module Google
       def status_details
         return unless cause.is_a? GRPC::BadStatus
 
+        # TODO: The begin and rescue can be removed once BadStatus#to_rpc_status is released.
         begin
           rpc_status = GRPC::GoogleRpcStatusUtils.extract_google_rpc_status cause.to_status
         rescue Google::Protobuf::ParseError
