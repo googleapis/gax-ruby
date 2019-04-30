@@ -38,8 +38,7 @@ module Google
       def initialize msg = nil
         msg = "GaxError #{msg}"
         msg += ", caused by #{$ERROR_INFO}" if $ERROR_INFO
-
-        super
+        super msg
       end
 
       def code
