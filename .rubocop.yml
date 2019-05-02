@@ -4,7 +4,6 @@ inherit_gem:
 AllCops:
   Exclude:
     - "google-gax.gemspec"
-    - "lib/google/longrunning/operations_client.rb"
     - "test/**/*"
 
 Style/Documentation:
