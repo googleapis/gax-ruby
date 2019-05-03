@@ -36,10 +36,10 @@ describe Google::Gax::GaxError do
 
       _(error).must_be_kind_of Google::Gax::GaxError
       _(error.message).must_equal "GaxError no cause"
-      _(error.code).must_be_nil
-      _(error.details).must_be_nil
-      _(error.metadata).must_be_nil
-      _(error.status_details).must_be_nil
+      _(error.code).must_equal 0
+      _(error.details).must_be_empty
+      _(error.metadata).must_be_empty
+      _(error.status_details).must_be_empty
 
       _(error.cause).must_be_nil
     end
@@ -51,10 +51,10 @@ describe Google::Gax::GaxError do
 
       _(error).must_be_kind_of Google::Gax::GaxError
       _(error.message).must_equal "GaxError not allowed, caused by not allowed"
-      _(error.code).must_be_nil
-      _(error.details).must_be_nil
-      _(error.metadata).must_be_nil
-      _(error.status_details).must_be_nil
+      _(error.code).must_equal 0
+      _(error.details).must_be_empty
+      _(error.metadata).must_be_empty
+      _(error.status_details).must_be_empty
 
       _(error.cause).must_be_kind_of RuntimeError
       _(error.cause.message).must_equal "not allowed"
@@ -70,10 +70,7 @@ describe Google::Gax::GaxError do
       _(error.code).must_equal 3
       _(error.details).must_equal "invalid"
       _(error.metadata).must_equal({})
-      _(error.status_details).must_equal(
-        "Could not parse error details due to a " \
-        "malformed server response trailer."
-      )
+      _(error.status_details).must_be_empty
 
       _(error.cause).must_be_kind_of GRPC::BadStatus
       _(error.cause.message).must_equal "3:invalid"

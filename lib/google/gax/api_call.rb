@@ -158,7 +158,7 @@ module Google
             retry if options.retry_policy.call error
           end
 
-          error = Google::Gax.from_error(error).new "RPC failed" if error.is_a? GRPC::BadStatus
+          error = wrap_error error if wrap_error? error
 
           raise error
         end
@@ -179,6 +179,14 @@ module Google
 
       def check_retry? deadline
         deadline > Time.now
+      end
+
+      def wrap_error? error
+        error.is_a? GRPC::BadStatus
+      end
+
+      def wrap_error error
+        Google::Gax.from_error(error).new "RPC failed: #{error.message}"
       end
     end
   end

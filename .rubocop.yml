@@ -9,8 +9,8 @@ AllCops:
 Style/Documentation:
   Exclude:
     - "lib/google/gax/api_call.rb"
-    - "lib/google/gax/settings.rb"
     - "lib/google/gax/errors.rb"
+    - "lib/google/gax/grpc/status_details.rb"
 Style/GuardClause:
   Exclude:
     - "lib/google/gax/grpc/stub.rb"
