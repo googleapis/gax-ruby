@@ -36,12 +36,12 @@ module Google
     # status of an Operation
     #
     # @example Checking Operation status
+    #   # this example assumes both api_client and operations_client
+    #   # already exist.
     #   require "google/gax/operation"
-    #   require "google/longrunning/operations_client"
     #
-    #   operations_client = Google::Longrunning::OperationsClient.new
     #   op = Google::Gax::Operation.new(
-    #     api.methodThatReturnsOperation(),
+    #     api_client.method_that_returns_longrunning_operation(),
     #     operations_client,
     #     Google::Example::ResultType,
     #     Google::Example::MetadataType
@@ -57,12 +57,12 @@ module Google
     #   end
     #
     # @example Working with callbacks
+    #   # this example assumes both api_client and operations_client
+    #   # already exist.
     #   require "google/gax/operation"
-    #   require "google/longrunning/operations_client"
     #
-    #   operations_client = Google::Longrunning::OperationsClient.new
     #   op = Google::Gax::Operation.new(
-    #     api.method_that_returns_operation,
+    #     api_client.method_that_returns_longrunning_operation(),
     #     operations_client,
     #     Google::Example::ResultType,
     #     Google::Example::MetadataType
