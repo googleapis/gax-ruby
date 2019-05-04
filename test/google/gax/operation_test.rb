@@ -88,8 +88,8 @@ def create_op operation, client: nil, result_type: Google::Rpc::Status,
   GaxOp.new(
     operation,
     client || DONE_ON_GET_CLIENT,
-    result_type,
-    metadata_type
+    result_type: result_type,
+    metadata_type: metadata_type
   )
 end
 
