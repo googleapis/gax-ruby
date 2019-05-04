@@ -100,7 +100,7 @@ module Google
       # @param metadata_type [Class] The class type to be unpacked from the metadata. If not provided the class type
       #   will be looked up. Optional.
       #
-      def initialize grpc_op, client, result_type = nil, metadata_type = nil
+      def initialize grpc_op, client, result_type: nil, metadata_type: nil
         @grpc_op = grpc_op
         @client = client
         @result_type = result_type
