@@ -214,7 +214,7 @@ module Google
         # Converts hash and nil to an options object
         options = ApiCall::Options.new options.to_h if options.respond_to? :to_h
 
-        @client.cancel_operation @grpc_op.name, options: options
+        @client.cancel_operation name: @grpc_op.name, options: options
       end
 
       ##
@@ -227,7 +227,7 @@ module Google
         # Converts hash and nil to an options object
         options = ApiCall::Options.new options.to_h if options.respond_to? :to_h
 
-        @client.delete_operation @grpc_op.name, options: options
+        @client.delete_operation name: @grpc_op.name, options: options
       end
 
       ##
@@ -242,7 +242,8 @@ module Google
         # Converts hash and nil to an options object
         options = ApiCall::Options.new options.to_h if options.respond_to? :to_h
 
-        @grpc_op = @client.get_operation @grpc_op.name, options: options
+        gax_op = @client.get_operation name: @grpc_op.name, options: options
+        @grpc_op = gax_op.grpc_op
 
         if done?
           @on_done_callbacks.each { |proc| proc.call self }
