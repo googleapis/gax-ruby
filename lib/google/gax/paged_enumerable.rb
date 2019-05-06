@@ -169,7 +169,7 @@ module Google
         raise ArgumentError, "#{@request.class} must have a page_token field (String)" if page_token.nil?
 
         page_size = @request.class.descriptor.find do |f|
-          f.name == "page_size" && %i[int32 int64].include?(f.type)
+          f.name == "page_size" && [:int32, :int64].include?(f.type)
         end
         return unless page_size.nil?
         raise ArgumentError, "#{@request.class} must have a page_size field (Integer)"

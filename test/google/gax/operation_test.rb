@@ -45,16 +45,17 @@ class MockLroClient
     @delete_method = delete_method
   end
 
-  def get_operation grpc_method, options: nil
-    @get_method.call grpc_method, options
+  def get_operation name:, options: nil
+    grpc_op = @get_method.call name: name, options: options
+    Google::Gax::Operation.new grpc_op, self
   end
 
-  def cancel_operation name, options: nil
-    @cancel_method.call name, options: options
+  def cancel_operation name:, options: nil
+    @cancel_method.call name: name, options: options
   end
 
-  def delete_operation name, options: nil
-    @delete_method.call name, options: options
+  def delete_operation name:, options: nil
+    @delete_method.call name: name, options: options
   end
 end
 
@@ -88,8 +89,8 @@ def create_op operation, client: nil, result_type: Google::Rpc::Status,
   GaxOp.new(
     operation,
     client || DONE_ON_GET_CLIENT,
-    result_type,
-    metadata_type
+    result_type: result_type,
+    metadata_type: metadata_type
   )
 end
 
@@ -263,8 +264,9 @@ describe Google::Gax::Operation do
     it "should call the clients cancel_operation" do
       op_name = "test_name"
       called = false
-      cancel_method = proc do |name|
+      cancel_method = proc do |name:, options:|
         _(name).must_equal op_name
+        _(options).must_be_kind_of Google::Gax::ApiCall::Options
         called = true
       end
       mock_client = MockLroClient.new cancel_method: cancel_method
@@ -277,7 +279,7 @@ describe Google::Gax::Operation do
     it "should call the clients delete_operation" do
       op_name = "test_name"
       called = false
-      delete_method = proc do |name, options: options|
+      delete_method = proc do |name:, options:|
         _(name).must_equal op_name
         _(options).must_be_kind_of Google::Gax::ApiCall::Options
         called = true
@@ -291,12 +293,14 @@ describe Google::Gax::Operation do
   describe "method `reload!`" do
     it "should call the get_operation of the client" do
       called = false
-      get_method = proc do
+      get_method = proc do |name:, options:|
         called = true
+        _(name).must_equal "name"
+        _(options).must_be_kind_of Google::Gax::ApiCall::Options
         GrpcOp.new done: true, response: RESULT_ANY
       end
       mock_client = MockLroClient.new get_method: get_method
-      op = create_op GrpcOp.new(done: false), client: mock_client
+      op = create_op GrpcOp.new(done: false, name: "name"), client: mock_client
       _(called).must_equal false
       op.reload!
       _(called).must_equal true
@@ -305,7 +309,7 @@ describe Google::Gax::Operation do
     it "should use options attribute when reloading" do
       options = Google::Gax::ApiCall::Options.new
       called = false
-      get_method = proc do |name, options|
+      get_method = proc do |name:, options:|
         called = true
         _(name).must_equal "name"
         _(options).must_be_kind_of Google::Gax::ApiCall::Options
