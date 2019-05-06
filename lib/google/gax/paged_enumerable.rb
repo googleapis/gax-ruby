@@ -67,12 +67,15 @@ module Google
       # @param request_page_token_field [String] The name of the field in request which will have the page token.
       # @param response_page_token_field [String] The name of the field in the response which holds the next page token.
       # @param resource_field [String] The name of the field in the response which holds the resources.
+      # @param format_resource [Proc] A Proc object to format the resource object. The Proc should accept response as an
+      #   argument, and return a formatted resource object. Optional.
       #
-      def initialize api_call, request, response, options
+      def initialize api_call, request, response, options, format_resource: nil
         @api_call = api_call
         @request = request
         @response = response
         @options = options
+        @format_resource = format_resource
         @resource_field = nil # will be set in verify_response!
 
         verify_request!
@@ -93,6 +96,7 @@ module Google
 
         each_page do |page|
           page.each do |obj|
+            obj = @format_resource.call obj if @format_resource
             yield obj
           end
         end
