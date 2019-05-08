@@ -23,7 +23,8 @@ Gem::Specification.new do |gem|
   gem.required_ruby_version = ">= 2.3.0"
 
   gem.add_dependency "google-protobuf", "~> 3.2"
-  gem.add_dependency "googleapis-common-protos", ">= 1.3.5", "< 2.0"
+  gem.add_dependency "googleapis-common-protos", ">= 1.3.9", "< 2.0"
+  gem.add_dependency "googleapis-common-protos-types", ">= 1.0.4", "< 2.0"
   gem.add_dependency "googleauth", ">= 0.6.2", "< 0.10.0"
   gem.add_dependency "grpc", ">= 1.7.2", "< 2.0"
 
