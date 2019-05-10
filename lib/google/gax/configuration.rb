@@ -44,13 +44,12 @@ module Google
     #
     # Note that config objects inherit from `BasicObject`. This means it does
     # not define many methods you might expect to find in most Ruby objects.
-    # For example, `to_s`, `inspect`, `is_a?`, `instance_variable_get`, and so
-    # forth.
+    # For example, `to_s`, `is_a?`, `instance_variable_get`, and so forth.
     #
     # @example
     #   require "google/gax/configuration"
     #
-    #   config = Google::Gax::Configuration.create do |c|
+    #   config = Google::Gax::Configuration.new do |c|
     #     c.add_field! :opt1, 10
     #     c.add_field! :opt2, :one, enum: [:one, :two, :three]
     #     c.add_field! :opt3, "hi", match: [String, Symbol]
@@ -95,21 +94,6 @@ module Google
     #
     class Configuration < BasicObject
       ##
-      # Constructs a Configuration object. If a block is given, yields `self` to the
-      # block, which makes it convenient to initialize the structure by making
-      # calls to `add_field!` and `add_config!`.
-      #
-      # @param [boolean] show_warnings Whether to print warnings when a
-      #     validation fails. Defaults to `true`.
-      # @return [Configuration] The constructed Configuration object.
-      #
-      def self.create show_warnings: true
-        config = new [], show_warnings: show_warnings
-        yield config if block_given?
-        config
-      end
-
-      ##
       # Determines if the given object is a config. Useful because Configuration
       # does not define the `is_a?` method.
       #
@@ -120,40 +104,21 @@ module Google
       end
 
       ##
-      # Internal constructor. Generally you should not call `new` directly,
-      # but instead use the `Configuration.create` method. The initializer is used
-      # directly by a few older clients that expect a legacy interface.
+      # Constructs a Configuration object. If a block is given, yields `self` to the
+      # block, which makes it convenient to initialize the structure by making
+      # calls to `add_field!` and `add_config!`.
       #
-      # @private
+      # @param [boolean] show_warnings Whether to print warnings when a
+      #     validation fails. Defaults to `true`.
       #
-      def initialize legacy_categories = {}, opts = {}
-        @show_warnings = opts.fetch :show_warnings, false
+      def initialize show_warnings: true, &block
+        @show_warnings = show_warnings
         @values = {}
         @defaults = {}
         @validators = {}
-        add_options legacy_categories
-      end
 
-      ##
-      # Legacy method of adding subconfigs. This is used by older versions of
-      # the stackdriver client libraries but should not be used in new code.
-      #
-      # @deprecated
-      # @private
-      #
-      def add_options legacy_categories
-        [legacy_categories].flatten(1).each do |sub_key|
-          case sub_key
-          when ::Symbol
-            add_config! sub_key, Configuration.new
-          when ::Hash
-            sub_key.each do |k, v|
-              add_config! k, Configuration.new(v)
-            end
-          else
-            raise ArgumentError "Category must be a Symbol or Hash"
-          end
-        end
+        # Can't call yield because of BasicObject
+        block&.call self
       end
 
       ##
@@ -232,7 +197,7 @@ module Google
       def add_config! key, config = nil, &block
         key = validate_new_key! key
         if config.nil?
-          config = Configuration.create(&block)
+          config = Configuration.new(&block)
         elsif block
           yield config
         end
@@ -339,7 +304,6 @@ module Google
       def value_set? key
         @values.key? resolve_key! key
       end
-      alias option? value_set?
 
       ##
       # Check if the given key has been explicitly added as a field name.

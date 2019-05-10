@@ -32,10 +32,18 @@ require "test_helper"
 require "google/gax/configuration"
 
 describe Google::Gax::Configuration do
-  let(:legacy_config) { Google::Gax::Configuration.new [:k1, {k2: [:k3]}] }
-  let(:new_config) { Google::Gax::Configuration.create }
-  let(:checked_config) {
-    Google::Gax::Configuration.create do |c1|
+  let(:new_config) { Google::Gax::Configuration.new }
+  let(:simple_config) do
+    Google::Gax::Configuration.new do |config|
+      config.add_config! :k1 do |k1|
+        k1.add_config! :k2 do |k2|
+          k2.add_config! :k3
+        end
+      end
+    end
+  end
+  let(:checked_config) do
+    Google::Gax::Configuration.new do |c1|
       c1.add_field! :opt1_int, 1
       c1.add_config! :sub1 do |c2|
         c2.add_field! :opt2_sym, :hi
@@ -49,67 +57,38 @@ describe Google::Gax::Configuration do
         end
       end
     end
-  }
+  end
 
-  describe "#initialize" do
+  describe ".new" do
     it "works with no parameters" do
       config = Google::Gax::Configuration.new
 
-      config.must_be_kind_of Google::Gax::Configuration
+      assert Google::Gax::Configuration === config
       config.subconfigs!.must_equal []
     end
 
-    it "accepts empty fields array" do
-      config = Google::Gax::Configuration.new []
-
-      config.must_be_kind_of Google::Gax::Configuration
-      config.subconfigs!.must_equal []
-    end
-
-    it "initializes options to nil" do
-      legacy_config.opt1.must_be_nil
-      legacy_config.opt2.must_be_nil
+    it "warns when accessing missing fields" do
+      assert_output("", /Key :opt1 does not exist\. Returning nil\./) { simple_config.opt1.must_be_nil }
+      assert_output("", /Key :opt2 does not exist\. Returning nil\./) { simple_config.opt2.must_be_nil }
     end
 
     it "initializes nested Google::Gax::Configuration" do
-      assert Google::Gax::Configuration === legacy_config.k1
-      assert Google::Gax::Configuration === legacy_config.k2
-      assert Google::Gax::Configuration === legacy_config.k2.k3
+      assert Google::Gax::Configuration === simple_config.k1
+      assert Google::Gax::Configuration === simple_config.k1.k2
+      assert Google::Gax::Configuration === simple_config.k1.k2.k3
     end
 
-    it "accepts hash too" do
-      config = Google::Gax::Configuration.new({k1: {k2: [:k3]}})
-
-      assert Google::Gax::Configuration === config.k1
-      assert Google::Gax::Configuration === config.k1.k2
-      assert Google::Gax::Configuration === config.k1.k2.k3
+    it "creates nested subconfigs" do
+      checked_config.fields!.must_equal [:opt1_int]
+      checked_config.subconfigs!.must_equal [:sub1]
+      checked_config.sub1.fields!.must_equal [:opt2_sym]
+      checked_config.sub1.subconfigs!.must_equal [:sub2]
+      checked_config.sub1.sub2.fields!.must_include :opt3_bool
+      checked_config.sub1.sub2.subconfigs!.must_equal []
     end
 
     it "can inspect" do
-      config = Google::Gax::Configuration.new({k1: {k2: [:k3]}})
-
-      assert_equal "#<Google::Gax::Configuration {:k1=>{:k2=>{:k3=>{}}}}>", config.inspect
-    end
-  end
-
-  describe "#add_options" do
-    it "introduces new nested categories" do
-      legacy_config.k4.must_be_nil
-
-      legacy_config.add_options [:k4, {k5: [:k6]}]
-
-      assert Google::Gax::Configuration === legacy_config.k4
-      assert Google::Gax::Configuration === legacy_config.k5
-      assert Google::Gax::Configuration === legacy_config.k5.k6
-    end
-
-    it "accepts simple hash with one symbol" do
-      legacy_config.k4.must_be_nil
-
-      legacy_config.add_options k4: :k5
-
-      assert Google::Gax::Configuration === legacy_config.k4
-      assert Google::Gax::Configuration === legacy_config.k4.k5
+      assert_equal "#<Google::Gax::Configuration {:k1=>{:k2=>{:k3=>{}}}}>", simple_config.inspect
     end
   end
 
@@ -168,34 +147,6 @@ describe Google::Gax::Configuration do
     end
   end
 
-  describe ".create" do
-    it "creates nested subconfigs" do
-      checked_config.fields!.must_equal [:opt1_int]
-      checked_config.subconfigs!.must_equal [:sub1]
-      checked_config.sub1.fields!.must_equal [:opt2_sym]
-      checked_config.sub1.subconfigs!.must_equal [:sub2]
-      checked_config.sub1.sub2.fields!.must_include :opt3_bool
-      checked_config.sub1.sub2.subconfigs!.must_equal []
-    end
-  end
-
-  describe "#option?" do
-    it "returns true if configuration has that option" do
-      legacy_config.option?(:opt1).must_equal false
-      legacy_config.opt1 = true
-      legacy_config.option?(:opt1).must_equal true
-    end
-
-    it "returns true even if the key is a sub configuration group" do
-      assert Google::Gax::Configuration === legacy_config.k2
-      legacy_config.option?(:k2).must_equal true
-    end
-
-    it "returns false if configuration doesn't have that option" do
-      legacy_config.option?(:k7).must_equal false
-    end
-  end
-
   describe "#reset!" do
     it "resets a single key" do
       checked_config.opt1_int = 2
@@ -248,22 +199,6 @@ describe Google::Gax::Configuration do
   end
 
   describe "#method_missing" do
-    it "allows any key for a legacy config" do
-      legacy_config.total_non_sense.must_be_nil
-    end
-
-    it "sets and gets an option for a legacy config" do
-      legacy_config.opt1.must_be_nil
-      legacy_config.opt1 = "test value"
-      legacy_config.opt1.must_equal "test value"
-    end
-
-    it "sets a nested option for a legacy config" do
-      legacy_config.k2.opt4.must_be_nil
-      legacy_config.k2.opt4 = "test value"
-      legacy_config.k2.opt4.must_equal "test value"
-    end
-
     it "allows any key but warns for a checked config" do
       -> () {
         new_config.total_non_sense.must_be_nil
