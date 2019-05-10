@@ -455,7 +455,7 @@ module Google
       # @private a list of key names that are technically illegal because
       # they clash with method names.
       #
-      ILLEGAL_KEYS = [:add_options, :initialize, :instance_eval, :instance_exec, :method_missing,
+      ILLEGAL_KEYS = [:inspect, :initialize, :instance_eval, :instance_exec, :method_missing,
                       :singleton_method_added, :singleton_method_removed, :singleton_method_undefined].freeze
 
       ##
