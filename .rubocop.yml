@@ -6,6 +6,10 @@ AllCops:
     - "google-gax.gemspec"
     - "test/**/*"
 
+Metrics/ClassLength:
+  Exclude:
+    - "lib/google/gax/configuration.rb"
+
 Style/Documentation:
   Exclude:
     - "lib/google/gax/api_call.rb"
@@ -14,3 +18,6 @@ Style/Documentation:
 Style/GuardClause:
   Exclude:
     - "lib/google/gax/grpc/stub.rb"
+Style/CaseEquality:
+  Exclude:
+    - "lib/google/gax/configuration.rb"
