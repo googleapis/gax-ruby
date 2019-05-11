@@ -27,6 +27,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+require "google/gax/configuration/derived_configuration"
 require "google/gax/configuration/deferred_value"
 require "google/gax/configuration/schema"
 
@@ -100,7 +101,7 @@ module Google
       # Determines if the given object is a config. Useful because Configuration
       # does not define the `is_a?` method.
       #
-      # @return [boolean]
+      # @return [Boolean]
       #
       def self.config? obj
         Configuration.send :===, obj
@@ -120,6 +121,14 @@ module Google
 
         # Can't call yield because of BasicObject
         block&.call self
+      end
+
+      ##
+      # Derive a Configuration object. The subsequent object can set local values,
+      # but will not be able to change the structure.
+      #
+      def derive! &block
+        DerivedConfiguration.new self, &block
       end
 
       ##
@@ -293,7 +302,7 @@ module Google
       # not been added explicitly but still has a value.
       #
       # @param [Symbol] key The key to check for.
-      # @return [boolean]
+      # @return [Boolean]
       #
       def value_set? key
         @values.key? @schema.resolve_key! key
@@ -303,7 +312,7 @@ module Google
       # Check if the given key has been explicitly added as a field name.
       #
       # @param [Symbol] key The key to check for.
-      # @return [boolean]
+      # @return [Boolean]
       #
       def field? key
         @schema.field? key
@@ -313,7 +322,7 @@ module Google
       # Check if the given key has been explicitly added as a subconfig name.
       #
       # @param [Symbol] key The key to check for.
-      # @return [boolean]
+      # @return [Boolean]
       #
       def subconfig? key
         @schema.subconfig? key
@@ -365,7 +374,7 @@ module Google
       #
       def to_s!
         elems = @schema.keys.map do |k|
-          v = @values[k]
+          v = self[k]
           vstr = Configuration.config?(v) ? v.to_s! : value.inspect
           "#{k}=#{vstr}"
         end
@@ -382,7 +391,7 @@ module Google
       def to_h!
         h = {}
         @schema.keys.each do |k|
-          v = @values[k]
+          v = self[k]
           h[k] = Configuration.config?(v) ? v.to_h! : v.inspect
         end
         h
@@ -426,6 +435,16 @@ module Google
       # @return [false]
       #
       def nil?
+        false
+      end
+
+      ##
+      # @private
+      # Check if the configuration has been derived.
+      #
+      # @return [Boolean]
+      #
+      def derived?
         false
       end
     end

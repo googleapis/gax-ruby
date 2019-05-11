@@ -50,7 +50,7 @@ module Google
         # @param [boolean] show_warnings Whether to print warnings when a
         #     validation fails. Defaults to `true`.
         #
-        def initialize show_warnings: true
+        def initialize show_warnings: true, &block
           @show_warnings = show_warnings
           @defaults = {}
           @validators = {}
@@ -144,7 +144,7 @@ module Google
         # Check if the given key has a default value.
         #
         # @param [Symbol] key The key to check for.
-        # @return [boolean]
+        # @return [Boolean]
         #
         def default? key
           @defaults.key? String(key).to_sym
@@ -154,7 +154,7 @@ module Google
         # Return the default value for the given key.
         #
         # @param [Symbol] key The key to check for.
-        # @return [boolean]
+        # @return [Boolean]
         #
         def default key
           @defaults[String(key).to_sym]
@@ -183,7 +183,7 @@ module Google
         # Check if the given key has been explicitly added as a field name.
         #
         # @param [Symbol] key The key to check for.
-        # @return [boolean]
+        # @return [Boolean]
         #
         def field? key
           @validators[String(key).to_sym].is_a? ::Proc
@@ -193,7 +193,7 @@ module Google
         # Check if the given key has been explicitly added as a subconfig name.
         #
         # @param [Symbol] key The key to check for.
-        # @return [boolean]
+        # @return [Boolean]
         #
         def subconfig? key
           @validators[String(key).to_sym] == SUBCONFIG
