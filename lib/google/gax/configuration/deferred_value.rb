@@ -31,13 +31,26 @@ module Google
   module Gax
     class Configuration < BasicObject
       ##
-      # @private
+      # Create a configuration value that will be invoked when retrieved.
+      #
+      def self.deferred &block
+        DeferredValue.new(&block)
+      end
+
+      ##
+      # A configuration value that is be invoked as it is retrieved.
       #
       class DeferredValue
+        ##
+        # Create a configuration value that will be invoked when retrieved.
+        #
         def initialize &block
           @callback = block
         end
 
+        ##
+        # @private
+        #
         def call
           @callback.call
         end

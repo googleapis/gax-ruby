@@ -32,14 +32,6 @@ module Google
     class Configuration < BasicObject
       ##
       # @private
-      # Create a configuration value that will be invoked when retrieved.
-      #
-      def self.deferred &block
-        DeferredValue.new(&block)
-      end
-
-      ##
-      # @private
       #
       class Schema
         ##
