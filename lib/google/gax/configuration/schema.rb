@@ -42,7 +42,7 @@ module Google
         # @param [boolean] show_warnings Whether to print warnings when a
         #     validation fails. Defaults to `true`.
         #
-        def initialize show_warnings: true, &block
+        def initialize show_warnings: true
           @show_warnings = show_warnings
           @defaults = {}
           @validators = {}

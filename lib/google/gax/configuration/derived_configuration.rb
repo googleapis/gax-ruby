@@ -63,17 +63,17 @@ module Google
         end
 
         ##
-        def add_field! key, initial = nil, opts = {}, &block
+        def add_field! _key, _initial = nil, _opts = {}
           ::Kernel.raise DerivedConfigurationError
         end
 
         ##
-        def add_config! key, config = nil, &block
+        def add_config! _key, _config = nil
           ::Kernel.raise DerivedConfigurationError
         end
 
         ##
-        def add_alias! key, to_key
+        def add_alias! _key, _to_key
           ::Kernel.raise DerivedConfigurationError
         end
 
@@ -103,7 +103,7 @@ module Google
         # @param [Symbol, nil] key The key to delete. If omitted or `nil`,
         #     delete all fields and subconfigs.
         #
-        def delete! key = nil
+        def delete! _key = nil
           ::Kernel.raise DerivedConfigurationError
         end
 
