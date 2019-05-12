@@ -375,10 +375,10 @@ module Google
       def to_s!
         elems = @schema.keys.map do |k|
           v = self[k]
-          vstr = Configuration.config?(v) ? v.to_s! : value.inspect
+          vstr = Configuration.config?(v) ? v.to_s! : v.inspect
           "#{k}=#{vstr}"
         end
-        "<Google::Gax::Configuration:#{elems.join ' '}>"
+        "<Google::Gax::Configuration: #{elems.join ' '}>"
       end
 
       ##
