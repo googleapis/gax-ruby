@@ -46,17 +46,15 @@ module Google
       #
       class DerivedConfiguration < Configuration
         ##
-        # Constructs a Configuration object. If a block is given, yields `self` to the
-        # block, which makes it convenient to initialize the structure by making
-        # calls to `add_field!` and `add_config!`.
+        # Constructs a DerivedConfiguration object. If a block is given, yields `self` to the
+        # block, which makes it convenient to change the local values in the derived object.
         #
-        # @param [boolean] show_warnings Whether to print warnings when a
-        #     validation fails. Defaults to `true`.
+        # @param [Configuration] parent_config The parent configuration.
         #
-        def initialize super_config, &block
+        def initialize parent_config, &block
           @values = {}
-          @config = super_config
-          @schema = super_config.instance_eval { @schema }
+          @parent_config = parent_config
+          @schema = parent_config.instance_eval { @schema }
 
           # Can't call yield because of BasicObject
           block&.call self
@@ -117,7 +115,7 @@ module Google
           key = @schema.resolve_key! key
           @schema.warn! "Key #{key.inspect} does not exist. Returning nil." unless @schema.key? key
           value = @values[key]
-          value ||= @config[key]
+          value ||= @parent_config[key]
           if Configuration.config? value
             unless value.derived?
               value = DerivedConfiguration.new value
@@ -138,8 +136,8 @@ module Google
         #
         def value_set? key
           local_value_set = @values.key? @schema.resolve_key! key
-          super_value_set = @config.value_set? key
-          local_value_set || super_value_set
+          parent_value_set = @parent_config.value_set? key
+          local_value_set || parent_value_set
         end
 
         ##
