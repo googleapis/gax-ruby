@@ -35,9 +35,7 @@ module Google
       #
       class Schema
         ##
-        # Constructs a Configuration object. If a block is given, yields `self` to the
-        # block, which makes it convenient to initialize the structure by making
-        # calls to `add_field!` and `add_config!`.
+        # Constructs a Schema object.
         #
         # @param [boolean] show_warnings Whether to print warnings when a
         #     validation fails. Defaults to `true`.
@@ -49,41 +47,7 @@ module Google
         end
 
         ##
-        # Add a value field to this configuration.
-        #
-        # You must provide a key, which becomes the field name in this config.
-        # Field names may comprise only letters, numerals, and underscores, and
-        # must begin with a letter. This will create accessor methods for the
-        # new configuration key.
-        #
-        # You may pass an initial value (which defaults to nil if not provided).
-        #
-        # You may also specify how values are validated. Validation is defined
-        # as follows:
-        #
-        # *   If you provide a block or a `:validator` option, it is used as the
-        #     validator. A proposed value is passed to the proc, which should
-        #     return `true` or `false` to indicate whether the value is valid.
-        # *   If you provide a `:match` option, it is compared to the proposed
-        #     value using the `===` operator. You may, for example, provide a
-        #     class, a regular expression, or a range. If you pass an array,
-        #     the value is accepted if _any_ of the elements match.
-        # *   If you provide an `:enum` option, it should be an `Enumerable`.
-        #     A proposed value is valid if it is included.
-        # *   Otherwise if you do not provide any of the above options, then a
-        #     default validation strategy is inferred from the initial value:
-        #     *   If the initial is `true` or `false`, then either boolean value
-        #         is considered valid. This is the same as `enum: [true, false]`.
-        #     *   If the initial is `nil`, then any object is considered valid.
-        #     *   Otherwise, any object of the same class as the initial value is
-        #         considered valid. This is effectively the same as
-        #         `match: initial.class`.
-        # *   You may also provide the `:allow_nil` option, which, if set to
-        #     true, alters any of the above validators to allow `nil` values.
-        #
-        # In many cases, you may find that the default validation behavior
-        # (interpreted from the initial value) is sufficient. If you want to
-        # accept any value, use `match: Object`.
+        # Add a value field to the schema.
         #
         # @param [String, Symbol] key The name of the option
         # @param [Object] initial Initial value (defaults to nil)
@@ -99,17 +63,7 @@ module Google
         end
 
         ##
-        # Add a subconfiguration field to this configuration.
-        #
-        # You must provide a key, which becomes the method name that you use to
-        # navigate to the subconfig. Names may comprise only letters, numerals,
-        # and underscores, and must begin with a letter.
-        #
-        # If you provide a block, the subconfig object is passed to the block,
-        # so you can easily add fields to the subconfig.
-        #
-        # You may also pass in a config object that already exists. This will
-        # "attach" that configuration in this location.
+        # Add a subconfiguration field to the schema.
         #
         # @param [Symbol] key The name of the subconfig
         # @param [Configuration] config A config object to attach here. If not provided,
@@ -153,8 +107,8 @@ module Google
         end
 
         ##
-        # Remove the given key from the configuration, deleting any validation
-        # and value. If the key is omitted, delete all keys. If the key is an
+        # Remove the given key from the schema, deleting any validation.
+        # If the key is omitted, delete all keys. If the key is an
         # alias, deletes the alias but leaves the original.
         #
         # @param [Symbol, nil] key The key to delete. If omitted or `nil`,
