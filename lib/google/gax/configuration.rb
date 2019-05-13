@@ -402,7 +402,7 @@ module Google
       # Returns a string containing a human-readable representation of the configuration.
       #
       def inspect
-        "##{to_s!}"
+        "#<Google::Gax::Configuration: #{to_h!}>"
       end
 
       ##

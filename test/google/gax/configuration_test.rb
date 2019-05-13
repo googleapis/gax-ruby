@@ -88,10 +88,7 @@ describe Google::Gax::Configuration do
     end
 
     it "can inspect" do
-      expected_inspect = "#<Google::Gax::Configuration: k1=" \
-        "<Google::Gax::Configuration: k2=" \
-        "<Google::Gax::Configuration: k3=" \
-        "<Google::Gax::Configuration: >>>>"
+      expected_inspect = "#<Google::Gax::Configuration: {:k1=>{:k2=>{:k3=>{}}}}>"
       assert_equal expected_inspect, simple_config.inspect
     end
   end
