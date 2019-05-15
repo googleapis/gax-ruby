@@ -190,11 +190,11 @@ describe Google::Gax::Configuration, :derive! do
     refute simple_config.derived?
     assert derived_config.derived?
 
-    assert_raises Google::Gax::Configuration::DerivedConfigurationError do
+    assert_raises Google::Gax::Configuration::DerivedError do
       derived_config.add_field! :new_field, true
     end
 
-    assert_raises Google::Gax::Configuration::DerivedConfigurationError do
+    assert_raises Google::Gax::Configuration::DerivedError do
       derived_config.add_config! :new_sub do |c|
         c.add_field! :new_bool, true
         c.add_field! :new_bool_nil, true, allow_nil: true
@@ -205,15 +205,15 @@ describe Google::Gax::Configuration, :derive! do
       end
     end
 
-    assert_raises Google::Gax::Configuration::DerivedConfigurationError do
+    assert_raises Google::Gax::Configuration::DerivedError do
       derived_config.add_alias! :new_bool, :opt_bool
     end
 
-    assert_raises Google::Gax::Configuration::DerivedConfigurationError do
+    assert_raises Google::Gax::Configuration::DerivedError do
       derived_config.delete! :opt_bool
     end
 
-    assert_raises Google::Gax::Configuration::DerivedConfigurationError do
+    assert_raises Google::Gax::Configuration::DerivedError do
       derived_config.delete!
     end
   end

@@ -37,16 +37,16 @@ module Google
       # A Derived Configuration error. This is raised when a structural change
       # is attempted on a derived configuration
       #
-      class DerivedConfigurationError < ::StandardError
+      class DerivedError < ::StandardError
       end
 
       ##
       # A Derived Configuration object. It can set local values,
       # but cannot change the configuration structure.
       #
-      class DerivedConfiguration < Configuration
+      class Derived < Configuration
         ##
-        # Constructs a DerivedConfiguration object. If a block is given, yields `self` to the
+        # Constructs a Derived object. If a block is given, yields `self` to the
         # block, which makes it convenient to change the local values in the derived object.
         #
         # @param [Configuration] parent_config The parent configuration.
@@ -62,17 +62,17 @@ module Google
 
         ##
         def add_field! _key, _initial = nil, _opts = {}
-          ::Kernel.raise DerivedConfigurationError
+          ::Kernel.raise DerivedError
         end
 
         ##
         def add_config! _key, _config = nil
-          ::Kernel.raise DerivedConfigurationError
+          ::Kernel.raise DerivedError
         end
 
         ##
         def add_alias! _key, _to_key
-          ::Kernel.raise DerivedConfigurationError
+          ::Kernel.raise DerivedError
         end
 
         ##
@@ -102,7 +102,7 @@ module Google
         #     delete all fields and subconfigs.
         #
         def delete! _key = nil
-          ::Kernel.raise DerivedConfigurationError
+          ::Kernel.raise DerivedError
         end
 
         ##
@@ -118,7 +118,7 @@ module Google
           value ||= @parent_config[key]
           if Configuration.config? value
             unless value.derived?
-              value = DerivedConfiguration.new value
+              value = Derived.new value
               @values[key] = value
             end
           end

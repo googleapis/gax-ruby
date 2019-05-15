@@ -128,7 +128,7 @@ module Google
       # but will not be able to change the structure.
       #
       def derive! &block
-        DerivedConfiguration.new self, &block
+        Derived.new self, &block
       end
 
       ##
