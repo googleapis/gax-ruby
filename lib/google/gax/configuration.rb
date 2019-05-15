@@ -27,7 +27,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require "google/gax/configuration/derived_configuration"
+require "google/gax/configuration/derived"
 require "google/gax/configuration/deferred_value"
 require "google/gax/configuration/schema"
 
