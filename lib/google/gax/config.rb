@@ -38,67 +38,65 @@ module Google
       # @param [Hash] opts Validation options
       #
       def config_attr name, default, *valid_values, &validator
-         name = String(name).to_sym
-         raise "cannot create field named parent_config" if name == :parent_config
-         raise "method #{name} already exists" if method_defined? name
+        name = String(name).to_sym
+        raise "cannot create field named parent_config" if name == :parent_config
+        raise "method #{name} already exists" if method_defined? name
 
-         raise "validation must be provided" if validator.nil? && valid_values.empty?
-         validator ||= ->(value) { valid_values.any? { |v| v === value } }
+        raise "validation must be provided" if validator.nil? && valid_values.empty?
+        validator ||= ->(value) { valid_values.any? { |v| v === value } }
 
-         name_ivar = "@#{name}".to_sym
+        name_ivar = "@#{name}".to_sym
 
-         if default.nil?
-           # create getter
-           define_method name do
-             value = instance_variable_get name_ivar
-             if value.nil?
-               parent = instance_variable_get :@parent_config
-               if parent&.respond_to? name
-                 return parent.send name
-               end
-             end
-             value
-           end
-           # create setter
-           define_method "#{name}=" do |new_value|
-             parent = instance_variable_get :@parent_config
-             valid_value = validator.call new_value
-             # Allow nil if parent config has the same method.
-             valid_value = true if new_value.nil? && parent&.respond_to?(name)
-             raise ArgumentError unless valid_value
-             if new_value.nil?
-               remove_instance_variable name_ivar if instance_variable_defined? name_ivar
-             else
-               instance_variable_set name_ivar, new_value
-             end
-           end
-         else
-           # create getter with default value
-           define_method name do
-             value = instance_variable_get name_ivar
-             if value.nil?
-               parent = instance_variable_get :@parent_config
-               if parent&.respond_to? name
-                 return parent.send name
-               else
-                 return default
-               end
-             end
-             value
-           end
-           # create setter with default value
-           define_method "#{name}=" do |new_value|
-             valid_value = validator.call new_value
-             # Always allow nil because we have a default value
-             valid_value = true if new_value.nil?
-             raise ArgumentError unless valid_value
-             if new_value.nil?
-               remove_instance_variable name_ivar if instance_variable_defined? name_ivar
-             else
-               instance_variable_set name_ivar, new_value
-             end
-           end
-         end
+        if default.nil?
+          # create getter
+          define_method name do
+            value = instance_variable_get name_ivar
+            if value.nil?
+              parent = instance_variable_get :@parent_config
+              return parent.send name if parent&.respond_to? name
+            end
+            value
+          end
+          # create setter
+          define_method "#{name}=" do |new_value|
+            parent = instance_variable_get :@parent_config
+            valid_value = validator.call new_value
+            # Allow nil if parent config has the same method.
+            valid_value = true if new_value.nil? && parent&.respond_to?(name)
+            raise ArgumentError unless valid_value
+            if new_value.nil?
+              remove_instance_variable name_ivar if instance_variable_defined? name_ivar
+            else
+              instance_variable_set name_ivar, new_value
+            end
+          end
+        else
+          # create getter with default value
+          define_method name do
+            value = instance_variable_get name_ivar
+            if value.nil?
+              parent = instance_variable_get :@parent_config
+              if parent&.respond_to? name
+                return parent.send name
+              else
+                return default
+              end
+            end
+            value
+          end
+          # create setter with default value
+          define_method "#{name}=" do |new_value|
+            valid_value = validator.call new_value
+            # Always allow nil because we have a default value
+            valid_value = true if new_value.nil?
+            raise ArgumentError unless valid_value
+            if new_value.nil?
+              remove_instance_variable name_ivar if instance_variable_defined? name_ivar
+            else
+              instance_variable_set name_ivar, new_value
+            end
+          end
+        end
       end
     end
   end
