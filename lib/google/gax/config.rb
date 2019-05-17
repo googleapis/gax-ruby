@@ -29,6 +29,33 @@
 
 module Google
   module Gax
+    ##
+    # Config is a simple DSL for creating Configuration classes.
+    #
+    # @example
+    #   require "google/gax/config"
+    #
+    #   class SampleConfig
+    #     extend Google::Gax::Config
+    #
+    #     config_attr :name,   nil,         String, nil
+    #     config_attr :active, true,        true, false
+    #     config_attr :count,  nil,         Numeric, nil
+    #     config_attr :env,    :production, String, Symbol
+    #
+    #     def initialize parent_config = nil
+    #       @parent_config = parent_config unless parent_config.nil?
+    #       yield self if block_given?
+    #     end
+    #   end
+    #
+    #   config = SampleConfig.new
+    #
+    #   config.name             #=> nil
+    #   config.name = "thor"    #=> "thor"
+    #   config.name             #=> "thor"
+    #   config.name = :thor     # ArgumentError
+    #
     module Config
       ##
       # Add configuration attribute methods to the configuratin class.
