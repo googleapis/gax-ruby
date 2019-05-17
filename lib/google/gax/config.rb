@@ -76,11 +76,8 @@ module Google
             value = instance_variable_get name_ivar
             if value.nil?
               parent = instance_variable_get :@parent_config
-              if parent&.respond_to? name
-                return parent.send name
-              else
-                return default
-              end
+              return parent.send name if parent&.respond_to? name
+              return default
             end
             value
           end
