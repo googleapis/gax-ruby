@@ -115,6 +115,9 @@ module Google
       # @param [boolean] show_warnings Whether to print warnings when a
       #     validation fails. Defaults to `true`.
       #
+      # @yield [config] Configure the new object.
+      # @yieldparam config [Configuration]
+      #
       def initialize show_warnings: true, &block
         @values = {}
         @schema = Schema.new show_warnings: show_warnings
@@ -126,6 +129,11 @@ module Google
       ##
       # Derive a Configuration object. The subsequent object can set local values,
       # but will not be able to change the structure.
+      #
+      # @yield [config] Configure the new object.
+      # @yieldparam config [Configuration::Derived]
+      #
+      # @return [Configuration::Derived]
       #
       def derive! &block
         Derived.new self, &block

@@ -51,6 +51,9 @@ module Google
         #
         # @param [Configuration] parent_config The parent configuration.
         #
+        # @yield [config] Configure the new object.
+        # @yieldparam config [Configuration::Derived]
+        #
         def initialize parent_config, &block
           @values = {}
           @parent_config = parent_config
