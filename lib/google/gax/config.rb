@@ -39,6 +39,7 @@ module Google
       #
       def config_attr name, default, *valid_values, &validator
          name = String(name).to_sym
+         raise "cannot create field named parent_config" if name == :parent_config
          raise "method #{name} already exists" if method_defined? name
 
          raise "validation must be provided" if validator.nil? && valid_values.empty?
@@ -50,11 +51,20 @@ module Google
            # create getter
            define_method name do
              value = instance_variable_get name_ivar
+             if value.nil?
+               parent = instance_variable_get :@parent_config
+               if parent&.respond_to? name
+                 return parent.send name
+               end
+             end
              value
            end
            # create setter
            define_method "#{name}=" do |new_value|
+             parent = instance_variable_get :@parent_config
              valid_value = validator.call new_value
+             # Allow nil if parent config has the same method.
+             valid_value = true if new_value.nil? && parent&.respond_to?(name)
              raise ArgumentError unless valid_value
              if new_value.nil?
                remove_instance_variable name_ivar if instance_variable_defined? name_ivar
@@ -66,7 +76,14 @@ module Google
            # create getter with default value
            define_method name do
              value = instance_variable_get name_ivar
-             return default if value.nil?
+             if value.nil?
+               parent = instance_variable_get :@parent_config
+               if parent&.respond_to? name
+                 return parent.send name
+               else
+                 return default
+               end
+             end
              value
            end
            # create setter with default value
