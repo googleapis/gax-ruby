@@ -11,6 +11,19 @@ Metrics/ClassLength:
     - "lib/google/gax/configuration.rb"
     - "lib/google/gax/configuration/schema.rb"
 
+Metrics/AbcSize:
+  Exclude:
+    - "lib/google/gax/config.rb"
+Metrics/CyclomaticComplexity:
+  Exclude:
+    - "lib/google/gax/config.rb"
+Metrics/MethodLength:
+  Exclude:
+    - "lib/google/gax/config.rb"
+Metrics/PerceivedComplexity:
+  Exclude:
+    - "lib/google/gax/config.rb"
+
 Style/Documentation:
   Exclude:
     - "lib/google/gax/api_call.rb"
@@ -26,3 +39,4 @@ Style/CaseEquality:
     - "lib/google/gax/configuration.rb"
     - "lib/google/gax/configuration/derived.rb"
     - "lib/google/gax/configuration/schema.rb"
+    - "lib/google/gax/config.rb"
