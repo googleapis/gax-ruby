@@ -66,10 +66,12 @@ module Google
       #
       def config_attr name, default, *valid_values, &validator
         name = String(name).to_sym
-        raise "cannot create field named parent_config" if name == :parent_config
-        raise "method #{name} already exists" if method_defined? name
+        name_setter = "#{name}=".to_sym
+        raise NameError, "invalid config name #{name}" if name !~ /^[a-zA-Z]\w*$/ || name == :parent_config
+        raise NameError, "method #{name} already exists" if method_defined? name
+        raise NameError, "method #{name_setter} already exists" if method_defined? name_setter
 
-        raise "validation must be provided" if validator.nil? && valid_values.empty?
+        raise ArgumentError, "validation must be provided" if validator.nil? && valid_values.empty?
         validator ||= ->(value) { valid_values.any? { |v| v === value } }
 
         name_ivar = "@#{name}".to_sym
@@ -90,7 +92,7 @@ module Google
         end
 
         # create setter
-        define_method "#{name}=" do |new_value|
+        define_method name_setter do |new_value|
           valid_value = validator.call new_value
           if new_value.nil?
             # Always allow nil when a default value is present
