@@ -88,7 +88,8 @@ describe Google::Gax::Configuration do
     end
 
     it "can inspect" do
-      assert_equal "#<Google::Gax::Configuration {:k1=>{:k2=>{:k3=>{}}}}>", simple_config.inspect
+      expected_inspect = "#<Google::Gax::Configuration: {:k1=>{:k2=>{:k3=>{}}}}>"
+      assert_equal expected_inspect, simple_config.inspect
     end
   end
 
@@ -218,7 +219,7 @@ describe Google::Gax::Configuration do
       }.must_be_silent
 
       -> () {
-        checked_config.opt1_int = Google::Gax::Configuration.deferred { rand(10) }
+        checked_config.opt1_int = Google::Gax::Configuration::DeferredValue.new { rand(10) }
         checked_config.opt1_int.must_be :>=, 0
         checked_config.opt1_int.must_be :<, 10
         checked_config.opt1_int.must_be_kind_of Integer
@@ -242,7 +243,7 @@ describe Google::Gax::Configuration do
       }.must_be_silent
 
       -> () {
-        checked_config.sub1.opt2_sym = Google::Gax::Configuration.deferred { "foo".to_sym }
+        checked_config.sub1.opt2_sym = Google::Gax::Configuration::DeferredValue.new { "foo".to_sym }
         checked_config.sub1.opt2_sym.must_equal :foo
       }.must_be_silent
 
@@ -264,7 +265,7 @@ describe Google::Gax::Configuration do
       }.must_be_silent
 
       -> () {
-        checked_config.sub1.sub2.opt3_bool = Google::Gax::Configuration.deferred { true }
+        checked_config.sub1.sub2.opt3_bool = Google::Gax::Configuration::DeferredValue.new { true }
         checked_config.sub1.sub2.opt3_bool.must_equal true
       }.must_be_silent
 
@@ -295,7 +296,7 @@ describe Google::Gax::Configuration do
       }.must_be_silent
 
       -> () {
-        checked_config.sub1.sub2.opt3_enum = Google::Gax::Configuration.deferred { :one }
+        checked_config.sub1.sub2.opt3_enum = Google::Gax::Configuration::DeferredValue.new { :one }
         checked_config.sub1.sub2.opt3_enum.must_equal :one
       }.must_be_silent
 
@@ -312,7 +313,7 @@ describe Google::Gax::Configuration do
       }.must_be_silent
 
       -> () {
-        checked_config.sub1.sub2.opt3_regex = Google::Gax::Configuration.deferred { String :foo }
+        checked_config.sub1.sub2.opt3_regex = Google::Gax::Configuration::DeferredValue.new { String :foo }
         checked_config.sub1.sub2.opt3_regex.must_equal "foo"
       }.must_be_silent
 

@@ -9,10 +9,13 @@ AllCops:
 Metrics/ClassLength:
   Exclude:
     - "lib/google/gax/configuration.rb"
+    - "lib/google/gax/configuration/schema.rb"
 
 Style/Documentation:
   Exclude:
     - "lib/google/gax/api_call.rb"
+    - "lib/google/gax/configuration/deferred_value.rb"
+    - "lib/google/gax/configuration/schema.rb"
     - "lib/google/gax/errors.rb"
     - "lib/google/gax/grpc/status_details.rb"
 Style/GuardClause:
@@ -21,3 +24,5 @@ Style/GuardClause:
 Style/CaseEquality:
   Exclude:
     - "lib/google/gax/configuration.rb"
+    - "lib/google/gax/configuration/derived.rb"
+    - "lib/google/gax/configuration/schema.rb"

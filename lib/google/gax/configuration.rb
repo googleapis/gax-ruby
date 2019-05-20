@@ -27,6 +27,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+require "google/gax/configuration/derived"
+require "google/gax/configuration/deferred_value"
+require "google/gax/configuration/schema"
+
 module Google
   module Gax
     ##
@@ -97,7 +101,7 @@ module Google
       # Determines if the given object is a config. Useful because Configuration
       # does not define the `is_a?` method.
       #
-      # @return [boolean]
+      # @return [Boolean]
       #
       def self.config? obj
         Configuration.send :===, obj
@@ -111,14 +115,28 @@ module Google
       # @param [boolean] show_warnings Whether to print warnings when a
       #     validation fails. Defaults to `true`.
       #
+      # @yield [config] Configure the new object.
+      # @yieldparam config [Configuration]
+      #
       def initialize show_warnings: true, &block
-        @show_warnings = show_warnings
         @values = {}
-        @defaults = {}
-        @validators = {}
+        @schema = Schema.new show_warnings: show_warnings
 
         # Can't call yield because of BasicObject
         block&.call self
+      end
+
+      ##
+      # Derive a Configuration object. The subsequent object can set local values,
+      # but will not be able to change the structure.
+      #
+      # @yield [config] Configure the new object.
+      # @yieldparam config [Configuration::Derived]
+      #
+      # @return [Configuration::Derived]
+      #
+      def derive! &block
+        Derived.new self, &block
       end
 
       ##
@@ -165,13 +183,9 @@ module Google
       # @return [Configuration] self for chaining
       #
       def add_field! key, initial = nil, opts = {}, &block
-        key = validate_new_key! key
-        opts[:validator] = block if block
-        validator = resolve_validator! initial, opts
-        validate_value! key, validator, initial
+        key = @schema.validate_new_key! key
         @values[key] = initial
-        @defaults[key] = initial
-        @validators[key] = validator
+        @schema.add_field! key, initial, opts, &block
         self
       end
 
@@ -195,15 +209,14 @@ module Google
       # @return [Configuration] self for chaining
       #
       def add_config! key, config = nil, &block
-        key = validate_new_key! key
+        key = @schema.validate_new_key! key
         if config.nil?
           config = Configuration.new(&block)
         elsif block
           yield config
         end
         @values[key] = config
-        @defaults[key] = config
-        @validators[key] = SUBCONFIG
+        @schema.add_config! key, config
         self
       end
 
@@ -212,10 +225,9 @@ module Google
       # the same field.
       #
       def add_alias! key, to_key
-        key = validate_new_key! key
+        key = @schema.validate_new_key! key
         @values.delete key
-        @defaults.delete key
-        @validators[key] = to_key.to_sym
+        @schema.add_alias! key, to_key
         self
       end
 
@@ -231,16 +243,16 @@ module Google
         if key.nil?
           @values.each_key { |k| reset! k }
         else
-          key = key.to_sym
-          if @defaults.key? key
-            @values[key] = @defaults[key]
-            @values[key].reset! if @validators[key] == SUBCONFIG
+          key = ::Kernel.String(key).to_sym
+          if @schema.default? key
+            @values[key] = @schema.default key
+            @values[key].reset! if Configuration.config? @values[key]
           elsif @values.key? key
-            warn! "Key #{key.inspect} has not been added, but has a value." \
-                  " Removing the value."
+            @schema.warn! "Key #{key.inspect} has not been added, but has a value." \
+                          " Removing the value."
             @values.delete key
           else
-            warn! "Key #{key.inspect} does not exist. Nothing to reset."
+            @schema.warn! "Key #{key.inspect} does not exist. Nothing to reset."
           end
         end
         self
@@ -256,13 +268,12 @@ module Google
       #
       def delete! key = nil
         if key.nil?
+          @schema.delete!
           @values.clear
-          @defaults.clear
-          @validators.clear
         else
+          key = ::Kernel.String(key).to_sym
+          @schema.delete! key
           @values.delete key
-          @defaults.delete key
-          @validators.delete key
         end
         self
       end
@@ -274,8 +285,8 @@ module Google
       # @param [Object] value The new option value
       #
       def []= key, value
-        key = resolve_key! key
-        validate_value! key, @validators[key], value
+        key = @schema.resolve_key! key
+        @schema.validate_value! key, value
         @values[key] = value
       end
 
@@ -286,8 +297,8 @@ module Google
       # @return [Object] The option value or subconfig object
       #
       def [] key
-        key = resolve_key! key
-        warn! "Key #{key.inspect} does not exist. Returning nil." unless @validators.key? key
+        key = @schema.resolve_key! key
+        @schema.warn! "Key #{key.inspect} does not exist. Returning nil." unless @schema.key? key
         value = @values[key]
         value = value.call if Configuration::DeferredValue === value
         value
@@ -299,30 +310,30 @@ module Google
       # not been added explicitly but still has a value.
       #
       # @param [Symbol] key The key to check for.
-      # @return [boolean]
+      # @return [Boolean]
       #
       def value_set? key
-        @values.key? resolve_key! key
+        @values.key? @schema.resolve_key! key
       end
 
       ##
       # Check if the given key has been explicitly added as a field name.
       #
       # @param [Symbol] key The key to check for.
-      # @return [boolean]
+      # @return [Boolean]
       #
       def field? key
-        @validators[key.to_sym].is_a? ::Proc
+        @schema.field? key
       end
 
       ##
       # Check if the given key has been explicitly added as a subconfig name.
       #
       # @param [Symbol] key The key to check for.
-      # @return [boolean]
+      # @return [Boolean]
       #
       def subconfig? key
-        @validators[key.to_sym] == SUBCONFIG
+        @schema.subconfig? key
       end
 
       ##
@@ -333,8 +344,7 @@ module Google
       # @return [Symbol,nil] The alias target, or nil if not an alias.
       #
       def alias? key
-        target = @validators[key.to_sym]
-        target.is_a?(::Symbol) ? target : nil
+        @schema.alias? key
       end
 
       ##
@@ -343,7 +353,7 @@ module Google
       # @return [Array<Symbol>] a list of field names as symbols.
       #
       def fields!
-        @validators.keys.find_all { |key| @validators[key].is_a? ::Proc }
+        @schema.fields!
       end
 
       ##
@@ -352,7 +362,7 @@ module Google
       # @return [Array<Symbol>] a list of subconfig names as symbols.
       #
       def subconfigs!
-        @validators.keys.find_all { |key| @validators[key] == SUBCONFIG }
+        @schema.subconfigs!
       end
 
       ##
@@ -361,7 +371,7 @@ module Google
       # @return [Array<Symbol>] a list of alias names as symbols.
       #
       def aliases!
-        @validators.keys.find_all { |key| @validators[key].is_a? ::Symbol }
+        @schema.aliases!
       end
 
       ##
@@ -371,12 +381,12 @@ module Google
       # @return [String]
       #
       def to_s!
-        elems = @validators.keys.map do |k|
-          v = @values[k]
-          vstr = Configuration.config?(v) ? v.to_s! : value.inspect
-          " #{k}=#{vstr}"
+        elems = @schema.keys.map do |k|
+          v = self[k]
+          vstr = Configuration.config?(v) ? v.to_s! : v.inspect
+          "#{k}=#{vstr}"
         end
-        "<Configuration:#{elems.join}>"
+        "<Google::Gax::Configuration: #{elems.join ' '}>"
       end
 
       ##
@@ -388,8 +398,8 @@ module Google
       #
       def to_h!
         h = {}
-        @validators.each_key do |k|
-          v = @values[k]
+        @schema.keys.each do |k|
+          v = self[k]
           h[k] = Configuration.config?(v) ? v.to_h! : v.inspect
         end
         h
@@ -400,15 +410,7 @@ module Google
       # Returns a string containing a human-readable representation of the configuration.
       #
       def inspect
-        "#<Google::Gax::Configuration #{to_h!}>"
-      end
-
-      ##
-      # @private
-      # Create a configuration value that will be invoked when retrieved.
-      #
-      def self.deferred &block
-        DeferredValue.new(&block)
+        "#<Google::Gax::Configuration: #{to_h!}>"
       end
 
       ##
@@ -444,113 +446,14 @@ module Google
         false
       end
 
-      private
-
-      ##
-      # @private A validator that allows all values
-      #
-      OPEN_VALIDATOR = ::Proc.new { true }
-
-      ##
-      # @private a list of key names that are technically illegal because
-      # they clash with method names.
-      #
-      ILLEGAL_KEYS = [:inspect, :initialize, :instance_eval, :instance_exec, :method_missing,
-                      :singleton_method_added, :singleton_method_removed, :singleton_method_undefined].freeze
-
-      ##
-      # @private sentinel indicating a subconfig in the validators hash
-      #
-      SUBCONFIG = ::Object.new
-
-      def resolve_key! key
-        key = key.to_sym
-        alias_target = @validators[key]
-        alias_target.is_a?(::Symbol) ? alias_target : key
-      end
-
-      def validate_new_key! key
-        key_str = key.to_s
-        key = key.to_sym
-        if key_str !~ /^[a-zA-Z]\w*$/ || ILLEGAL_KEYS.include?(key)
-          warn! "Illegal key name: #{key_str.inspect}. Method dispatch will" \
-                " not work for this key."
-        end
-        warn! "Key #{key.inspect} already exists. It will be replaced." if @validators.key? key
-        key
-      end
-
-      def resolve_validator! initial, opts
-        allow_nil = initial.nil? || opts[:allow_nil]
-        if opts.key? :validator
-          build_proc_validator! opts[:validator], allow_nil
-        elsif opts.key? :match
-          build_match_validator! opts[:match], allow_nil
-        elsif opts.key? :enum
-          build_enum_validator! opts[:enum], allow_nil
-        elsif [true, false].include? initial
-          build_enum_validator! [true, false], allow_nil
-        elsif initial.nil?
-          OPEN_VALIDATOR
-        else
-          klass = Configuration.config?(initial) ? Configuration : initial.class
-          build_match_validator! klass, allow_nil
-        end
-      end
-
-      def build_match_validator! matches, allow_nil
-        matches = ::Kernel.Array(matches)
-        matches += [nil] if allow_nil && !matches.include?(nil)
-        ->(val) { matches.any? { |m| m.send :===, val } }
-      end
-
-      def build_enum_validator! allowed, allow_nil
-        allowed = ::Kernel.Array(allowed)
-        allowed += [nil] if allow_nil && !allowed.include?(nil)
-        ->(val) { allowed.include? val }
-      end
-
-      def build_proc_validator! proc, allow_nil
-        ->(val) { proc.call(val) || (allow_nil && val.nil?) }
-      end
-
-      def validate_value! key, validator, value
-        value = value.call if Configuration::DeferredValue === value
-        case validator
-        when ::Proc
-          unless validator.call value
-            warn! "Invalid value #{value.inspect} for key #{key.inspect}." \
-                  " Setting anyway."
-          end
-        when Configuration
-          if value != validator
-            warn! "Key #{key.inspect} refers to a subconfig and shouldn't" \
-                  " be changed. Setting anyway."
-          end
-        else
-          warn! "Key #{key.inspect} has not been added. Setting anyway."
-        end
-      end
-
-      def warn! msg
-        return unless @show_warnings
-        location = ::Kernel.caller_locations.find do |s|
-          !s.to_s.include? "/google/gax/configuration.rb:"
-        end
-        ::Kernel.warn "#{msg} at #{location}"
-      end
-
       ##
       # @private
+      # Check if the configuration has been derived.
       #
-      class DeferredValue
-        def initialize &block
-          @callback = block
-        end
-
-        def call
-          @callback.call
-        end
+      # @return [Boolean]
+      #
+      def derived?
+        false
       end
     end
   end
