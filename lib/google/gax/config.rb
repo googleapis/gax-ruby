@@ -74,51 +74,39 @@ module Google
 
         name_ivar = "@#{name}".to_sym
 
-        if default.nil?
-          # create getter
-          define_method name do
-            value = instance_variable_get name_ivar
-            if value.nil?
-              parent = instance_variable_get :@parent_config
-              return parent.send name if parent&.respond_to? name
-            end
-            value
-          end
-          # create setter
-          define_method "#{name}=" do |new_value|
+        # create getter
+        define_method name do
+          return instance_variable_get name_ivar if instance_variable_defined? name_ivar
+
+          if instance_variable_defined? :@parent_config
             parent = instance_variable_get :@parent_config
-            valid_value = validator.call new_value
-            # Allow nil if parent config has the same method.
-            valid_value = true if new_value.nil? && parent&.respond_to?(name)
-            raise ArgumentError unless valid_value
-            if new_value.nil?
-              remove_instance_variable name_ivar if instance_variable_defined? name_ivar
-            else
-              instance_variable_set name_ivar, new_value
+            return parent.send name if parent&.respond_to? name
+
+            parent = instance_variable_get :@parent_config
+            return parent.send name if parent&.respond_to? name
+          end
+
+          default
+        end
+
+        # create setter
+        define_method "#{name}=" do |new_value|
+          valid_value = validator.call new_value
+          if new_value.nil?
+            # Always allow nil when a default value is present
+            valid_value ||= !default.nil?
+            valid_value ||= begin
+              # Allow nil if parent config has the getter method.
+              parent = instance_variable_get :@parent_config if instance_variable_defined? :@parent_config
+              parent&.respond_to? name
             end
           end
-        else
-          # create getter with default value
-          define_method name do
-            value = instance_variable_get name_ivar
-            if value.nil?
-              parent = instance_variable_get :@parent_config
-              return parent.send name if parent&.respond_to? name
-              return default
-            end
-            value
-          end
-          # create setter with default value
-          define_method "#{name}=" do |new_value|
-            valid_value = validator.call new_value
-            # Always allow nil because we have a default value
-            valid_value = true if new_value.nil?
-            raise ArgumentError unless valid_value
-            if new_value.nil?
-              remove_instance_variable name_ivar if instance_variable_defined? name_ivar
-            else
-              instance_variable_set name_ivar, new_value
-            end
+          raise ArgumentError unless valid_value
+
+          if new_value.nil?
+            remove_instance_variable name_ivar if instance_variable_defined? name_ivar
+          else
+            instance_variable_set name_ivar, new_value
           end
         end
       end
