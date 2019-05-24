@@ -114,7 +114,8 @@ module Google
           client_config: {},
           timeout: DEFAULT_TIMEOUT,
           lib_name: nil,
-          lib_version: ""
+          lib_version: "",
+          _headers: {}
         # These require statements are intentionally placed here to initialize
         # the gRPC module only when it's required.
         # See https://github.com/googleapis/toolkit/issues/446
@@ -147,7 +148,7 @@ module Google
         google_api_client << " grpc/#{GRPC::VERSION}"
         google_api_client.freeze
 
-        headers = { :"x-goog-api-client" => google_api_client }
+        headers = { :"x-goog-api-client" => google_api_client }.merge(_headers)
         client_config_file = Pathname.new(__dir__).join(
           "operations_client_config.json"
         )
