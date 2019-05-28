@@ -68,6 +68,7 @@ module Google
           raise ArgumentError, "credentials is required" if credentials.nil?
 
           address = "#{host}:#{port}"
+          channel_args = Hash channel_args
           interceptors = Array interceptors
 
           if credentials.is_a? GRPC::Core::Channel
