@@ -61,13 +61,14 @@ module Google
         #
         # @return The gRPC stub object.
         #
-        def self.new stub_class, host:, port:, credentials:, channel_args: {}, interceptors: []
+        def self.new stub_class, host:, port:, credentials:, channel_args: nil, interceptors: nil
           raise ArgumentError, "stub_class is required" if stub_class.nil?
           raise ArgumentError, "host is required" if host.nil?
           raise ArgumentError, "port is required" if port.nil?
           raise ArgumentError, "credentials is required" if credentials.nil?
 
           address = "#{host}:#{port}"
+          interceptors = Array interceptors
 
           if credentials.is_a? GRPC::Core::Channel
             return stub_class.new address, nil, channel_override: credentials, interceptors: interceptors
