@@ -43,12 +43,13 @@ module Google
         # @param stub_class [Class] gRPC stub class to create a new instance of.
         # @param host [String] The domain name of the API remote host.
         # @param port [Fixnum] The port on which to connect to the remote host.
-        # @param credentials [Google::Auth::Credentials, String, Hash, GRPC::Core::Channel,
-        #   GRPC::Core::ChannelCredentials, Proc] Provides the means for authenticating requests made by the client.
-        #   This parameter can be many types:
+        # @param credentials [Google::Auth::Credentials, Signet::OAuth2::Client, String, Hash, Proc,
+        #   GRPC::Core::Channel, GRPC::Core::ChannelCredentials] Provides the means for authenticating requests made by
+        #   the client. This parameter can be many types:
         #
         #   * A `Google::Auth::Credentials` uses a the properties of its represented keyfile for authenticating requests
         #     made by this client.
+        #   * A `Signet::OAuth2::Client` object used to apply the OAuth credentials.
         #   * A `GRPC::Core::Channel` will be used to make calls through.
         #   * A `GRPC::Core::ChannelCredentials` for the setting up the RPC client. The channel credentials should
         #     already be composed with a `GRPC::Core::CallCredentials` object.
@@ -73,14 +74,9 @@ module Google
             return stub_class.new address, credentials, interceptors: interceptors
           end
 
-          updater_proc = case credentials
-                         when Google::Auth::Credentials
-                           credentials.updater_proc
-                         when Proc
-                           credentials
-                         else
-                           raise ArgumentError, "invalid credentials (#{credentials.class})"
-                         end
+          updater_proc = credentials.updater_proc if credentials.respond_to? :updater_proc
+          updater_proc ||= credentials if credentials.is_a? Proc
+          raise ArgumentError, "invalid credentials (#{credentials.class})" if updater_proc.nil?
 
           call_creds = GRPC::Core::CallCredentials.new updater_proc
           chan_creds = GRPC::Core::ChannelCredentials.new.compose call_creds

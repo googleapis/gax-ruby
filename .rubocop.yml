@@ -23,6 +23,7 @@ Metrics/MethodLength:
 Metrics/PerceivedComplexity:
   Exclude:
     - "lib/google/gax/config.rb"
+    - "lib/google/gax/grpc/stub.rb"
 
 Style/Documentation:
   Exclude:
