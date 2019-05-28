@@ -54,12 +54,14 @@ module Google
         #     already be composed with a `GRPC::Core::CallCredentials` object.
         #   * A `Proc` will be used as an updater_proc for the Grpc channel. The proc transforms the metadata for
         #     requests, generally, to give OAuth credentials.
+        # @param channel_args [Hash] The channel arguments. (This argument is ignored when `credentials` is
+        #     provided as a `GRPC::Core::Channel`.)
         # @param interceptors [Array<GRPC::ClientInterceptor>] An array of {GRPC::ClientInterceptor} objects that will
         #   be used for intercepting calls before they are executed Interceptors are an EXPERIMENTAL API.
         #
         # @return The gRPC stub object.
         #
-        def self.new stub_class, host:, port:, credentials:, interceptors: []
+        def self.new stub_class, host:, port:, credentials:, channel_args: {}, interceptors: []
           raise ArgumentError, "stub_class is required" if stub_class.nil?
           raise ArgumentError, "host is required" if host.nil?
           raise ArgumentError, "port is required" if port.nil?
@@ -70,7 +72,7 @@ module Google
           if credentials.is_a? GRPC::Core::Channel
             return stub_class.new address, nil, channel_override: credentials, interceptors: interceptors
           elsif credentials.is_a? GRPC::Core::ChannelCredentials
-            return stub_class.new address, credentials, interceptors: interceptors
+            return stub_class.new address, credentials, channel_args: channel_args, interceptors: interceptors
           end
 
           updater_proc = case credentials
@@ -84,7 +86,7 @@ module Google
 
           call_creds = GRPC::Core::CallCredentials.new updater_proc
           chan_creds = GRPC::Core::ChannelCredentials.new.compose call_creds
-          stub_class.new address, chan_creds, interceptors: interceptors
+          stub_class.new address, chan_creds, channel_args: channel_args, interceptors: interceptors
         end
       end
     end
