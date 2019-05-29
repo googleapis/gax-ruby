@@ -1,5 +1,11 @@
 # Release History
 
+### 1.6.0 / 2019-05-29
+
+* Added metadata argument to OperationsClient.new allowing users to set default headers.
+* Fixes an issue where metadata set on CallSettings was not preserved after merging a CallOptions object.
+* Fixes an issue where timeout wasn't being used when retry is configured.
+
 ### 1.5.0 / 2019-1-7
 
 * Loosen googleauth dependency
