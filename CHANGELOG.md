@@ -1,5 +1,9 @@
 # Release History
 
+### 1.6.1 / 2019-05-29
+
+* Non-retryable calls yielded only operation rather than response and operation. Fixed.
+
 ### 1.6.0 / 2019-05-29
 
 * Added metadata argument to OperationsClient.new allowing users to set default headers.

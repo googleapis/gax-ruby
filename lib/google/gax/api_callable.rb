@@ -398,7 +398,7 @@ module Google
                          metadata: metadata,
                          return_op: true)
         res = op.execute
-        block.call op if block
+        block.call res, op if block
         res
       end
     end
