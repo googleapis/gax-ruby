@@ -125,7 +125,8 @@ module Google
                        options.page_token
                      end
 
-        metadata = @metadata.dup || {}
+        metadata = @metadata || {}
+        metadata = metadata.dup
         metadata.update(options.metadata) if options.metadata != :OPTION_INHERIT
 
         CallSettings.new(timeout: timeout,
