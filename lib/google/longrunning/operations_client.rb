@@ -142,11 +142,9 @@ module Google
           updater_proc = credentials.updater_proc
         end
 
-        package_version = Gem.loaded_specs['google-gax'].version.version
-
         google_api_client = "gl-ruby/#{RUBY_VERSION}"
         google_api_client << " #{lib_name}/#{lib_version}" if lib_name
-        google_api_client << " gapic/#{package_version} gax/#{Google::Gax::VERSION}"
+        google_api_client << " gax/#{Google::Gax::VERSION}"
         google_api_client << " grpc/#{GRPC::VERSION}"
         google_api_client.freeze
 
