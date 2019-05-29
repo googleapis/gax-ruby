@@ -142,14 +142,14 @@ module Google
           updater_proc = credentials.updater_proc
         end
 
-        google_api_client = "gl-ruby/#{RUBY_VERSION}"
-        google_api_client << " #{lib_name}/#{lib_version}" if lib_name
-        google_api_client << " gax/#{Google::Gax::VERSION}"
-        google_api_client << " grpc/#{GRPC::VERSION}"
-        google_api_client.freeze
-
         metadata ||= {}
-        metadata[:"x-goog-api-client"] ||= google_api_client
+        metadata[:"x-goog-api-client"] ||= begin
+          google_api_client = ["gl-ruby/#{RUBY_VERSION}"]
+          google_api_client << "#{lib_name}/#{lib_version}" if lib_name
+          google_api_client << "gax/#{Google::Gax::VERSION}"
+          google_api_client << "grpc/#{GRPC::VERSION}"
+          google_api_client.join(' ')
+        end
         client_config_file = Pathname.new(__dir__).join(
           "operations_client_config.json"
         )
