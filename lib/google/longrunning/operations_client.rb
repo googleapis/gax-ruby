@@ -108,13 +108,16 @@ module Google
       #   or the specified config is missing data points.
       # @param timeout [Numeric]
       #   The default timeout, in seconds, for calls made through this client.
+      # @param metadata [Hash]
+      #   The request metadata headers.
       def initialize \
           credentials: nil,
           scopes: ALL_SCOPES,
           client_config: {},
           timeout: DEFAULT_TIMEOUT,
           lib_name: nil,
-          lib_version: ""
+          lib_version: "",
+          metadata: nil
         # These require statements are intentionally placed here to initialize
         # the gRPC module only when it's required.
         # See https://github.com/googleapis/toolkit/issues/446
@@ -147,7 +150,8 @@ module Google
         google_api_client << " grpc/#{GRPC::VERSION}"
         google_api_client.freeze
 
-        headers = { :"x-goog-api-client" => google_api_client }
+        metadata ||= {}
+        metadata[:"x-goog-api-client"] ||= google_api_client
         client_config_file = Pathname.new(__dir__).join(
           "operations_client_config.json"
         )
@@ -160,7 +164,7 @@ module Google
             timeout,
             page_descriptors: PAGE_DESCRIPTORS,
             errors: Google::Gax::Grpc::API_ERRORS,
-            kwargs: headers
+            kwargs: metadata
           )
         end
 
