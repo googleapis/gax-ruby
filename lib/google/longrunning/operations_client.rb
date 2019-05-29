@@ -148,7 +148,7 @@ module Google
           google_api_client << "#{lib_name}/#{lib_version}" if lib_name
           google_api_client << "gax/#{Google::Gax::VERSION}"
           google_api_client << "grpc/#{GRPC::VERSION}"
-          google_api_client.join(' ')
+          google_api_client.join(' ').freeze
         end
 
         client_config_file = Pathname.new(__dir__).join(
