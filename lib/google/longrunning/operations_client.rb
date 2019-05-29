@@ -164,7 +164,7 @@ module Google
             timeout,
             page_descriptors: PAGE_DESCRIPTORS,
             errors: Google::Gax::Grpc::API_ERRORS,
-            kwargs: metadata
+            metadata: metadata
           )
         end
 
