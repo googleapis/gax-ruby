@@ -64,14 +64,17 @@ module Google
       attr_reader :page
 
       ##
-      # @param request_page_token_field [String] The name of the field in request which will have the page token.
-      # @param response_page_token_field [String] The name of the field in the response which holds the next page token.
-      # @param resource_field [String] The name of the field in the response which holds the resources.
+      # @param grpc_stub [Gax::GRPC::Stub] The Gax gRPC stub object.
+      # @param method_name [Symbol] The RPC method name.
+      # @param request [Object] The request object.
+      # @param response [Object] The response object.
+      # @param options [ApiCall::Options] The options for making the API call.
       # @param format_resource [Proc] A Proc object to format the resource object. The Proc should accept response as an
       #   argument, and return a formatted resource object. Optional.
       #
-      def initialize api_call, request, response, options, format_resource: nil
-        @api_call = api_call
+      def initialize grpc_stub, method_name, request, response, options, format_resource: nil
+        @grpc_stub = grpc_stub
+        @method_name = method_name
         @request = request
         @response = response
         @options = options
@@ -137,7 +140,7 @@ module Google
 
         next_request = @request.dup
         next_request.page_token = @page.next_page_token
-        next_response = @api_call.call next_request, options: @options
+        next_response = @grpc_stub.call_rpc @method_name, next_request, options: @options
 
         @page = Page.new next_response, @resource_field
       end
