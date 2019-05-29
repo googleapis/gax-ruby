@@ -150,9 +150,11 @@ module Google
           google_api_client << "grpc/#{GRPC::VERSION}"
           google_api_client.join(' ')
         end
+
         client_config_file = Pathname.new(__dir__).join(
           "operations_client_config.json"
         )
+
         defaults = client_config_file.open do |f|
           Google::Gax.construct_settings(
             "google.longrunning.Operations",
