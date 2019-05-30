@@ -39,13 +39,16 @@ module Google
       #
       # This class wraps the actual gRPC Stub object and it's RPC methods.
       #
+      # @!attribute [r] grpc_stub
+      #   @return [Object] The instance of the gRPC stub class (`grpc_stub_class`) constructor argument.
+      #
       class Stub
-        attr_reader :stub
+        attr_reader :grpc_stub
 
         ##
         # Creates a Gax gRPC stub object.
         #
-        # @param stub_class [Class] gRPC stub class to create a new instance of.
+        # @param grpc_stub_class [Class] gRPC stub class to create a new instance of.
         # @param host [String] The domain name of the API remote host.
         # @param port [Fixnum] The port on which to connect to the remote host.
         # @param credentials [Google::Auth::Credentials, Signet::OAuth2::Client, String, Hash, Proc,
@@ -65,8 +68,8 @@ module Google
         # @param interceptors [Array<GRPC::ClientInterceptor>] An array of {GRPC::ClientInterceptor} objects that will
         #   be used for intercepting calls before they are executed Interceptors are an EXPERIMENTAL API.
         #
-        def initialize stub_class, host:, port:, credentials:, channel_args: nil, interceptors: nil
-          raise ArgumentError, "stub_class is required" if stub_class.nil?
+        def initialize grpc_stub_class, host:, port:, credentials:, channel_args: nil, interceptors: nil
+          raise ArgumentError, "grpc_stub_class is required" if grpc_stub_class.nil?
           raise ArgumentError, "host is required" if host.nil?
           raise ArgumentError, "port is required" if port.nil?
           raise ArgumentError, "credentials is required" if credentials.nil?
@@ -75,19 +78,22 @@ module Google
           channel_args = Hash channel_args
           interceptors = Array interceptors
 
-          @stub = if credentials.is_a? GRPC::Core::Channel
-                    stub_class.new address, nil, channel_override: credentials, interceptors: interceptors
-                  elsif credentials.is_a? GRPC::Core::ChannelCredentials
-                    stub_class.new address, credentials, channel_args: channel_args, interceptors: interceptors
-                  else
-                    updater_proc = credentials.updater_proc if credentials.respond_to? :updater_proc
-                    updater_proc ||= credentials if credentials.is_a? Proc
-                    raise ArgumentError, "invalid credentials (#{credentials.class})" if updater_proc.nil?
+          @grpc_stub = if credentials.is_a? GRPC::Core::Channel
+                         grpc_stub_class.new address, nil, channel_override: credentials,
+                                                           interceptors:     interceptors
+                       elsif credentials.is_a? GRPC::Core::ChannelCredentials
+                         grpc_stub_class.new address, credentials, channel_args: channel_args,
+                                                                   interceptors: interceptors
+                       else
+                         updater_proc = credentials.updater_proc if credentials.respond_to? :updater_proc
+                         updater_proc ||= credentials if credentials.is_a? Proc
+                         raise ArgumentError, "invalid credentials (#{credentials.class})" if updater_proc.nil?
 
-                    call_creds = GRPC::Core::CallCredentials.new updater_proc
-                    chan_creds = GRPC::Core::ChannelCredentials.new.compose call_creds
-                    stub_class.new address, chan_creds, channel_args: channel_args, interceptors: interceptors
-                  end
+                         call_creds = GRPC::Core::CallCredentials.new updater_proc
+                         chan_creds = GRPC::Core::ChannelCredentials.new.compose call_creds
+                         grpc_stub_class.new address, chan_creds, channel_args: channel_args,
+                                                                  interceptors: interceptors
+                       end
         end
 
         ##
@@ -177,7 +183,7 @@ module Google
         #
         def call_rpc method_name, request, options: nil, format_response: nil, operation_callback: nil,
                      stream_callback: nil
-          api_call = Google::Gax::ApiCall.new @stub.method method_name
+          api_call = Google::Gax::ApiCall.new @grpc_stub.method method_name
           api_call.call request, options:            options,
                                  format_response:    format_response,
                                  operation_callback: operation_callback,
