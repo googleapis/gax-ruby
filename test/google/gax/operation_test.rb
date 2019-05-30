@@ -45,17 +45,17 @@ class MockLroClient
     @delete_method = delete_method
   end
 
-  def get_operation name:, options: nil
-    grpc_op = @get_method.call name: name, options: options
+  def get_operation request, options = nil
+    grpc_op = @get_method.call name: request[:name], options: options
     Google::Gax::Operation.new grpc_op, self
   end
 
-  def cancel_operation name:, options: nil
-    @cancel_method.call name: name, options: options
+  def cancel_operation request, options = nil
+    @cancel_method.call name: request[:name], options: options
   end
 
-  def delete_operation name:, options: nil
-    @delete_method.call name: name, options: options
+  def delete_operation request, options = nil
+    @delete_method.call name: request[:name], options: options
   end
 end
 
