@@ -31,22 +31,21 @@ require "test_helper"
 require "grpc"
 
 describe Google::Gax::Headers, :x_goog_api_client do
-  focus
   it "with no arguments" do
     header = Google::Gax::Headers.x_goog_api_client
     _(header).must_equal "gl-ruby/#{RUBY_VERSION} gax/#{Google::Gax::VERSION} grpc/#{GRPC::VERSION}"
   end
-  focus
+
   it "prints lib when provided" do
     header = Google::Gax::Headers.x_goog_api_client lib_name: "foo", lib_version: "bar"
     _(header).must_equal "gl-ruby/#{RUBY_VERSION} foo/bar gax/#{Google::Gax::VERSION} grpc/#{GRPC::VERSION}"
   end
-  focus
+
   it "prints gapic version when provided" do
     header = Google::Gax::Headers.x_goog_api_client gapic_version: "foobar"
     _(header).must_equal "gl-ruby/#{RUBY_VERSION} gapic/foobar gax/#{Google::Gax::VERSION} grpc/#{GRPC::VERSION}"
   end
-  focus
+
   it "prints all arguments provided" do
     header = Google::Gax::Headers.x_goog_api_client ruby_version: "1.2.3", lib_name: "foo", lib_version: "bar",
                                                     gapic_version: "4.5.6", gax_version: "7.8.9", grpc_version: "24601"
