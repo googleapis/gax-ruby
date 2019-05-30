@@ -32,7 +32,6 @@ require "test_helper"
 require "google/gax/config"
 
 class ConfigErrorsTest < Minitest::Test
-focus
   def test_invalid_name
     error = assert_raises NameError do
       config_klass = Class.new do
@@ -43,7 +42,7 @@ focus
     end
     assert_equal "invalid config name some method", error.message
   end
-focus
+
   def test_parent_config
     error = assert_raises NameError do
       config_klass = Class.new do
@@ -54,7 +53,7 @@ focus
     end
     assert_equal "invalid config name parent_config", error.message
   end
-focus
+
   def test_existing_method
     error = assert_raises NameError do
       config_klass = Class.new do
@@ -65,7 +64,7 @@ focus
     end
     assert_equal "method methods already exists", error.message
   end
-focus
+
   def test_missing_validation
     error = assert_raises ArgumentError do
       config_klass = Class.new do

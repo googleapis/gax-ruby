@@ -30,6 +30,15 @@
 require "test_helper"
 
 describe Google::Gax::PagedEnumerable, :format_resource do
+  class FakeGaxStub
+    def initialize *responses
+      @responses = responses
+    end
+    def call_rpc *args
+      @responses.shift
+    end
+  end
+
   it "enumerates all resources and formats them" do
     api_responses = [
       Google::Gax::GoodPagedResponse.new(
@@ -39,7 +48,7 @@ describe Google::Gax::PagedEnumerable, :format_resource do
         ]
       )
     ]
-    api_call = ->(_req, _opt) { api_responses.shift }
+    gax_stub = FakeGaxStub.new *api_responses
     request = Google::Gax::GoodPagedRequest.new
     response = Google::Gax::GoodPagedResponse.new(
       users:           [
@@ -51,7 +60,7 @@ describe Google::Gax::PagedEnumerable, :format_resource do
     options = Google::Gax::ApiCall::Options.new
     upcase_resource = ->(user) { user.name.upcase }
     paged_enum = Google::Gax::PagedEnumerable.new(
-      api_call, request, response, options, format_resource: upcase_resource
+      gax_stub, :method_name, request, response, options, format_resource: upcase_resource
     )
 
     assert_equal ["FOO", "BAR", "BAZ", "BIF"], paged_enum.each.to_a
@@ -66,7 +75,7 @@ describe Google::Gax::PagedEnumerable, :format_resource do
         ]
       )
     ]
-    api_call = ->(_req, _opt) { api_responses.shift }
+    gax_stub = FakeGaxStub.new *api_responses
     request = Google::Gax::GoodPagedRequest.new
     response = Google::Gax::GoodPagedResponse.new(
       users:           [
@@ -78,7 +87,7 @@ describe Google::Gax::PagedEnumerable, :format_resource do
     options = Google::Gax::ApiCall::Options.new
     upcase_resource = ->(str) { str.upcase }
     paged_enum = Google::Gax::PagedEnumerable.new(
-      api_call, request, response, options, format_resource: upcase_resource
+      gax_stub, :method_name, request, response, options, format_resource: upcase_resource
     )
 
     page_proc = ->(page) { page.each.map(&:name) }

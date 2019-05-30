@@ -30,6 +30,15 @@
 require "test_helper"
 
 describe Google::Gax::PagedEnumerable, :enumerable do
+  class FakeGaxStub
+    def initialize *responses
+      @responses = responses
+    end
+    def call_rpc *args
+      @responses.shift
+    end
+  end
+
   it "enumerates all resources" do
     api_responses = [
       Google::Gax::GoodPagedResponse.new(
@@ -39,7 +48,7 @@ describe Google::Gax::PagedEnumerable, :enumerable do
         ]
       )
     ]
-    api_call = ->(_req, _opt) { api_responses.shift }
+    gax_stub = FakeGaxStub.new *api_responses
     request = Google::Gax::GoodPagedRequest.new
     response = Google::Gax::GoodPagedResponse.new(
       users:           [
@@ -50,7 +59,7 @@ describe Google::Gax::PagedEnumerable, :enumerable do
     )
     options = Google::Gax::ApiCall::Options.new
     paged_enum = Google::Gax::PagedEnumerable.new(
-      api_call, request, response, options
+      gax_stub, :method_name, request, response, options
     )
 
     assert_equal %w[foo bar baz bif], paged_enum.each.map(&:name)
@@ -65,7 +74,7 @@ describe Google::Gax::PagedEnumerable, :enumerable do
         ]
       )
     ]
-    api_call = ->(_req, _opt) { api_responses.shift }
+    gax_stub = FakeGaxStub.new *api_responses
     request = Google::Gax::GoodPagedRequest.new
     response = Google::Gax::GoodPagedResponse.new(
       users:           [
@@ -76,7 +85,7 @@ describe Google::Gax::PagedEnumerable, :enumerable do
     )
     options = Google::Gax::ApiCall::Options.new
     paged_enum = Google::Gax::PagedEnumerable.new(
-      api_call, request, response, options
+      gax_stub, :method_name, request, response, options
     )
 
     assert_equal [2, 2], paged_enum.each_page.map(&:count)
