@@ -27,18 +27,33 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-require "google/gax/api_call"
-require "google/gax/configuration"
-require "google/gax/errors"
-require "google/gax/headers"
-require "google/gax/operation"
-require "google/gax/paged_enumerable"
-require "google/gax/protobuf"
-require "google/gax/stream_input"
-require "google/gax/version"
+require "google/gax/operation/retry_policy"
+require "google/protobuf/well_known_types"
 
 module Google
-  # Gax defines Google API extensions
   module Gax
+    # A collection of common header values.
+    module Headers
+      ##
+      # @param ruby_version [String] The ruby version. Defaults to `RUBY_VERSION`.
+      # @param lib_name [String] The client library name.
+      # @param lib_version [String] The client library version.
+      # @param gapic_version [String] The GAPIC client version.
+      # @param gax_version [String] The Gax version. Defaults to `Google::Gax::VERSION`.
+      # @param grpc_version [String] The GRPC version. Defaults to `GRPC::VERSION`.
+      def self.x_goog_api_client ruby_version: nil, lib_name: nil, lib_version: nil,
+                                 gapic_version: nil, gax_version: nil, grpc_version: nil
+        ruby_version ||= ::RUBY_VERSION
+        gax_version  ||= ::Google::Gax::VERSION
+        grpc_version ||= ::GRPC::VERSION if defined? ::GRPC
+
+        x_goog_api_client_header = ["gl-ruby/#{ruby_version}"]
+        x_goog_api_client_header << "#{lib_name}/#{lib_version}" if lib_name
+        x_goog_api_client_header << "gapic/#{gapic_version}" if gapic_version
+        x_goog_api_client_header << "gax/#{gax_version}"
+        x_goog_api_client_header << "grpc/#{grpc_version}" if grpc_version
+        x_goog_api_client_header.join " ".freeze
+      end
+    end
   end
 end
