@@ -30,6 +30,15 @@
 require "test_helper"
 
 class PagedEnumerableValidRequestResponseTest < Minitest::Test
+  class FakeGaxStub
+    def initialize *responses
+      @responses = responses
+    end
+    def call_rpc *args
+      @responses.shift
+    end
+  end
+
   def test_GoodPagedRequest_GoodPagedResponse
     api_responses = [
       Google::Gax::GoodPagedResponse.new(
@@ -39,7 +48,7 @@ class PagedEnumerableValidRequestResponseTest < Minitest::Test
         ]
       )
     ]
-    api_call = ->(_req, _opt) { api_responses.shift }
+    gax_stub = FakeGaxStub.new *api_responses
     request = Google::Gax::GoodPagedRequest.new
     response = Google::Gax::GoodPagedResponse.new(
       users:           [
@@ -50,7 +59,7 @@ class PagedEnumerableValidRequestResponseTest < Minitest::Test
     )
     options = Google::Gax::ApiCall::Options.new
     paged_enum = Google::Gax::PagedEnumerable.new(
-      api_call, request, response, options
+      gax_stub, :method_name, request, response, options
     )
 
     assert_equal %w[foo bar baz bif], paged_enum.map(&:name)
@@ -65,7 +74,7 @@ class PagedEnumerableValidRequestResponseTest < Minitest::Test
         ]
       )
     ]
-    api_call = ->(_req, _opt) { api_responses.shift }
+    gax_stub = FakeGaxStub.new *api_responses
     request = Google::Gax::Int64PagedRequest.new
     response = Google::Gax::GoodPagedResponse.new(
       users:           [
@@ -76,7 +85,7 @@ class PagedEnumerableValidRequestResponseTest < Minitest::Test
     )
     options = Google::Gax::ApiCall::Options.new
     paged_enum = Google::Gax::PagedEnumerable.new(
-      api_call, request, response, options
+      gax_stub, :method_name, request, response, options
     )
 
     assert_equal %w[foo bar baz bif], paged_enum.map(&:name)

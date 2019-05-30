@@ -31,14 +31,13 @@ require "test_helper"
 
 class PagedEnumerableInvalidRequestTest < Minitest::Test
   def test_MissingPageTokenRequest
-    api_call = -> {}
     request = Google::Gax::MissingPageTokenRequest.new
     response = Google::Gax::GoodPagedResponse.new
     options = Google::Gax::ApiCall::Options.new
 
     error = assert_raises ArgumentError do
       Google::Gax::PagedEnumerable.new(
-        api_call, request, response, options
+        Object.new, :method_name, request, response, options
       )
     end
     exp_msg = "#{request.class} must have a page_token field (String)"
@@ -46,14 +45,13 @@ class PagedEnumerableInvalidRequestTest < Minitest::Test
   end
 
   def test_MissingPageSizeRequest
-    api_call = -> {}
     request = Google::Gax::MissingPageSizeRequest.new
     response = Google::Gax::GoodPagedResponse.new
     options = Google::Gax::ApiCall::Options.new
 
     error = assert_raises ArgumentError do
       Google::Gax::PagedEnumerable.new(
-        api_call, request, response, options
+        Object.new, :method_name, request, response, options
       )
     end
     exp_msg = "#{request.class} must have a page_size field (Integer)"

@@ -31,14 +31,13 @@ require "test_helper"
 
 class PagedEnumerableInvalidResponseTest < Minitest::Test
   def test_MissingRepeatedResponse
-    api_call = -> {}
     request = Google::Gax::GoodPagedRequest.new
     response = Google::Gax::MissingRepeatedResponse.new
     options = Google::Gax::ApiCall::Options.new
 
     error = assert_raises ArgumentError do
       Google::Gax::PagedEnumerable.new(
-        api_call, request, response, options
+        Object.new, :method_name, request, response, options
       )
     end
     exp_msg = "#{response.class} must have one repeated field"
@@ -46,14 +45,13 @@ class PagedEnumerableInvalidResponseTest < Minitest::Test
   end
 
   def test_MissingMessageResponse
-    api_call = -> {}
     request = Google::Gax::GoodPagedRequest.new
     response = Google::Gax::MissingMessageResponse.new
     options = Google::Gax::ApiCall::Options.new
 
     error = assert_raises ArgumentError do
       Google::Gax::PagedEnumerable.new(
-        api_call, request, response, options
+        Object.new, :method_name, request, response, options
       )
     end
     exp_msg = "#{response.class} must have one repeated field"
@@ -61,14 +59,13 @@ class PagedEnumerableInvalidResponseTest < Minitest::Test
   end
 
   def test_MissingNextPageTokenResponse
-    api_call = -> {}
     request = Google::Gax::GoodPagedRequest.new
     response = Google::Gax::MissingNextPageTokenResponse.new
     options = Google::Gax::ApiCall::Options.new
 
     error = assert_raises ArgumentError do
       Google::Gax::PagedEnumerable.new(
-        api_call, request, response, options
+        Object.new, :method_name, request, response, options
       )
     end
     exp_msg = "#{response.class} must have a next_page_token field (String)"
@@ -78,14 +75,13 @@ class PagedEnumerableInvalidResponseTest < Minitest::Test
   def test_BadMessageOrderResponse
     skip "Looks like fields are already sorted by number, not proto order"
 
-    api_call = -> {}
     request = Google::Gax::GoodPagedRequest.new
     response = Google::Gax::BadMessageOrderResponse.new
     options = Google::Gax::ApiCall::Options.new
 
     error = assert_raises ArgumentError do
       Google::Gax::PagedEnumerable.new(
-        api_call, request, response, options
+        Object.new, :method_name, request, response, options
       )
     end
     exp_msg = "#{response.class} must have one primary repeated field " \
