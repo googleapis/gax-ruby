@@ -78,7 +78,7 @@ class GrpcStubTest < Minitest::Spec
 
     mock = Minitest::Mock.new
     mock.expect :nil?, false
-    mock.expect :new, nil, ["service:port", fake_channel_creds, interceptors: []]
+    mock.expect :new, nil, ["service:port", fake_channel_creds, channel_args: {}, interceptors: []]
 
     Google::Gax::Grpc::Stub.new mock, host: "service", port: "port", credentials: fake_channel_creds
 
@@ -90,7 +90,7 @@ class GrpcStubTest < Minitest::Spec
       GRPC::Core::ChannelCredentials.stub :new, FakeChannelCredentials.method(:new) do
         mock = Minitest::Mock.new
         mock.expect :nil?, false
-        mock.expect :new, nil, ["service:port", FakeCallCredentials, interceptors: []]
+        mock.expect :new, nil, ["service:port", FakeCallCredentials, channel_args: {}, interceptors: []]
 
         Google::Gax::Grpc::Stub.new mock, host: "service", port: "port", credentials: FakeCredentials.new
 
@@ -104,7 +104,7 @@ class GrpcStubTest < Minitest::Spec
       GRPC::Core::ChannelCredentials.stub :new, FakeChannelCredentials.method(:new) do
         mock = Minitest::Mock.new
         mock.expect :nil?, false
-        mock.expect :new, nil, ["service:port", FakeCallCredentials, interceptors: []]
+        mock.expect :new, nil, ["service:port", FakeCallCredentials, channel_args: {}, interceptors: []]
 
         credentials_proc = ->{}
 
