@@ -393,8 +393,9 @@ module Google
     # @return [Proc] the original proc updated to the timeout arg
     def add_timeout_arg(a_func, timeout, metadata)
       proc do |request, block|
+        deadline = Time.now + timeout unless timeout.nil?
         op = a_func.call(request,
-                         deadline: Time.now + timeout,
+                         deadline: deadline,
                          metadata: metadata,
                          return_op: true)
         res = op.execute
