@@ -1,5 +1,9 @@
 # Release History
 
+### 1.6.2 / 2019-05-31
+
+* Allow for a nil timeout to mean a nil deadline for non-retriable calls.
+
 ### 1.6.1 / 2019-05-29
 
 * Non-retryable calls yielded only operation rather than response and operation. Fixed.
