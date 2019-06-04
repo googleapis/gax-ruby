@@ -1,5 +1,9 @@
 # Release History
 
+### 1.6.3 / 2019-06-04
+
+* Override retry options even if no retry codes were specified.
+
 ### 1.6.2 / 2019-05-31
 
 * Allow for a nil timeout to mean a nil deadline for non-retriable calls.
