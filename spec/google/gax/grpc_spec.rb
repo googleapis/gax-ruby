@@ -35,6 +35,7 @@ describe Google::Gax::Grpc do
       mock = instance_double(GRPC::Core::ChannelCredentials)
       composed_mock = instance_double(GRPC::Core::ChannelCredentials)
       default_creds = instance_double(Google::Auth::ServiceAccountCredentials)
+      channel_args = { 'grpc.service_config_disable_resolution' => 1 }
       updater_proc = proc {}
 
       allow(Google::Auth)
@@ -45,7 +46,10 @@ describe Google::Gax::Grpc do
 
       expect do |blk|
         Google::Gax::Grpc.create_stub('service', 'port', &blk)
-      end.to yield_with_args('service:port', composed_mock, interceptors: [])
+      end.to yield_with_args(
+        'service:port', composed_mock,
+        interceptors: [], channel_args: channel_args
+      )
     end
 
     it 'yields given channel' do
@@ -85,25 +89,28 @@ describe Google::Gax::Grpc do
     end
 
     it 'yields given channel credentials' do
+      channel_args = { 'grpc.service_config_disable_resolution' => 1 }
       mock = instance_double(GRPC::Core::ChannelCredentials)
       expect do |blk|
         Google::Gax::Grpc.create_stub(
           'service', 'port', chan_creds: mock, &blk
         )
       end.to yield_with_args(
-        'service:port', mock, interceptors: []
+        'service:port', mock, interceptors: [], channel_args: channel_args
       )
     end
 
     it 'yields given channel credentials and interceptors' do
       mock = instance_double(GRPC::Core::ChannelCredentials)
       interceptors = instance_double(Array)
+      channel_args = { 'grpc.service_config_disable_resolution' => 1 }
       expect do |blk|
         Google::Gax::Grpc.create_stub(
           'service', 'port', chan_creds: mock, interceptors: interceptors, &blk
         )
       end.to yield_with_args(
-        'service:port', mock, interceptors: interceptors
+        'service:port', mock,
+        interceptors: interceptors, channel_args: channel_args
       )
     end
 
@@ -112,6 +119,7 @@ describe Google::Gax::Grpc do
       composed_chan_creds = instance_double(GRPC::Core::ChannelCredentials)
       call_creds = instance_double(GRPC::Core::CallCredentials)
       updater_proc = proc {}
+      channel_args = { 'grpc.service_config_disable_resolution' => 1 }
 
       allow(GRPC::Core::CallCredentials)
         .to receive(:new).with(updater_proc).and_return(call_creds)
@@ -124,7 +132,8 @@ describe Google::Gax::Grpc do
           'service', 'port', updater_proc: updater_proc, &blk
         )
       end.to yield_with_args(
-        'service:port', composed_chan_creds, interceptors: []
+        'service:port', composed_chan_creds,
+        interceptors: [], channel_args: channel_args
       )
     end
 

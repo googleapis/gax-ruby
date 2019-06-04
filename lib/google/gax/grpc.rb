@@ -122,7 +122,7 @@ module Google
                       interceptors: [])
         verify_params(channel, chan_creds, updater_proc)
         address = "#{service_path}:#{port}"
-        default_channel_args = {"grpc.service_config_disable_resolution" => 1}
+        default_channel_args = { 'grpc.service_config_disable_resolution' => 1 }
         if channel
           yield(address, nil, channel_override: channel,
                               interceptors: interceptors)
