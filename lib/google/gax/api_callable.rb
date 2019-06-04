@@ -249,7 +249,7 @@ module Google
           params = params_extractor.call(request)
           this_settings = with_routing_header(this_settings, params)
         end
-        api_call = if settings.retry_codes?
+        api_call = if this_settings.retry_codes?
                      retryable(func, this_settings.retry_options,
                                this_settings.metadata)
                    else
