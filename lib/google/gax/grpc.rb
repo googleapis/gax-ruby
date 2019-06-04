@@ -122,11 +122,13 @@ module Google
                       interceptors: [])
         verify_params(channel, chan_creds, updater_proc)
         address = "#{service_path}:#{port}"
+        default_channel_args = {"grpc.service_config_disable_resolution" => 1}
         if channel
           yield(address, nil, channel_override: channel,
                               interceptors: interceptors)
         elsif chan_creds
-          yield(address, chan_creds, interceptors: interceptors)
+          yield(address, chan_creds, interceptors: interceptors,
+                                     channel_args: default_channel_args)
         else
           if updater_proc.nil?
             auth_creds = Google::Auth.get_application_default(scopes)
@@ -134,7 +136,8 @@ module Google
           end
           call_creds = GRPC::Core::CallCredentials.new(updater_proc)
           chan_creds = GRPC::Core::ChannelCredentials.new.compose(call_creds)
-          yield(address, chan_creds, interceptors: interceptors)
+          yield(address, chan_creds, interceptors: interceptors,
+                                     channel_args: default_channel_args)
         end
       end
 
