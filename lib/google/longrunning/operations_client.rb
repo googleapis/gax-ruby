@@ -1,4 +1,5 @@
-# Copyright 2017, Google LLC All rights reserved.
+# Copyright 2017, Google LLC
+# All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -108,6 +109,10 @@ module Google
       #   or the specified config is missing data points.
       # @param timeout [Numeric]
       #   The default timeout, in seconds, for calls made through this client.
+      # @param service_address [String]
+      #   The hostname of the backend service. Defaults to {SERVICE_ADDRESS}.
+      # @param service_port [Integer]
+      #   The port of the backend service. Defaults to {DEFAULT_SERVICE_PORT}.
       # @param metadata [Hash]
       #   The request metadata headers.
       def initialize \
@@ -117,6 +122,8 @@ module Google
           timeout: DEFAULT_TIMEOUT,
           lib_name: nil,
           lib_version: "",
+          service_address: nil,
+          service_port: nil,
           metadata: nil
         # These require statements are intentionally placed here to initialize
         # the gRPC module only when it's required.
@@ -169,8 +176,8 @@ module Google
         end
 
         # Allow overriding the service path/port in subclasses.
-        service_path = self.class::SERVICE_ADDRESS
-        port = self.class::DEFAULT_SERVICE_PORT
+        service_path = service_address || self.class::SERVICE_ADDRESS
+        port = service_port || self.class::DEFAULT_SERVICE_PORT
         @operations_stub = Google::Gax::Grpc.create_stub(
           service_path,
           port,
