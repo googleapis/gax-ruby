@@ -1,5 +1,9 @@
 # Release History
 
+### 1.7.0 / 2019-06-27
+
+* Support overrides of the service address and port for long-running operations.
+
 ### 1.6.3 / 2019-06-04
 
 * Override retry options even if no retry codes were specified.
