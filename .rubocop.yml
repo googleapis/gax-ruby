@@ -1,43 +1,8 @@
-inherit_gem:
-  google-style: google-style.yml
+inherit_from: .rubocop_todo.yml
 
-AllCops:
-  Exclude:
-    - "google-gax.gemspec"
-    - "test/**/*"
-
+# Prefer compact style, as Ruby runtime overwrites the GAX error message
+# when exploded exception style is used.
 Metrics/ClassLength:
-  Exclude:
-    - "lib/google/gax/configuration.rb"
-    - "lib/google/gax/configuration/schema.rb"
-
-Metrics/AbcSize:
-  Exclude:
-    - "lib/google/gax/config.rb"
-Metrics/CyclomaticComplexity:
-  Exclude:
-    - "lib/google/gax/config.rb"
-Metrics/MethodLength:
-  Exclude:
-    - "lib/google/gax/config.rb"
-Metrics/PerceivedComplexity:
-  Exclude:
-    - "lib/google/gax/config.rb"
-    - "lib/google/gax/grpc/stub.rb"
-
-Style/Documentation:
-  Exclude:
-    - "lib/google/gax/api_call.rb"
-    - "lib/google/gax/configuration/deferred_value.rb"
-    - "lib/google/gax/configuration/schema.rb"
-    - "lib/google/gax/errors.rb"
-    - "lib/google/gax/grpc/status_details.rb"
-Style/GuardClause:
-  Exclude:
-    - "lib/google/gax/grpc/stub.rb"
-Style/CaseEquality:
-  Exclude:
-    - "lib/google/gax/configuration.rb"
-    - "lib/google/gax/configuration/derived.rb"
-    - "lib/google/gax/configuration/schema.rb"
-    - "lib/google/gax/config.rb"
+  Max: 110
+Style/RaiseArgs:
+  EnforcedStyle: compact
