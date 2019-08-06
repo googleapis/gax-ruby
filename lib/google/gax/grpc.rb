@@ -1,4 +1,4 @@
-# Copyright 2016, Google Inc.
+# Copyright 2016, Google LLC
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 # copyright notice, this list of conditions and the following disclaimer
 # in the documentation and/or other materials provided with the
 # distribution.
-#     * Neither the name of Google Inc. nor the names of its
+#     * Neither the name of Google LLC nor the names of its
 # contributors may be used to endorse or promote products derived from
 # this software without specific prior written permission.
 #
@@ -122,11 +122,13 @@ module Google
                       interceptors: [])
         verify_params(channel, chan_creds, updater_proc)
         address = "#{service_path}:#{port}"
+        default_channel_args = { 'grpc.service_config_disable_resolution' => 1 }
         if channel
           yield(address, nil, channel_override: channel,
                               interceptors: interceptors)
         elsif chan_creds
-          yield(address, chan_creds, interceptors: interceptors)
+          yield(address, chan_creds, interceptors: interceptors,
+                                     channel_args: default_channel_args)
         else
           if updater_proc.nil?
             auth_creds = Google::Auth.get_application_default(scopes)
@@ -134,7 +136,8 @@ module Google
           end
           call_creds = GRPC::Core::CallCredentials.new(updater_proc)
           chan_creds = GRPC::Core::ChannelCredentials.new.compose(call_creds)
-          yield(address, chan_creds, interceptors: interceptors)
+          yield(address, chan_creds, interceptors: interceptors,
+                                     channel_args: default_channel_args)
         end
       end
 

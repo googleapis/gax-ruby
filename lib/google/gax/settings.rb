@@ -1,4 +1,4 @@
-# Copyright 2016, Google Inc.
+# Copyright 2016, Google LLC
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 # copyright notice, this list of conditions and the following disclaimer
 # in the documentation and/or other materials provided with the
 # distribution.
-#     * Neither the name of Google Inc. nor the names of its
+#     * Neither the name of Google LLC nor the names of its
 # contributors may be used to endorse or promote products derived from
 # this software without specific prior written permission.
 #
@@ -83,7 +83,9 @@ module Google
 
       # @return true when it has retry codes.
       def retry_codes?
-        @retry_options && @retry_options.retry_codes
+        @retry_options &&
+          @retry_options.retry_codes &&
+          @retry_options.retry_codes.any?
       end
 
       # @return true when it has valid bundler configuration.
@@ -123,7 +125,8 @@ module Google
                        options.page_token
                      end
 
-        metadata = (metadata.dup if metadata) || {}
+        metadata = @metadata || {}
+        metadata = metadata.dup
         metadata.update(options.metadata) if options.metadata != :OPTION_INHERIT
 
         CallSettings.new(timeout: timeout,

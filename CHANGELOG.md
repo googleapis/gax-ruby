@@ -1,5 +1,27 @@
 # Release History
 
+### 1.7.0 / 2019-06-27
+
+* Support overrides of the service address and port for long-running operations.
+
+### 1.6.3 / 2019-06-04
+
+* Override retry options even if no retry codes were specified.
+
+### 1.6.2 / 2019-05-31
+
+* Allow for a nil timeout to mean a nil deadline for non-retriable calls.
+
+### 1.6.1 / 2019-05-29
+
+* Non-retryable calls yielded only operation rather than response and operation. Fixed.
+
+### 1.6.0 / 2019-05-29
+
+* Added metadata argument to OperationsClient.new allowing users to set default headers.
+* Fixes an issue where metadata set on CallSettings was not preserved after merging a CallOptions object.
+* Fixes an issue where timeout wasn't being used when retry is configured.
+
 ### 1.5.0 / 2019-1-7
 
 * Loosen googleauth dependency
