@@ -63,6 +63,9 @@ A_CONFIG = {
         'SomeHTTPSPageStreamingMethod' => {
           'retry_codes_name' => 'bar_retry',
           'retry_params_name' => 'default'
+        },
+        'TimeoutMethod' => {
+          'timeout_millis' => 10_000
         }
       }
     }
@@ -119,6 +122,9 @@ describe Google::Gax do
     )
     expect(settings.metadata).to match('key' => 'value')
     expect(settings.errors).to match_array([StandardError])
+
+    settings = defaults["timeout_method"]
+    expect(settings.timeout).to be(10)
   end
 
   it 'overrides settings' do
@@ -129,6 +135,9 @@ describe Google::Gax do
             'SomeHTTPSPageStreamingMethod' => nil,
             'BundlingMethod' => {
               'bundling' => nil
+            },
+            'TimeoutMethod' => {
+              'timeout_millis' => nil
             }
           }
         }
@@ -149,6 +158,9 @@ describe Google::Gax do
     expect(settings.timeout).to be(30)
     expect(settings.page_descriptor).to be_a(Google::Gax::PageDescriptor)
     expect(settings.retry_options).to be_nil
+
+    settings = defaults["timeout_method"]
+    expect(settings.timeout).to be(30)
   end
 
   it 'overrides settings more precisely' do
@@ -174,6 +186,9 @@ describe Google::Gax do
             'BundlingMethod' => {
               'retry_params_name' => 'default',
               'retry_codes_name' => 'baz_retry'
+            },
+            'TimeoutMethod' => {
+              'timeout_millis' => 20_000
             }
           }
         }
@@ -205,5 +220,8 @@ describe Google::Gax do
     expect(settings.retry_options.retry_codes).to match_array(
       [RETRY_DICT['code_c']]
     )
+
+    settings = defaults["timeout_method"]
+    expect(settings.timeout).to be(20)
   end
 end

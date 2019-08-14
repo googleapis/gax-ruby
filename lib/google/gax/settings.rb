@@ -510,8 +510,14 @@ module Google
         end
         bundle_descriptor = bundle_descriptors[snake_name]
 
+        timeout_override = method_config["timeout_millis"]
+        if overriding_method && overriding_method.key?("timeout_millis")
+          timeout_override = overriding_method["timeout_millis"]
+        end
+        method_timeout = timeout_override ? timeout_override / 1000 : timeout
+
         defaults[snake_name] = CallSettings.new(
-          timeout: timeout,
+          timeout: method_timeout,
           retry_options: merge_retry_options(
             construct_retry(method_config,
                             service_config['retry_codes'],
