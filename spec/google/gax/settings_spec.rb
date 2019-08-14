@@ -123,7 +123,7 @@ describe Google::Gax do
     expect(settings.metadata).to match('key' => 'value')
     expect(settings.errors).to match_array([StandardError])
 
-    settings = defaults["timeout_method"]
+    settings = defaults['timeout_method']
     expect(settings.timeout).to be(10)
   end
 
@@ -159,7 +159,7 @@ describe Google::Gax do
     expect(settings.page_descriptor).to be_a(Google::Gax::PageDescriptor)
     expect(settings.retry_options).to be_nil
 
-    settings = defaults["timeout_method"]
+    settings = defaults['timeout_method']
     expect(settings.timeout).to be(30)
   end
 
@@ -221,7 +221,7 @@ describe Google::Gax do
       [RETRY_DICT['code_c']]
     )
 
-    settings = defaults["timeout_method"]
+    settings = defaults['timeout_method']
     expect(settings.timeout).to be(20)
   end
 end
