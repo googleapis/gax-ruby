@@ -511,7 +511,9 @@ module Google
         bundle_descriptor = bundle_descriptors[snake_name]
 
         defaults[snake_name] = CallSettings.new(
-          timeout: timeout,
+          timeout: calc_method_timeout(
+            timeout, method_config, overriding_method
+          ),
           retry_options: merge_retry_options(
             construct_retry(method_config,
                             service_config['retry_codes'],
@@ -533,11 +535,20 @@ module Google
       defaults
     end
 
+    # @private Determine timeout in seconds for the current method.
+    def calc_method_timeout(timeout, method_config, overriding_method)
+      timeout_override = method_config['timeout_millis']
+      if overriding_method && overriding_method.key?('timeout_millis')
+        timeout_override = overriding_method['timeout_millis']
+      end
+      timeout_override ? timeout_override / 1000 : timeout
+    end
+
     module_function :construct_settings, :construct_bundling,
                     :construct_retry, :upper_camel_to_lower_underscore,
-                    :merge_retry_options
+                    :merge_retry_options, :calc_method_timeout
     private_class_method :construct_bundling, :construct_retry,
                          :upper_camel_to_lower_underscore,
-                         :merge_retry_options
+                         :merge_retry_options, :calc_method_timeout
   end
 end
