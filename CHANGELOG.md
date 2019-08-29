@@ -1,5 +1,9 @@
 # Release History
 
+### 1.7.1 / 2019-08-29
+
+* Fixed: Per-call timeout overrides from client configs are now honored.
+
 ### 1.7.0 / 2019-06-27
 
 * Support overrides of the service address and port for long-running operations.
