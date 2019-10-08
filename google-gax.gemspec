@@ -20,12 +20,12 @@ Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   s.license = 'BSD-3-Clause'
 
-  s.required_ruby_version = '>= 2.0.0'
+  s.required_ruby_version = '>= 2.4.0'
 
-  s.add_dependency 'googleauth', '>= 0.6.2', '< 0.10.0'
-  s.add_dependency 'grpc', '>= 1.7.2', '< 2.0'
-  s.add_dependency 'googleapis-common-protos', '>= 1.3.5', '< 2.0'
-  s.add_dependency 'google-protobuf', '~> 3.2'
+  s.add_dependency 'googleauth', '~> 0.10.0'
+  s.add_dependency 'grpc', '~> 1.24'
+  s.add_dependency 'googleapis-common-protos', '>= 1.3.9', '< 2.0'
+  s.add_dependency 'google-protobuf', '~> 3.9'
   s.add_dependency 'rly', '~> 0.2.3'
 
   s.add_development_dependency 'codecov', '~> 0.1'

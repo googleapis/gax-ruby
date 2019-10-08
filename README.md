@@ -21,7 +21,12 @@ provide a more convenient and idiomatic API surface to callers.
 Ruby Versions
 ---------------
 
-gax-ruby is currently tested with Ruby 2.2.4.
+This library requires Ruby 2.4 or later.
+
+In general, this library supports Ruby versions that are considered current and
+supported by Ruby Core (that is, Ruby versions that are either in normal
+maintenance or in security maintenance).
+See https://www.ruby-lang.org/en/downloads/branches/ for further details.
 
 
 Contributing
