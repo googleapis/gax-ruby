@@ -29,6 +29,6 @@
 
 module Google
   module Gax
-    VERSION = '1.7.1'.freeze
+    VERSION = '1.8.0'.freeze
   end
 end

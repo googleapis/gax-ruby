@@ -1,5 +1,11 @@
 # Release History
 
+### 1.8.0 / 2019-10-09
+
+This release requires Ruby 2.4 or later.
+
+* Update dependencies on googleauth, grpc, google-protobuf, and googleapis-common-protos.
+
 ### 1.7.1 / 2019-08-29
 
 * Fixed: Per-call timeout overrides from client configs are now honored.
