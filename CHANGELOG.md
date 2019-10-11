@@ -1,5 +1,9 @@
 # Release History
 
+### 1.8.1 / 2019-10-10
+
+* Loosen dependency on googleauth to retain compatibility with googleauth 0.9 and older libraries that depend on it.
+
 ### 1.8.0 / 2019-10-09
 
 This release requires Ruby 2.4 or later.
