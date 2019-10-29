@@ -141,6 +141,20 @@ describe Google::Gax::PathTemplate do
       want = 'bar/1/2/foo/3'
       expect(template.render(**params)).to eq(want)
     end
+
+    it 'handles path values with spaces' do
+      template = PathTemplate.new('bar/**/foo/*')
+      params = symbolize_keys('$0' => '1 - 2', '$1' => '3')
+      want = 'bar/1 - 2/foo/3'
+      expect(template.render(**params)).to eq(want)
+    end
+
+    it 'handles named path values with spaces' do
+      template = PathTemplate.new('bar/{bif}/foo/{baz}')
+      params = symbolize_keys(bif: '1 - 2', baz: '3/4')
+      want = 'bar/1 - 2/foo/3/4'
+      expect(template.render(**params)).to eq(want)
+    end
   end
 
   describe 'method `to_s`' do
