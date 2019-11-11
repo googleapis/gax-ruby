@@ -34,7 +34,7 @@ describe Google::Gax::PagedEnumerable do
   it 'enumerates all resources' do
     api_responses = [
       Google::Protobuf::GoodPagedResponse.new(
-        users:           [
+        users: [
           Google::Protobuf::User.new(name: 'foo'),
           Google::Protobuf::User.new(name: 'bar')
         ],
@@ -67,7 +67,7 @@ describe Google::Gax::PagedEnumerable do
   it 'enumerates all pages' do
     api_responses = [
       Google::Protobuf::GoodPagedResponse.new(
-        users:           [
+        users: [
           Google::Protobuf::User.new(name: 'foo'),
           Google::Protobuf::User.new(name: 'bar')
         ],
