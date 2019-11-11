@@ -38,3 +38,14 @@ message User {
 message Post {
   string text = 1;
 }
+
+message GoodPagedRequest {
+  string name = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message GoodPagedResponse {
+  repeated User users = 1;
+  string next_page_token = 2;
+}
