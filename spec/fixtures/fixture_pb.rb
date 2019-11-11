@@ -24,6 +24,15 @@ Google::Protobuf::DescriptorPool.generated_pool.build do
   add_message "google.protobuf.Post" do
     optional :text, :string, 1
   end
+  add_message "google.protobuf.GoodPagedRequest" do
+    optional :name, :string, 1
+    optional :page_size, :int32, 2
+    optional :page_token, :string, 3
+  end
+  add_message "google.protobuf.GoodPagedResponse" do
+    repeated :users, :message, 1, "google.protobuf.User"
+    optional :next_page_token, :string, 2
+  end
 end
 
 module Google
@@ -32,5 +41,7 @@ module Google
     User = Google::Protobuf::DescriptorPool.generated_pool.lookup("google.protobuf.User").msgclass
     User::UserType = Google::Protobuf::DescriptorPool.generated_pool.lookup("google.protobuf.User.UserType").enummodule
     Post = Google::Protobuf::DescriptorPool.generated_pool.lookup("google.protobuf.Post").msgclass
+    GoodPagedRequest = Google::Protobuf::DescriptorPool.generated_pool.lookup("google.protobuf.GoodPagedRequest").msgclass
+    GoodPagedResponse = Google::Protobuf::DescriptorPool.generated_pool.lookup("google.protobuf.GoodPagedResponse").msgclass
   end
 end
