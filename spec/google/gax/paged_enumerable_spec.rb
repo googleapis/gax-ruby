@@ -64,6 +64,35 @@ describe Google::Gax::PagedEnumerable do
     expect(exp_names).to eq(%w[foo bar baz bif])
   end
 
+  it 'enumerates all resources using an Enumerator' do
+    api_responses = [
+      Google::Protobuf::GoodPagedResponse.new(
+        users: [
+          Google::Protobuf::User.new(name: 'foo'),
+          Google::Protobuf::User.new(name: 'bar')
+        ],
+        next_page_token: 'next'
+      ),
+      Google::Protobuf::GoodPagedResponse.new(
+        users: [
+          Google::Protobuf::User.new(name: 'baz'),
+          Google::Protobuf::User.new(name: 'bif')
+        ]
+      )
+    ]
+    paged_enum = Google::Gax::PagedEnumerable.new(
+      'page_token', 'next_page_token', 'users'
+    )
+    api_call = lambda do |_req, _blk = nil|
+      api_responses.shift
+    end
+    request = Google::Protobuf::GoodPagedRequest.new
+    fake_settings = OpenStruct.new(page_token: nil)
+    paged_enum.start(api_call, request, fake_settings, nil)
+
+    expect(paged_enum.each.map(&:name)).to eq(%w[foo bar baz bif])
+  end
+
   it 'enumerates all pages' do
     api_responses = [
       Google::Protobuf::GoodPagedResponse.new(
@@ -98,6 +127,36 @@ describe Google::Gax::PagedEnumerable do
       end
       exp_names << exp_page_names
     end
+    expect(exp_names).to eq([%w[foo bar], %w[baz bif]])
+  end
+
+  it 'enumerates all pages using an Enumerator' do
+    api_responses = [
+      Google::Protobuf::GoodPagedResponse.new(
+        users: [
+          Google::Protobuf::User.new(name: 'foo'),
+          Google::Protobuf::User.new(name: 'bar')
+        ],
+        next_page_token: 'next'
+      ),
+      Google::Protobuf::GoodPagedResponse.new(
+        users: [
+          Google::Protobuf::User.new(name: 'baz'),
+          Google::Protobuf::User.new(name: 'bif')
+        ]
+      )
+    ]
+    paged_enum = Google::Gax::PagedEnumerable.new(
+      'page_token', 'next_page_token', 'users'
+    )
+    api_call = lambda do |_req, _blk = nil|
+      api_responses.shift
+    end
+    request = Google::Protobuf::GoodPagedRequest.new
+    fake_settings = OpenStruct.new(page_token: nil)
+    paged_enum.start(api_call, request, fake_settings, nil)
+
+    exp_names = paged_enum.each_page.map { |page| page.map(&:name) }
     expect(exp_names).to eq([%w[foo bar], %w[baz bif]])
   end
 end

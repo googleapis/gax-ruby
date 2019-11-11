@@ -99,6 +99,7 @@ module Google
         # Iterate over the resources.
         # @yield [Object] Gives the resource objects in the page.
         def each
+          return enum_for :each unless block_given?
           @response[@resource_field].each do |obj|
             yield obj
           end
@@ -157,6 +158,7 @@ module Google
       # @yield [Object] Gives the resource objects in the stream.
       # @raise [RuntimeError] if it's not started yet.
       def each
+        return enum_for :each unless block_given?
         each_page do |page|
           page.each do |obj|
             yield obj
@@ -168,6 +170,7 @@ module Google
       # @yield [Page] Gives the pages in the stream.
       # @raise [GaxError] if it's not started yet.
       def each_page
+        return enum_for :each_page unless block_given?
         raise GaxError.new('not started!') unless started?
         yield @page
         loop do
