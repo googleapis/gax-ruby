@@ -177,18 +177,16 @@ module Google
               msg = "Value for key #{segment.literal} is not provided"
               raise ArgumentError.new(msg)
             end
-            out.concat(PathTemplate.new(bindings[literal_sym]).segments)
+            out << bindings[literal_sym]
             binding = true
           elsif segment.kind == END_BINDING
             binding = false
           else
             next if binding
-            out << segment
+            out << segment.literal.to_s
           end
         end
-        path = self.class.format_segments(*out)
-        match(path)
-        path
+        out.join('/')
       end
 
       # Matches a fully qualified path template string.
