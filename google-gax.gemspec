@@ -34,4 +34,15 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'rspec', '~> 3.0'
   s.add_development_dependency 'rubocop', '= 0.49.0'
   s.add_development_dependency 'simplecov', '~> 0.9'
+
+  s.post_install_message = <<~MESSAGE
+    *******************************************************************************
+    The google-gax gem is officially end-of-life and will not be updated further.
+
+    If your app uses the google-gax gem, it likely is using obsolete versions of
+    some Google Cloud client library (google-cloud-*) gem that depends on it. We
+    recommend updating any such libraries that depend on google-gax. Modern Google
+    Cloud client libraries will depend on the gapic-common gem instead.
+    *******************************************************************************
+  MESSAGE
 end

@@ -1,8 +1,16 @@
 Google API Extensions for Ruby
 ================================
 
-[![Build Status](https://travis-ci.org/googleapis/gax-ruby.svg?branch=master)](https://travis-ci.org/googleapis/gax-ruby)
-[![Code Coverage](https://img.shields.io/codecov/c/github/googleapis/gax-ruby.svg)](https://codecov.io/github/googleapis/gax-ruby)
+**This gem is officially end-of-life**
+
+The `gax-ruby` gem included common code used by obsolete versions of the Google
+API clients in https://github.com/googleapis/google-cloud-ruby. Up-to-date
+versions of the client libraries no longer use this gem. If your app depends on
+`gax-ruby`, we recommend updating the client library gems that depend on it.
+Modern clients will depend on the `gapic-common` gem instead of `gax-ruby`.
+
+**This gem is officially end-of-life**
+
 [![Gem Version](https://badge.fury.io/rb/google-gax.svg)](https://badge.fury.io/rb/google-gax)
 
 Google API Extensions for Ruby (gax-ruby) is a set of modules which aids the
