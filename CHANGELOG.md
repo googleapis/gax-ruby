@@ -1,5 +1,12 @@
 # Release History
 
+### 1.8.2 / 2021-09-13
+
+**This will be the final release of this library. It is considered end-of-life, because the libraries that depended on it have all switched to a different dependency (gapic-common) as of mid-2020.**
+
+* Fix: Specify minimum googleapis-common-protos-types dependency
+* Fix: Allow spaces in path template render bindings
+
 ### 1.8.1 / 2019-10-10
 
 * Loosen dependency on googleauth to retain compatibility with googleauth 0.9 and older libraries that depend on it.
